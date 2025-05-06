@@ -1,24 +1,158 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import Employees from './pages/Employees';
+import LeaveApproval from './pages/LeaveApproval';
+import Reports from './pages/Reports';
+import ManageUsers from './pages/ManageUsers';
+import Layout from './components/Layout';
+import { isAuthenticated, getUserRole } from './utils/auth';
+
+
+// Import all new pages
+import CreateEmployee from './pages/admin/create/CreateEmployee.js';
+import CreateOutlet from './pages/admin/create/CreateOutlet.js';
+import CreateLeave from './pages/admin/create/CreateLeave.js';
+import CreateWorkShift from './pages/admin/create/CreateWorkShift.js';
+import CreateManager from './pages/admin/create/CreateManager.js';
+import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
+import EmployeeStatus from './pages/admin/EmployeeStatus.js';
+
+import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
+import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
+import AssignLeave from './pages/admin/assign/AssignLeave.js';
+import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
+
+const PrivateRoute = ({ children }) => {
+  return isAuthenticated() ? children : <Navigate to="/" />;
+};
+
+const ProtectedRoute = ({ role, children, requiredRole }) => {
+  return isAuthenticated() && role === requiredRole ? children : <Navigate to="/" />;
+};
 
 function App() {
+  const role = getUserRole();
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        {/* Public Route */}
+        <Route path="/" element={<LoginPage />} />
+
+        {/* Admin Dashboard */}
+        <Route
+          path="/Admindashboard"
+          element={
+            <ProtectedRoute role={role} requiredRole="admin">
+              <Layout>
+                <AdminDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Manager Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute role={role} requiredRole="manager">
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Manager Routes */}
+        <Route path="/employees" element={
+          <ProtectedRoute role={role} requiredRole="manager">
+            <Layout><Employees /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/leave-approval" element={
+          <ProtectedRoute role={role} requiredRole="manager">
+            <Layout><LeaveApproval /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/reports" element={
+          <ProtectedRoute role={role} requiredRole="manager">
+            <Layout><Reports /></Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Routes */}
+        <Route path="/manage-users" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><ManageUsers /></Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Admin: Create Section */}
+        <Route path="/admin/create/employee" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><CreateEmployee /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/create/outlet" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><CreateOutlet /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/create/leave" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><CreateLeave /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/create/workshift" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><CreateWorkShift /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/create/manager" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><CreateManager /></Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Admin: Assign Section */}
+        <Route path="/admin/assign/employee-outlet" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><AssignEmployeeOutlet /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/assign/manager-outlet" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><AssignManagerOutlet /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/assign/leave" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><AssignLeave /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/assign/workshift" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><AssignWorkShift /></Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Admin Reports */}
+        <Route path="/admin/reports" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><AdminReport /></Layout>  {/* Add the AdminReport component here */}
+          </ProtectedRoute>
+        } />
+        {/* Employee-status */}
+        <Route path="/admin/employee-status" element={
+          <ProtectedRoute role={role} requiredRole="admin">
+            <Layout><EmployeeStatus /></Layout>
+          </ProtectedRoute>
+        } />
+              </Routes>
+    </BrowserRouter>
   );
 }
 
