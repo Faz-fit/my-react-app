@@ -1,4 +1,3 @@
-// src/pages/LoginPage.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -22,11 +21,29 @@ const LoginPage = () => {
         localStorage.setItem('access_token', response.data.access);
         localStorage.setItem('refresh_token', response.data.refresh);
 
-        // Redirect to the appropriate dashboard (admin/manager)
-        navigate('/dashboard');  // or '/Admindashboard' based on the role
+        // Decode the JWT access token to get the role and outlets information
+        const decoded = JSON.parse(atob(response.data.access.split('.')[1]));
+        const role = decoded.role;  // Assuming the role is part of the JWT payload
+        const outlets = decoded.outlets || []; // Assuming outlets are part of the JWT payload
+
+        // Handle navigation based on the role
+        if (role === 'admin') {
+          navigate('/Admindashboard'); // Admin dashboard
+        } else if (role === 'manager') {
+          if (outlets.length === 1) {
+            localStorage.setItem('outlet', outlets[0]); // Only one outlet, set it
+            navigate('/dashboard'); // Manager dashboard
+          } else {
+            localStorage.setItem('outletList', JSON.stringify(outlets)); // Multiple outlets, select one
+            navigate('/select-outlet');
+          }
+        } else {
+          setError('Unknown role');
+        }
       }
     } catch (error) {
       setError('Login failed. Please check your credentials.');
+      console.error(error); // Log the actual error for debugging
     }
   };
 
