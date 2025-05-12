@@ -14,36 +14,6 @@ services:
     networks:
       - my_network
 
-  # Uncomment and modify these services if needed in the future, but they are not required for the frontend right now
-  # db:
-  #   image: postgres:15
-  #   container_name: aas-db
-  #   ports:
-  #     - "5432:5432"
-  #   environment:
-  #     POSTGRES_PASSWORD: yourpassword
-  #   networks:
-  #     - my_network
-
-  # pgadmin:
-  #   image: dpage/pgadmin4
-  #   container_name: aas-pgadmin
-  #   ports:
-  #     - "5050:80"
-  #   environment:
-  #     PGADMIN_DEFAULT_EMAIL: admin@example.com
-  #     PGADMIN_DEFAULT_PASSWORD: admin
-  #   networks:
-  #     - my_network
-
-  # web:
-  #   image: aas-web
-  #   container_name: aas-web
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - my_network
-
 networks:
   my_network:
     driver: bridge
