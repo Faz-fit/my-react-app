@@ -5,7 +5,7 @@ import { getUserRole } from '../utils/auth';
 
 function Sidebar({ sidebarOpen, onClose }) {
   const role = getUserRole();
-  const [setEmployeeStatus] = useState("Pending"); // Example status
+  
 
   const navItems = [
     // Common or role-specific dashboard
