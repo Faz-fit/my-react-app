@@ -1,14 +1,23 @@
-# Use the official Nginx base image
-FROM nginx:alpine
+# Use an official Node.js runtime as a parent image
+FROM node:16-alpine
 
-# Copy built React files into Nginx's web root
-COPY build /usr/share/nginx/html
+# Set the working directory in the container
+WORKDIR /app
 
-# Optional: Custom Nginx config for React Router
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Expose port 80 to the outside
+# Install dependencies
+RUN npm install
+
+# Build the React app
+RUN npm run build
+
+# Install a lightweight HTTP server to serve the static files
+RUN npm install -g serve
+
+# Make the app available on port 80
 EXPOSE 80
 
-# Start Nginx server
-CMD ["nginx", "-g", "daemon off;"]
+# Run the app
+CMD ["serve", "-s", "build", "-l", "80"]
