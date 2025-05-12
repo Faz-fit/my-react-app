@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Box, List, ListItem, ListItemButton, ListItemText, ListSubheader, Typography } from '@mui/material'; // Add Typography import
+import { Box, List, ListItem, ListItemButton, ListItemText, ListSubheader} from '@mui/material'; // Add Typography import
 import { NavLink } from 'react-router-dom';
 import { getUserRole } from '../utils/auth';
 
 function Sidebar({ sidebarOpen, onClose }) {
   const role = getUserRole();
-  const [employeeStatus, setEmployeeStatus] = useState("Pending"); // Example status
+  const [setEmployeeStatus] = useState("Pending"); // Example status
 
   const navItems = [
     // Common or role-specific dashboard
@@ -43,13 +43,7 @@ function Sidebar({ sidebarOpen, onClose }) {
       return acc;
     }, {});
 
-  // Admin-only logic to update employee status
-  const updateEmployeeStatus = () => {
-    if (role === 'admin') {
-      setEmployeeStatus("Updated"); // Change the status to "Updated" for admin
-    }
-  };
-
+  
   return (
     <Box
       sx={{

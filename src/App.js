@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
@@ -25,9 +24,7 @@ import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
 import AssignLeave from './pages/admin/assign/AssignLeave.js';
 import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
 
-const PrivateRoute = ({ children }) => {
-  return isAuthenticated() ? children : <Navigate to="/" />;
-};
+
 
 const ProtectedRoute = ({ role, children, requiredRole }) => {
   return isAuthenticated() && role === requiredRole ? children : <Navigate to="/" />;
