@@ -11,7 +11,7 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://arunalusupermarket.shop/api/token/', {
+      const response = await axios.post('http://arunalusupermarket.shop:3000/api/token/', {
         username,
         password,
       });
