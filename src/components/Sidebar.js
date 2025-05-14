@@ -9,11 +9,11 @@ function Sidebar({ sidebarOpen, onClose }) {
 
   const navItems = [
     // Common or role-specific dashboard
-    { text: 'Dashboard', path: role === 'admin' ? '/Admindashboard' : '/dashboard', roles: ['admin', 'manager'] },
+    { text: 'Dashboard', path: role === 'Admin' ? '/Admindashboard' : '/dashboard', roles: ['Admin', 'manager'] },
 
     // Admin section
-    { text: 'Employee Status', path: '/admin/employee-status', roles: ['admin']},
-    { text: 'Admin Reports', path: '/admin/reports', roles: ['admin'] },
+    { text: 'Employee Status', path: '/Admin/employee-status', roles: ['Admin']},
+    { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
 
     // Manager section
     { text: 'Employees', path: '/employees', roles: ['manager'] },
@@ -21,16 +21,16 @@ function Sidebar({ sidebarOpen, onClose }) {
     { text: 'Reports', path: '/reports', roles: ['manager'] },
 
     // Admin - Create Section
-    { text: 'Create Employee', path: '/admin/create/employee', roles: ['admin'], group: 'Create' },
-    { text: 'Create Outlet', path: '/admin/create/outlet', roles: ['admin'], group: 'Create' },
-    { text: 'Create Organization', path: '/admin/create/outlet', roles: ['admin'], group: 'Create' },
-    { text: 'Create Leave', path: '/admin/create/leave', roles: ['admin'], group: 'Create' },
+    { text: 'Create Employee', path: '/Admin/create/employee', roles: ['Admin'], group: 'Create' },
+    { text: 'Create Outlet', path: '/Admin/create/outlet', roles: ['Admin'], group: 'Create' },
+    { text: 'Create Organization', path: '/Admin/create/outlet', roles: ['Admin'], group: 'Create' },
+    { text: 'Create Leave', path: '/Admin/create/leave', roles: ['Admin'], group: 'Create' },
   
     
 
     // Admin - Assign Section
-    { text: 'Assign Manager to Outlet', path: '/admin/assign/manager-outlet', roles: ['admin'], group: 'Assign' },
-    { text: 'Assign Leave to Employee', path: '/admin/assign/leave', roles: ['admin'], group: 'Assign' },
+    { text: 'Assign Manager to Outlet', path: '/Admin/assign/manager-outlet', roles: ['Admin'], group: 'Assign' },
+    { text: 'Assign Leave to Employee', path: '/Admin/assign/leave', roles: ['Admin'], group: 'Assign' },
   ];
 
   // Group items by section (default, Create, Assign)
