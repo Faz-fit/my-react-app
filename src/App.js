@@ -43,7 +43,7 @@ function App() {
         <Route
           path="/Admindashboard"
           element={
-            <ProtectedRoute role={role} requiredRole="admin">
+            <ProtectedRoute role={role} requiredRole="Admin">
               <Layout>
                 <AdminDashboard />
               </Layout>
@@ -82,69 +82,69 @@ function App() {
 
         {/* Admin Routes */}
         <Route path="/manage-users" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><ManageUsers /></Layout>
           </ProtectedRoute>
         } />
 
         {/* Admin: Create Section */}
         <Route path="/admin/create/employee" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateEmployee /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/create/outlet" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateOutlet /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/create/leave" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateLeave /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/create/workshift" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateWorkShift /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/create/manager" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateManager /></Layout>
           </ProtectedRoute>
         } />
 
         {/* Admin: Assign Section */}
         <Route path="/admin/assign/employee-outlet" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AssignEmployeeOutlet /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/assign/manager-outlet" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AssignManagerOutlet /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/assign/leave" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AssignLeave /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/assign/workshift" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AssignWorkShift /></Layout>
           </ProtectedRoute>
         } />
 
         {/* Admin Reports */}
         <Route path="/admin/reports" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AdminReport /></Layout>  {/* Add the AdminReport component here */}
           </ProtectedRoute>
         } />
         {/* Employee-status */}
         <Route path="/admin/employee-status" element={
-          <ProtectedRoute role={role} requiredRole="admin">
+          <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><EmployeeStatus /></Layout>
           </ProtectedRoute>
         } />

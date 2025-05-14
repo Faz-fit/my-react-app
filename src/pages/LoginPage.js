@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';  // Importing jwtDecode from jwt-decode
 import {
   Box,
   TextField,
@@ -15,7 +16,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const navigate = useNavigate();  // useNavigate hook to handle navigation
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -31,12 +32,15 @@ const LoginPage = () => {
         localStorage.setItem('access_token', response.data.access);
         localStorage.setItem('refresh_token', response.data.refresh);
 
-        const decoded = JSON.parse(atob(response.data.access.split('.')[1]));
+        // Decode the access token to get user info
+        const decoded = jwtDecode(response.data.access);
+        console.log(decoded); // Debugging log to check decoded token
+        
         const role = decoded.role;
         const outlets = decoded.outlets || [];
 
-        if (role === 'admin') {
-          navigate('/Admindashboard');
+        if (role === 'Admin') {
+          navigate('/Admindashboard');  // Navigate to Admin dashboard on successful login
         } else if (role === 'manager') {
           if (outlets.length === 1) {
             localStorage.setItem('outlet', outlets[0]);
