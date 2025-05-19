@@ -13,17 +13,20 @@ import { isAuthenticated, getUserRole } from './utils/auth';
 // Import all new pages
 import CreateEmployee from './pages/admin/create/CreateEmployee.js';
 import CreateOutlet from './pages/admin/create/CreateOutlet.js';
+import CreateAgency from './pages/admin/create/CreateAgency.js';
 import CreateLeave from './pages/admin/create/CreateLeave.js';
 import CreateWorkShift from './pages/admin/create/CreateWorkShift.js';
 import CreateManager from './pages/admin/create/CreateManager.js';
 import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
 import EmployeeStatus from './pages/admin/EmployeeStatus.js';
+import Outlets from './pages/admin/outlets.js';
 
 import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
 import AssignLeave from './pages/admin/assign/AssignLeave.js';
 import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
 
+import SelectOutlet from 'pages/SelectOutlet';
 
 
 const ProtectedRoute = ({ role, children, requiredRole }) => {
@@ -69,6 +72,11 @@ function App() {
             <Layout><Employees /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/select-outlet" element={
+          <ProtectedRoute role={role} requiredRole="manager">
+            <Layout><SelectOutlet /></Layout>
+          </ProtectedRoute>
+        } />
         <Route path="/leave-approval" element={
           <ProtectedRoute role={role} requiredRole="manager">
             <Layout><LeaveApproval /></Layout>
@@ -87,6 +95,12 @@ function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="/Admin/outlets" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><Outlets /></Layout>
+          </ProtectedRoute>
+        } />
+
         {/* Admin: Create Section */}
         <Route path="/admin/create/employee" element={
           <ProtectedRoute role={role} requiredRole="Admin">
@@ -96,6 +110,11 @@ function App() {
         <Route path="/admin/create/outlet" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateOutlet /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/create/agency" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><CreateAgency /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/admin/create/leave" element={
@@ -148,7 +167,7 @@ function App() {
             <Layout><EmployeeStatus /></Layout>
           </ProtectedRoute>
         } />
-              </Routes>
+      </Routes>
     </BrowserRouter>
   );
 }

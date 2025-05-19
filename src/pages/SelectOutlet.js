@@ -107,8 +107,8 @@ function SelectOutlet() {
               }}
             >
               {outlets.map((outlet, index) => (
-                <MenuItem key={index} value={outlet}>
-                  {outlet}
+                <MenuItem key={index} value={outlet.name}>
+                  {outlet.name}
                 </MenuItem>
               ))}
             </Select>

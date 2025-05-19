@@ -14,6 +14,7 @@ function Sidebar({ sidebarOpen, onClose }) {
     // Admin section
     { text: 'Employee Status', path: '/Admin/employee-status', roles: ['Admin']},
     { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
+    { text: 'Outlets', path: '/Admin/outlets', roles: ['Admin'] },
 
     // Manager section
     { text: 'Employees', path: '/employees', roles: ['manager'] },
@@ -23,7 +24,7 @@ function Sidebar({ sidebarOpen, onClose }) {
     // Admin - Create Section
     { text: 'Create Employee', path: '/Admin/create/employee', roles: ['Admin'], group: 'Create' },
     { text: 'Create Outlet', path: '/Admin/create/outlet', roles: ['Admin'], group: 'Create' },
-    { text: 'Create Organization', path: '/Admin/create/outlet', roles: ['Admin'], group: 'Create' },
+    { text: 'Create Organization', path: '/Admin/create/agency', roles: ['Admin'], group: 'Create' },
     { text: 'Create Leave', path: '/Admin/create/leave', roles: ['Admin'], group: 'Create' },
   
     
