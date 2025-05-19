@@ -1,20 +1,14 @@
-// src/utils/auth.js
+// utils/auth.js
 
-export const isAuthenticated = () => {
-  return !!localStorage.getItem('access_token');
-};
+export const isAuthenticated = () => localStorage.getItem('auth') === 'true';
 
-export const getUserRole = () => {
-  // If you have the role encoded in the JWT token, you can extract it here
-  const accessToken = localStorage.getItem('access_token');
-  if (!accessToken) return null;
+export const getUserRole = () => localStorage.getItem('role') || '';
 
-  const decoded = JSON.parse(atob(accessToken.split('.')[1]));
-  return decoded.role; // Assuming role is encoded in the JWT payload
-};
 
-// Add logout function to clear the authentication tokens
 export const logout = () => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('auth');
+  localStorage.removeItem('role');
+  localStorage.removeItem('outlet');
+  localStorage.removeItem('outletList');
+  // add any other keys you want to clear on logout
 };
