@@ -8,6 +8,7 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
+import axios from 'axios';
 
 const LoginPage = () => {
   const accounts = {
@@ -18,6 +19,7 @@ const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   // Autofill admin creds by default
