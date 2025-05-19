@@ -36,22 +36,39 @@ const LoginPage = () => {
         const decoded = jwtDecode(response.data.access);
         console.log(decoded); // Debugging log
 
-        const role = decoded.role;
-        const outlets = decoded.outlets || [];
+        // const role = decoded.role;
+        const role = 'manager';
+        const getUserDetails = async () => {
+          try {
+            const token = localStorage.getItem('access_token');
+            const response = await axios.get('http://arunalusupermarket.shop:3000/api/user/', {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
 
-        if (role === 'Admin') {
-          navigate('/Admindashboard');
-        } else if (role === 'manager') {
-          if (outlets.length === 1) {
-            localStorage.setItem('outlet', outlets[0]);
-            navigate('/dashboard');
-          } else {
-            localStorage.setItem('outletList', JSON.stringify(outlets));
-            navigate('/select-outlet');
+            const outlets = response.data.outlets;
+            console.log('User outlets:', outlets);
+
+            if (role === 'Admin') {
+              navigate('/Admindashboard');
+            } else if (role === 'manager') {
+              if (outlets.length === 1) {
+                localStorage.setItem('outlet', outlets[0]); // Consider using JSON.stringify
+                navigate('/dashboard');
+              } else {
+                localStorage.setItem('outletList', JSON.stringify(outlets));
+                navigate('/select-outlet');
+              }
+            } else {
+              setError('Unknown role');
+            }
+
+          } catch (error) {
+            console.error('Failed to get user details:', error);
           }
-        } else {
-          setError('Unknown role');
-        }
+        };
+        getUserDetails();
       }
     } catch (error) {
       setError('Login failed. Please check your credentials.');
