@@ -23,7 +23,7 @@ function Sidebar({ sidebarOpen, onClose }) {
     { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
     { text: 'Outlets', path: '/Admin/outlets', roles: ['Admin'] },
     { text: 'Organization', path: '/Admin/create/agency', roles: ['Admin'] },
-    
+    { text: 'Holidays', path: '/Admin/create/manager', roles: ['Admin'] },
 
     // Manager section
     { text: 'Employees', path: '/employees', roles: ['Manager'] },
