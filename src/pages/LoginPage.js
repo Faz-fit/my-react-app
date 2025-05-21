@@ -10,7 +10,6 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
-import axios from 'axios';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
