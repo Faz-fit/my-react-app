@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';  // Correct import
 import {
   Box,
   TextField,
@@ -8,53 +10,36 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
-import axios from 'axios';
 
 const LoginPage = () => {
-  const accounts = {
-    Admin: { username: 'adminuser', password: 'adminpass123' },
-    manager: { username: 'manageruser', password: 'managerpass123' },
-  };
-
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Autofill admin creds by default
-  useEffect(() => {
-    setUsername(accounts.Admin.username);
-    setPassword(accounts.Admin.password);
-  }, []);
-
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    try {
+      const response = await axios.post('http://arunalusupermarket.shop:3000/api/token/', {
+        username,
+        password,
+      });
 
-    setTimeout(() => {
-      console.log('Trying login with:', username, password);
+      if (response.status === 200) {
+        localStorage.setItem('access_token', response.data.access);
+        localStorage.setItem('refresh_token', response.data.refresh);
 
-      if (
-        username === accounts.Admin.username &&
-        password === accounts.Admin.password
-      ) {
-        console.log('Admin login triggered');
-        localStorage.setItem('auth', 'true');
-        localStorage.setItem('role', 'Admin');
-        navigate('/Admindashboard');
-        window.location.reload();  // force reload to update auth state
-      } else if (
-        username === accounts.manager.username &&
-        password === accounts.manager.password
-      ) {
-        console.log('Manager login triggered');
-        localStorage.setItem('auth', 'true');
-        localStorage.setItem('role', 'manager');
-        const outlets = ['outlet1']; // simulate outlets
+        // Decode the access token
+        const decoded = jwtDecode(response.data.access);
+        console.log(decoded); // Debugging log
 
-        // const role = decoded.role;
-        const role = 'manager';
+        let role = decoded.role;
+        role = 'manager'
+        localStorage.setItem('role', role);
+        //const role = 'manager';
         const getUserDetails = async () => {
           try {
             const token = localStorage.getItem('access_token');
@@ -87,8 +72,11 @@ const LoginPage = () => {
         };
         getUserDetails();
       }
-      setLoading(false);
-    }, 1000);
+    } catch (error) {
+      setError('Login failed. Please check your credentials.');
+      console.error(error);
+    }
+    setLoading(false);
   };
 
   return (
@@ -155,9 +143,15 @@ const LoginPage = () => {
             justifyContent: 'center',
           }}
         >
-          <Typography variant="h4" align="center" fontWeight="bold" sx={{ mb: 4 }}>
+          <Typography variant="h4" align="center" fontWeight="bold">
             Welcome!
           </Typography>
+
+          {error && (
+            <Typography color="error" align="center" sx={{ mt: 2 }}>
+              {error}
+            </Typography>
+          )}
 
           <Box component="form" onSubmit={handleLogin} noValidate>
             <TextField
@@ -168,6 +162,7 @@ const LoginPage = () => {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              required
               disabled={loading}
             />
             <TextField
@@ -179,6 +174,7 @@ const LoginPage = () => {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
               disabled={loading}
             />
             <Button
