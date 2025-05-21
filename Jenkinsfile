@@ -1,58 +1,48 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        // GitHub repository URL
-        GITHUB_REPO = 'https://github.com/Faz-fit/my-react-app.git'
-        SERVER = 'arunalusupermarket.shop'
-        REACT_PORT = '8080'
+  stages {
+    stage('Checkout') {
+      steps {
+        git 'https://github.com/Faz-fit/my-react-app.git'
+      }
     }
 
-    stages {
-        stage('Clone Repository') {
-            steps {
-                // Clone the GitHub repository
-                git branch: 'main', url: "${GITHUB_REPO}"
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                // Install dependencies using npm
-                script {
-                    sh 'npm install'
-                }
-            }
-        }
-
-        stage('Build React App') {
-            steps {
-                // Build the React app
-                script {
-                    sh 'npm run build'
-                }
-            }
-        }
-
-        stage('Deploy to Server') {
-            steps {
-                script {
-                    // Deploy the build to your server using SSH
-                    sh '''
-                    ssh user@${SERVER} "
-                        cd /path/to/deploy/folder && rm -rf * && cp -r ./build/* ."
-                    '''
-                }
-            }
-        }
+    stage('Install Dependencies') {
+      steps {
+        sh 'npm install'
+      }
     }
 
-    post {
-        success {
-            echo 'React app deployed successfully!'
-        }
-        failure {
-            echo 'Deployment failed!'
-        }
+    stage('Build React App') {
+      steps {
+        sh 'npm run build'
+      }
     }
+
+    stage('Build Docker Image') {
+      steps {
+        script {
+          docker.build('my-react-app')
+        }
+      }
+    }
+
+    stage('Run Docker Container') {
+      steps {
+        script {
+          // Stop old container if exists
+          sh '''
+            if [ $(docker ps -q -f name=my-react-app-container) ]; then
+              docker stop my-react-app-container
+              docker rm my-react-app-container
+            fi
+          '''
+
+          // Run new container
+          sh 'docker run -d -p 3000:80 --name my-react-app-container my-react-app'
+        }
+      }
+    }
+  }
 }

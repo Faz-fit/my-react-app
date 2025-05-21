@@ -1,19 +1,9 @@
-version: '3'
+version: '3.8'
 
 services:
-  frontend:
+  react-app:
     build: .
-    container_name: aas-frontend
+    container_name: my-react-app-container
     ports:
-      - "80:80"  # Port 80 on the host mapped to port 80 inside the container
-    depends_on:
-      # No other services needed for frontend, you can remove this if not using them
-      # - db
-      # - pgadmin
-      # - web
-    networks:
-      - my_network
-
-networks:
-  my_network:
-    driver: bridge
+      - "3000:80"
+    restart: unless-stopped
