@@ -36,9 +36,7 @@ const LoginPage = () => {
         const decoded = jwtDecode(response.data.access);
         console.log(decoded); // Debugging log
 
-        let role = decoded.role;
-        role = 'manager'
-        localStorage.setItem('role', role);
+        const role = decoded.role;
         //const role = 'manager';
         const getUserDetails = async () => {
           try {
