@@ -1,55 +1,57 @@
-import React, { useState } from 'react';
-import { Box, List, ListItem, ListItemButton, ListItemText, ListSubheader} from '@mui/material'; // Add Typography import
+import React from 'react';
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListSubheader,
+} from '@mui/material';
 import { NavLink } from 'react-router-dom';
 import { getUserRole } from '../utils/auth';
 
 function Sidebar({ sidebarOpen, onClose }) {
-  const role = getUserRole();
-  
+  const role = getUserRole() || '';
+  // Normalize role casing: Capitalize first letter, lowercase rest
+  const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+  console.log('Sidebar user role normalized:', normalizedRole);
 
   const navItems = [
-    // Common or role-specific dashboard
-    { text: 'Dashboard', path: role === 'Admin' ? '/Admindashboard' : '/dashboard', roles: ['Admin', 'manager'] },
-
     // Admin section
-    { text: 'Employee Status', path: '/Admin/employee-status', roles: ['Admin']},
+    { text: 'Employee', path: '/Admin/employee-status', roles: ['Admin'] },
     { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
     { text: 'Outlets', path: '/Admin/outlets', roles: ['Admin'] },
-
-    // Manager section
-    { text: 'Employees', path: '/employees', roles: ['manager'] },
-    { text: 'Leave Approval', path: '/leave-approval', roles: ['manager'] },
-    { text: 'Reports', path: '/reports', roles: ['manager'] },
-
-    // Admin - Create Section
-    { text: 'Create Employee', path: '/Admin/create/employee', roles: ['Admin'], group: 'Create' },
-    { text: 'Create Outlet', path: '/Admin/create/outlet', roles: ['Admin'], group: 'Create' },
-    { text: 'Create Organization', path: '/Admin/create/agency', roles: ['Admin'], group: 'Create' },
-    { text: 'Create Leave', path: '/Admin/create/leave', roles: ['Admin'], group: 'Create' },
-  
+    { text: 'Organization', path: '/Admin/create/agency', roles: ['Admin'] },
     
 
+    // Manager section
+    { text: 'Employees', path: '/employees', roles: ['Manager'] },
+    { text: 'Leave Approval', path: '/leave-approval', roles: ['Manager'] },
+    { text: 'Reports', path: '/reports', roles: ['Manager'] },
+
+    // Admin section (Leave creation)
+    { text: 'Leave', path: '/Admin/create/leave', roles: ['Admin'] },
+
     // Admin - Assign Section
-    { text: 'Assign Manager to Outlet', path: '/Admin/assign/manager-outlet', roles: ['Admin'], group: 'Assign' },
     { text: 'Assign Leave to Employee', path: '/Admin/assign/leave', roles: ['Admin'], group: 'Assign' },
   ];
 
-  // Group items by section (default, Create, Assign)
+  // Group items by 'group' or default 'Main'
   const groupedItems = navItems
-    .filter((item) => item.roles.includes(role))
+    .filter((item) => item.roles.includes(normalizedRole))
     .reduce((acc, item) => {
       const group = item.group || 'Main';
-      acc[group] = acc[group] || [];
+      if (!acc[group]) acc[group] = [];
       acc[group].push(item);
       return acc;
     }, {});
 
-  
   return (
     <Box
       sx={{
         width: sidebarOpen ? 240 : 0,
-        overflowY: 'auto', // Make the sidebar scrollable
+        overflowY: 'auto',
         pt: 8,
         height: '100vh',
         backgroundColor: '#f4f4f4',

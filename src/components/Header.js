@@ -35,8 +35,8 @@ function Header({ onMenuClick }) {
         </IconButton>
 
         {/* Title */}
-        <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-          Dashboard
+        <Typography variant="h6" noWrap sx={{ flexGrow: 1 }} fontWeight="bold"> 
+          ARUNALU
         </Typography>
 
         {/* Logout */}

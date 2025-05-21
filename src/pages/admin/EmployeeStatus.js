@@ -1,153 +1,260 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Paper,
   Button,
-  Avatar,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  MenuItem,
+  IconButton,
+  Tooltip,
+  Typography,
 } from '@mui/material';
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
+import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 
-// Dummy data – replace with API calls
-const dummyEmployees = [
-  { id: 1, name: 'John Doe', status: 'active', imageUrl: 'https://i.pravatar.cc/40?img=1' },
-  { id: 2, name: 'Jane Smith', status: 'inactive', imageUrl: 'https://i.pravatar.cc/40?img=2' },
-  { id: 3, name: 'Alice Johnson', status: 'terminated', imageUrl: 'https://i.pravatar.cc/40?img=3' },
+// Validation schema for form
+const schema = yup.object({
+  name: yup.string().required('Name is required'),
+  role: yup.string().required('Role is required'),
+  phone: yup.string(),
+  location: yup.string(),
+  status: yup.string().oneOf(['active', 'inactive']).required('Status required'),
+});
+
+const initialEmployees = [
+  {
+    id: 1,
+    name: 'John Doe',
+    role: 'Software Engineer',
+    phone: '123-456-7890',
+    status: 'active',
+    location: 'New York',
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    role: 'Project Manager',
+    phone: '987-654-3210',
+    status: 'inactive',
+    location: 'New York',
+  },
+  {
+    id: 3,
+    name: 'Alice Johnson',
+    role: 'UX Designer',
+    phone: '555-123-4567',
+    status: 'active',
+    location: 'Melbourne',
+  },
 ];
 
-const statuses = ['active', 'inactive'];
+export default function EmployeeGrid() {
+  const [employees, setEmployees] = useState(initialEmployees);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editEmployee, setEditEmployee] = useState(null);
 
-function EmployeeStatus() {
-  const [employees, setEmployees] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState(null); // The employee being edited
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // react-hook-form setup
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      name: '',
+      role: '',
+      phone: '',
+      location: '',
+      status: 'active',
+    },
+  });
 
-  useEffect(() => {
-    setEmployees(dummyEmployees);
-  }, []);
-
-  const openEditDialog = (emp) => {
-    setSelectedEmployee(emp);
-    setDialogOpen(true);
+  // Open dialog for Add or Edit
+  const handleOpenAdd = () => {
+    setEditEmployee(null);
+    reset({
+      name: '',
+      role: '',
+      phone: '',
+      location: '',
+      status: 'active',
+    });
+    setOpenDialog(true);
   };
 
-  const closeDialog = () => {
-    setDialogOpen(false);
-    setSelectedEmployee(null);
+  const handleOpenEdit = (employee) => {
+    setEditEmployee(employee);
+    reset(employee);
+    setOpenDialog(true);
   };
 
-  const handleDialogChange = (field, value) => {
-    setSelectedEmployee((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleClose = () => {
+    setOpenDialog(false);
+    setEditEmployee(null);
   };
 
-  const handleSave = () => {
-    setEmployees((prev) =>
-      prev.map((emp) =>
-        emp.id === selectedEmployee.id ? selectedEmployee : emp
-      )
-    );
-    console.log('Saved:', selectedEmployee);
-    closeDialog();
+  const onSubmit = (data) => {
+    if (editEmployee) {
+      // Edit mode - update employee
+      setEmployees((prev) =>
+        prev.map((emp) => (emp.id === editEmployee.id ? { ...emp, ...data } : emp))
+      );
+    } else {
+      // Add mode - add new employee with new id
+      const newId = employees.length ? Math.max(...employees.map((e) => e.id)) + 1 : 1;
+      setEmployees((prev) => [...prev, { id: newId, ...data }]);
+    }
+    handleClose();
   };
+
+  // Define columns for DataGrid
+  const columns = [
+    { field: 'name', headerName: 'Name', flex: 1, minWidth: 150 },
+    { field: 'role', headerName: 'Role', flex: 1, minWidth: 150 },
+    { field: 'phone', headerName: 'Phone', flex: 1, minWidth: 130 },
+    { field: 'location', headerName: 'Location', flex: 1, minWidth: 130 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => (
+        <Typography
+          sx={{
+            color: params.value === 'active' ? 'green' : 'red',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 80,
+      getActions: (params) => [
+        <GridActionsCellItem
+          icon={
+            <Tooltip title="Edit">
+              <EditIcon />
+            </Tooltip>
+          }
+          label="Edit"
+          onClick={() => handleOpenEdit(params.row)}
+          showInMenu={false}
+          key="edit"
+        />,
+      ],
+    },
+  ];
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Employee Status Management
+    <Box sx={{ height: 500, width: '90%', mx: 'auto', mt: 5, position: 'relative' }}>
+      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>
+        Employees
       </Typography>
 
-      <Paper elevation={2} sx={{ mt: 2, overflowX: 'auto' }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><strong>Photo</strong></TableCell>
-              <TableCell><strong>ID</strong></TableCell>
-              <TableCell><strong>Name</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Action</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {employees.map((emp) => (
-              <TableRow key={emp.id}>
-                <TableCell><Avatar src={emp.imageUrl} alt={emp.name} /></TableCell>
-                <TableCell>{emp.id}</TableCell>
-                <TableCell>{emp.name}</TableCell>
-                <TableCell>{emp.status}</TableCell>
-                <TableCell>
-                  <Button variant="outlined" size="small" onClick={() => openEditDialog(emp)}>
-                    Edit
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+      {/* Add Button top right */}
+      <Button
+        variant="contained"
+        startIcon={<AddIcon />}
+        sx={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}
+        onClick={handleOpenAdd}
+      >
+        Add Employee
+      </Button>
 
-      {/* Dialog for editing */}
-      <Dialog open={dialogOpen} onClose={closeDialog}>
-        <DialogTitle>Edit Employee</DialogTitle>
-        <DialogContent sx={{ minWidth: 300 }}>
-          {selectedEmployee && (
-            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                label="ID"
-                value={selectedEmployee.id}
-                InputProps={{ readOnly: true }}
-                fullWidth
-              />
-              <TextField
-                label="Name"
-                value={selectedEmployee.name}
-                onChange={(e) => handleDialogChange('name', e.target.value)}
-                fullWidth
-              />
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={selectedEmployee.status}
-                  label="Status"
-                  onChange={(e) => handleDialogChange('status', e.target.value)}
-                >
-                  {statuses.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {status}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Avatar
-                src={selectedEmployee.imageUrl}
-                alt={selectedEmployee.name}
-                sx={{ width: 60, height: 60 }}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDialog}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">Save</Button>
-        </DialogActions>
+      <DataGrid
+        rows={employees}
+        columns={columns}
+        pageSize={5}
+        rowsPerPageOptions={[5, 10]}
+        disableSelectionOnClick
+        sx={{ mt: 4 }}
+      />
+
+      {/* Dialog for Add/Edit */}
+      <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>{editEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  label="Name"
+                  fullWidth
+                  error={!!errors.name}
+                  helperText={errors.name?.message}
+                  {...field}
+                />
+              )}
+            />
+            <Controller
+              name="role"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  label="Role"
+                  fullWidth
+                  error={!!errors.role}
+                  helperText={errors.role?.message}
+                  {...field}
+                />
+              )}
+            />
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  label="Phone"
+                  fullWidth
+                  {...field}
+                />
+              )}
+            />
+            <Controller
+              name="location"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  label="Location"
+                  fullWidth
+                  {...field}
+                />
+              )}
+            />
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <TextField select label="Status" fullWidth error={!!errors.status} helperText={errors.status?.message} {...field}>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                </TextField>
+              )}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              {editEmployee ? 'Save' : 'Add'}
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </Box>
   );
 }
-
-export default EmployeeStatus;

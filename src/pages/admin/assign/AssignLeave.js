@@ -1,104 +1,157 @@
-// src/pages/admin/assign/AssignLeave.js
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { Box, Button, TextField, MenuItem, FormControl, InputLabel, Select, FormHelperText } from '@mui/material';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
+import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Checkbox,
+  FormControlLabel,
+  Typography,
+  Tooltip,
+} from '@mui/material';
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
+import EditIcon from '@mui/icons-material/Edit';
 
-// Dummy data for employees and leave types
+// Dummy employees
 const employees = [
-  { id: 'e1', name: 'John Doe' },
-  { id: 'e2', name: 'Jane Smith' },
+  { id: 'e1', name: 'John Doe', department: 'Engineering' },
+  { id: 'e2', name: 'Jane Smith', department: 'Marketing' },
 ];
-const leaveTypes = ['Sick Leave', 'Casual Leave', 'Annual Leave'];
 
-// Validation schema
-const schema = yup.object({
-  employeeId: yup.string().required('Employee is required'),
-  leaveType: yup.string().required('Leave type is required'),
-  startDate: yup.date().required('Start date is required'),
-  endDate: yup.date().required('End date is required').min(yup.ref('startDate'), 'End date must be after start date'),
-}).required();
+// Pre-made leave types
+const leaveTypes = [
+  { id: 'lt1', name: 'Sick Leave' },
+  { id: 'lt2', name: 'Maternity Leave' },
+  { id: 'lt3', name: 'Casual Leave' },
+];
 
-const AssignLeave = () => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
+export default function EmployeeLeaveAssignmentSimple() {
+  // employeeLeaves: map employeeId => array of leaveType ids assigned
+  const [employeeLeaves, setEmployeeLeaves] = useState({
+    e1: ['lt1'], // John Doe assigned Sick Leave
+    e2: [], // Jane Smith no leaves assigned yet
   });
 
-  const onSubmit = (data) => {
-    console.log('Assigning leave to employee:', data);
-    // TODO: Send data to backend to assign leave
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  // Open dialog for editing employee leaves
+  const handleEditClick = (employee) => {
+    setSelectedEmployee(employee);
+    setOpenDialog(true);
   };
 
+  const handleClose = () => {
+    setOpenDialog(false);
+    setSelectedEmployee(null);
+  };
+
+  // Toggle leave type assignment checkbox
+  const handleToggleLeave = (leaveTypeId) => {
+    setEmployeeLeaves((prev) => {
+      const current = prev[selectedEmployee.id] || [];
+      if (current.includes(leaveTypeId)) {
+        // remove
+        return {
+          ...prev,
+          [selectedEmployee.id]: current.filter((id) => id !== leaveTypeId),
+        };
+      } else {
+        // add
+        return {
+          ...prev,
+          [selectedEmployee.id]: [...current, leaveTypeId],
+        };
+      }
+    });
+  };
+
+  // Prepare grid rows - each employee + count of assigned leaves
+  const rows = employees.map((emp) => ({
+    id: emp.id,
+    name: emp.name,
+    department: emp.department,
+    leaveCount: (employeeLeaves[emp.id] || []).length,
+  }));
+
+  const columns = [
+    { field: 'name', headerName: 'Employee Name', flex: 1 },
+    { field: 'department', headerName: 'Department', flex: 1 },
+    {
+      field: 'leaveCount',
+      headerName: 'Assigned Leaves',
+      width: 150,
+      align: 'center',
+      headerAlign: 'center',
+    },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      type: 'actions',
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="edit"
+          icon={
+            <Tooltip title="Assign Leaves">
+              <EditIcon />
+            </Tooltip>
+          }
+          label="Assign Leaves"
+          onClick={() => handleEditClick(employees.find((e) => e.id === params.id))}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ];
+
   return (
-    <Box sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <FormControl fullWidth margin="normal" error={!!errors.employeeId}>
-          <InputLabel id="employee-label">Employee</InputLabel>
-          <Select
-            labelId="employee-label"
-            {...register('employeeId')}
-            label="Employee"
-            defaultValue=""
+    <Box sx={{ height: 500, width: '90%', mx: 'auto', mt: 4 }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
+        Employee Leave Assignment
+      </Typography>
+
+      <DataGrid rows={rows} columns={columns} pageSize={7} rowsPerPageOptions={[7, 14]} />
+
+      {/* Dialog */}
+      <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Assign Leaves to {selectedEmployee ? selectedEmployee.name : ''}
+        </DialogTitle>
+
+        <DialogContent dividers>
+          {leaveTypes.map((leaveType) => {
+            const isChecked =
+              selectedEmployee &&
+              employeeLeaves[selectedEmployee.id]?.includes(leaveType.id);
+
+            return (
+              <FormControlLabel
+                key={leaveType.id}
+                control={
+                  <Checkbox
+                    checked={isChecked || false}
+                    onChange={() => handleToggleLeave(leaveType.id)}
+                  />
+                }
+                label={leaveType.name}
+              />
+            );
+          })}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleClose}
           >
-            {employees.map((employee) => (
-              <MenuItem key={employee.id} value={employee.id}>
-                {employee.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>{errors.employeeId?.message}</FormHelperText>
-        </FormControl>
-
-        <FormControl fullWidth margin="normal" error={!!errors.leaveType}>
-          <InputLabel id="leave-type-label">Leave Type</InputLabel>
-          <Select
-            labelId="leave-type-label"
-            {...register('leaveType')}
-            label="Leave Type"
-            defaultValue=""
-          >
-            {leaveTypes.map((type, index) => (
-              <MenuItem key={index} value={type}>
-                {type}
-              </MenuItem>
-            ))}
-          </Select>
-          <FormHelperText>{errors.leaveType?.message}</FormHelperText>
-        </FormControl>
-
-        <TextField
-          label="Start Date"
-          type="date"
-          fullWidth
-          margin="normal"
-          {...register('startDate')}
-          error={!!errors.startDate}
-          helperText={errors.startDate?.message}
-          InputLabelProps={{ shrink: true }}
-        />
-
-        <TextField
-          label="End Date"
-          type="date"
-          fullWidth
-          margin="normal"
-          {...register('endDate')}
-          error={!!errors.endDate}
-          helperText={errors.endDate?.message}
-          InputLabelProps={{ shrink: true }}
-        />
-
-        <Button variant="contained" type="submit" fullWidth sx={{ mt: 2 }}>
-          Assign Leave
-        </Button>
-      </form>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
-};
-
-export default AssignLeave;
+}

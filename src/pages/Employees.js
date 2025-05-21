@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Grid, Typography, TextField, Box } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Grid,
+  Typography,
+  TextField,
+  Box,
+  Avatar,
+  InputAdornment,
+  IconButton,
+  Fade,
+  useTheme,
+} from '@mui/material';
+import ClearIcon from '@mui/icons-material/Clear';
+import SearchIcon from '@mui/icons-material/Search';
 
-// Sample employee data
 const employees = [
   {
     id: 1,
@@ -31,62 +44,104 @@ const employees = [
 ];
 
 function Employees() {
+  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter employees based on the search term
-  const filteredEmployees = employees.filter((employee) =>
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.designation.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Normalize search input
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const filteredEmployees = employees.filter(({ name, employeeId, contact, designation }) => {
+    return (
+      name.toLowerCase().includes(normalizedSearch) ||
+      employeeId.toLowerCase().includes(normalizedSearch) ||
+      contact.toLowerCase().includes(normalizedSearch) ||
+      designation.toLowerCase().includes(normalizedSearch)
+    );
+  });
+
+  const handleClearSearch = () => setSearchTerm('');
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>Employees</Typography>
+    <Box sx={{ p: 3, maxWidth: 1200, margin: 'auto' }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 700, color: theme.palette.primary.main }}>
+        Employees
+      </Typography>
 
-      {/* Search Bar */}
       <TextField
         variant="outlined"
         fullWidth
         label="Search Employees"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        sx={{ mb: 3 }}
+        placeholder="Search by name, ID, contact, or designation"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon color="action" />
+            </InputAdornment>
+          ),
+          endAdornment: searchTerm && (
+            <InputAdornment position="end">
+              <IconButton onClick={handleClearSearch} edge="end" size="small" aria-label="clear search">
+                <ClearIcon />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+        sx={{ mb: 4 }}
       />
 
-      {/* Employee Cards */}
-      <Grid container spacing={3}>
-        {filteredEmployees.map((employee) => (
-          <Grid item xs={12} sm={6} md={4} key={employee.id}>
-            <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
-              <CardContent>
-                <Grid container spacing={2}>
-                  <Grid item>
-                    <img
+      {filteredEmployees.length === 0 ? (
+        <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', mt: 4 }}>
+          No employees found matching &quot;{searchTerm}&quot;.
+        </Typography>
+      ) : (
+        <Grid container spacing={4}>
+          {filteredEmployees.map((employee) => (
+            <Grid item xs={12} sm={6} md={4} key={employee.id}>
+              <Fade in timeout={400}>
+                <Card
+                  sx={{
+                    boxShadow: 3,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    transition: 'transform 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.03)',
+                      boxShadow: 6,
+                    },
+                  }}
+                  tabIndex={0} // make focusable for accessibility
+                  role="button"
+                  aria-pressed="false"
+                >
+                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar
                       src={employee.image}
                       alt={employee.name}
-                      style={{ width: 60, height: 60, borderRadius: '50%' }}
+                      sx={{ width: 64, height: 64 }}
                     />
-                  </Grid>
-                  <Grid item xs>
-                    <Typography variant="h6">{employee.name}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      ID: {employee.employeeId}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Contact: {employee.contact}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Designation: {employee.designation}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        {employee.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.3 }}>
+                        <strong>ID:</strong> {employee.employeeId}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.3 }}>
+                        <strong>Contact:</strong> {employee.contact}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        <strong>Designation:</strong> {employee.designation}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Fade>
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </Box>
   );
 }

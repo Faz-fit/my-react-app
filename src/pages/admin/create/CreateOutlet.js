@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import api from 'utils/api';
 import { useForm } from 'react-hook-form';
 import {
-  Box, Button, TextField, MenuItem, Typography
+  Box,
+  Button,
+  TextField,
+  MenuItem,
+  Typography,
+  Paper,
 } from '@mui/material';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
@@ -59,13 +64,26 @@ const CreateOutlet = ({ onSuccess }) => {
   };
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
-      <Typography variant="h5" gutterBottom>Create New Outlet</Typography>
+    <Paper
+      elevation={4}
+      sx={{
+        maxWidth: '90%',
+        mx: 'auto',
+        mt: 6,
+        p: 4,
+        borderRadius: 3,
+        bgcolor: '#fff',
+      }}
+    >
+      <Typography variant="h5" gutterBottom align="left" fontWeight="600" mb={3}>
+        Create New Outlet
+      </Typography>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <TextField
           label="Outlet Name"
-          fullWidth margin="normal"
+          fullWidth
+          margin="normal"
           {...register('name', { required: 'Outlet name is required' })}
           error={!!errors.name}
           helperText={errors.name?.message}
@@ -73,7 +91,8 @@ const CreateOutlet = ({ onSuccess }) => {
 
         <TextField
           label="Address"
-          fullWidth margin="normal"
+          fullWidth
+          margin="normal"
           {...register('address', { required: 'Address is required' })}
           error={!!errors.address}
           helperText={errors.address?.message}
@@ -81,7 +100,8 @@ const CreateOutlet = ({ onSuccess }) => {
 
         <TextField
           label="Radius (meters)"
-          fullWidth margin="normal"
+          fullWidth
+          margin="normal"
           type="number"
           {...register('radius_meters', {
             required: 'Radius is required',
@@ -94,9 +114,11 @@ const CreateOutlet = ({ onSuccess }) => {
         <TextField
           label="Manager"
           select
-          fullWidth margin="normal"
+          fullWidth
+          margin="normal"
           defaultValue=""
           {...register('manager')}
+          sx={{ mt: 2 }}
         >
           <MenuItem value="">None</MenuItem>
           {managers.map((m) => (
@@ -109,9 +131,11 @@ const CreateOutlet = ({ onSuccess }) => {
         <TextField
           label="Agency"
           select
-          fullWidth margin="normal"
+          fullWidth
+          margin="normal"
           defaultValue=""
           {...register('agency')}
+          sx={{ mt: 2 }}
         >
           <MenuItem value="">None</MenuItem>
           {agencies.map((a) => (
@@ -121,26 +145,45 @@ const CreateOutlet = ({ onSuccess }) => {
           ))}
         </TextField>
 
-        <Typography variant="body1" sx={{ mt: 2 }}>
+        <Typography variant="body1" sx={{ mt: 3, fontWeight: '500' }}>
           Select Location on Map
         </Typography>
 
-        {isLoaded && (
-          <GoogleMap
-            center={marker}
-            zoom={12}
-            mapContainerStyle={{ width: '100%', height: '300px', marginTop: '8px' }}
-            onClick={onMapClick}
+        {isLoaded ? (
+          <Box
+            sx={{
+              width: '100%',
+              height: 320,
+              borderRadius: 2,
+              mt: 1,
+              boxShadow: '0 0 12px rgb(0 0 0 / 0.1)',
+            }}
           >
-            <Marker position={marker} />
-          </GoogleMap>
+            <GoogleMap
+              center={marker}
+              zoom={12}
+              mapContainerStyle={{ width: '100%', height: '100%', borderRadius: 8 }}
+              onClick={onMapClick}
+            >
+              <Marker position={marker} />
+            </GoogleMap>
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Loading map...
+          </Typography>
         )}
 
-        <Button variant="contained" type="submit" fullWidth sx={{ mt: 3 }}>
+        <Button
+          variant="contained"
+          type="submit"
+          fullWidth
+          sx={{ mt: 4, py: 1.8, fontWeight: 600, fontSize: '1rem' }}
+        >
           Create Outlet
         </Button>
       </form>
-    </Box>
+    </Paper>
   );
 };
 
