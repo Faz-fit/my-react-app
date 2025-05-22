@@ -18,6 +18,7 @@ function Sidebar({ sidebarOpen, onClose }) {
   console.log('Sidebar user role normalized:', normalizedRole);
 
   const navItems = [
+    { text: normalizedRole === 'Admin' ? 'Admin Dashboard' : 'Manager Dashboard', path: normalizedRole === 'Admin' ? '/AdminDashboard' : '/Dashboard', roles: ['Admin', 'Manager'] },
     // Admin section
     { text: 'Employee', path: '/Admin/employee-status', roles: ['Admin'] },
     { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
@@ -34,7 +35,7 @@ function Sidebar({ sidebarOpen, onClose }) {
     { text: 'Leave', path: '/Admin/create/leave', roles: ['Admin'] },
 
     // Admin - Assign Section
-    { text: 'Assign Leave to Employee', path: '/Admin/assign/leave', roles: ['Admin'], group: 'Assign' },
+    { text: 'Leave Managment', path: '/Admin/assign/leave', roles: ['Admin'], },
   ];
 
   // Group items by 'group' or default 'Main'

@@ -16,14 +16,14 @@ import CreateOutlet from './pages/admin/create/CreateOutlet.js';
 import CreateAgency from './pages/admin/create/CreateAgency.js';
 import CreateLeave from './pages/admin/create/CreateLeave.js';
 import CreateWorkShift from './pages/admin/create/CreateWorkShift.js';
-import CreateManager from './pages/admin/create/CreateManager.js';
+import CreateManager from './pages/admin/create/CreateHoliday.js';
 import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
 import EmployeeStatus from './pages/admin/EmployeeStatus.js';
 import Outlets from './pages/admin/outlets.js';
 
 import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
-import AssignLeave from './pages/admin/assign/AssignLeave.js';
+import AssignLeave from './pages/admin/assign/LeaveManagment.js';
 import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
 
 import SelectOutlet from 'pages/SelectOutlet';

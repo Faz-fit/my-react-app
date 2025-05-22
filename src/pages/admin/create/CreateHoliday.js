@@ -10,7 +10,6 @@ import {
   MenuItem,
   Typography,
   Tooltip,
-  IconButton,
   Switch,
   FormControlLabel,
 } from '@mui/material';

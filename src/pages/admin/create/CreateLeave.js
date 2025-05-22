@@ -56,26 +56,6 @@ const attTypeMap = {
   PCUR: 'Police curfew',
 };
 
-const initialHolidayData = [
-  {
-    id: 1,
-    AttType: 'A',
-    AttType_Name: 'Annual',
-    active: true,
-    PayPercen: 100,
-    YearStartDate: new Date('2019-01-01'),
-    YearEndDate: new Date('2019-12-31'),
-  },
-  {
-    id: 2,
-    AttType: 'C',
-    AttType_Name: 'Casual Leave',
-    active: true,
-    PayPercen: 100,
-    YearStartDate: new Date('2019-01-01'),
-    YearEndDate: new Date('2019-12-31'),
-  },
-];
 
 export default function HolidayGrid() {
   const [leaveData, setLeaveData] = useState([]);
