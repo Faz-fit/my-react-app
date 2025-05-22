@@ -23,7 +23,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://arunalusupermarket.shop:3000/api/token/', {
+      const response = await axios.post('http://139.59.243.2:8000/api/token/', {
         username,
         password,
       });
@@ -41,7 +41,7 @@ const LoginPage = () => {
         const getUserDetails = async () => {
           try {
             const token = localStorage.getItem('access_token');
-            const response = await axios.get('http://arunalusupermarket.shop:3000/api/user/', {
+            const response = await axios.get('http://139.59.243.2:8000/api/user/', {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
