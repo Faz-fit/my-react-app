@@ -32,12 +32,12 @@ const schema = yup.object({
   holiday_name: yup.string().required('Holiday name is required'),
   hdate: yup.date().required('Holiday date is required').typeError('Invalid date'),
   active: yup.boolean(),
-  holidayOT: yup
+  holiday_ot_pay_percentage: yup
     .number()
     .typeError('OT must be a number')
     .min(0, 'Cannot be negative')
     .required('Holiday OT is required'),
-  holidayRegular_PayPercentage: yup
+  holiday_regular_pay_percentage: yup
     .number()
     .typeError('Pay Percentage must be a number')
     .min(0, 'Cannot be negative')
@@ -95,8 +95,8 @@ export default function HolidayGrid() {
       holiday_name: '',
       hdate: null,
       active: true,
-      holidayOT: '',
-      holidayRegular_PayPercentage: '',
+      holiday_ot_pay_percentage: '',
+      holiday_regular_pay_percentage: '',
     },
   });
 
@@ -109,8 +109,8 @@ export default function HolidayGrid() {
       holiday_name: '',
       hdate: null,
       active: true,
-      holidayOT: '',
-      holidayRegular_PayPercentage: '',
+      holiday_ot_pay_percentage: '',
+      holiday_regular_pay_percentage: '',
     });
     setOpenDialog(true);
   };
@@ -135,8 +135,8 @@ export default function HolidayGrid() {
       const formattedData = {
         ...data,
         hdate: new Date(data.hdate).toISOString().split('T')[0],
-        holiday_ot_pay_percentage: data.holidayOT ? Number(data.holidayOT).toFixed(2) : null,
-        holiday_regular_pay_percentage: data.holidayRegular_PayPercentage ? Number(data.holidayRegular_PayPercentage).toFixed(2) : null,
+        holiday_ot_pay_percentage: data.holiday_ot_pay_percentage ? Number(data.holiday_ot_pay_percentage).toFixed(2) : null,
+        holiday_regular_pay_percentage: data.holiday_regular_pay_percentage ? Number(data.holiday_regular_pay_percentage).toFixed(2) : null,
       };
 
       let response;
@@ -182,16 +182,16 @@ export default function HolidayGrid() {
       type: 'boolean',
     },
     {
-      field: 'holidayOT',
+      field: 'holiday_ot_pay_percentage',
       headerName: 'Holiday OT',
       width: 110,
       type: 'number',
     },
     {
-      field: 'holidayRegular_PayPercentage',
+      field: 'holiday_regular_pay_percentage',
       headerName: 'Pay %',
       width: 110,
-      type: 'number',
+      type: 'text',
     },
     {
       field: 'actions',
@@ -365,16 +365,16 @@ export default function HolidayGrid() {
             />
 
             <Controller
-              name="holidayOT"
+              name="holiday_ot_pay_percentage"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
                   label="Holiday OT"
-                  type="number"
+                  type="text"
                   sx={{ minWidth: 150 }}
-                  error={!!errors.holidayOT}
-                  helperText={errors.holidayOT?.message}
+                  error={!!errors.holiday_ot_pay_percentage}
+                  helperText={errors.holiday_ot_pay_percentage?.message}
                   disabled={loading}
                   inputProps={{ min: 0 }}
                 />
@@ -382,16 +382,16 @@ export default function HolidayGrid() {
             />
 
             <Controller
-              name="holidayRegular_PayPercentage"
+              name="holiday_regular_pay_percentage"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
                   label="Pay Percentage"
-                  type="number"
+                  type="text"
                   sx={{ minWidth: 150 }}
-                  error={!!errors.holidayRegular_PayPercentage}
-                  helperText={errors.holidayRegular_PayPercentage?.message}
+                  error={!!errors.holiday_regular_pay_percentage}
+                  helperText={errors.holiday_regular_pay_percentage?.message}
                   disabled={loading}
                   inputProps={{ min: 0, max: 100 }}
                 />
