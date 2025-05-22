@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, Tooltip, Typography
@@ -9,6 +9,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
+import api from 'utils/api';
 
 // Validation schema
 const schema = yup.object({
@@ -30,6 +31,8 @@ export default function EmployeeGrid() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
+  const [agencies, setAgencies] = useState([]);
+  const [groups, setGroups] = useState([]);
 
   const {
     control, handleSubmit, reset, formState: { errors }
@@ -48,6 +51,28 @@ export default function EmployeeGrid() {
     },
   });
 
+  // Fetch agencies and groups
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [employeesRes, agenciesRes, groupsRes] = await Promise.all([
+          api.get('/api/getemployees'),
+          api.get('/api/getagencies/'),
+          api.get('/api/groups/')
+        ]);
+
+        setEmployees(employeesRes.data);
+        setAgencies(agenciesRes.data);
+        setGroups(groupsRes.data);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        alert('Error fetching employees, agencies, or groups');
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handleOpenAdd = () => {
     reset();
     setProfilePhoto(null);
@@ -60,18 +85,32 @@ export default function EmployeeGrid() {
     setEditEmployee(null);
   };
 
-  const onSubmit = (data) => {
-    const newId = employees.length ? Math.max(...employees.map((e) => e.id)) + 1 : 1;
-    const profilePhotoURL = profilePhoto ? URL.createObjectURL(profilePhoto) : '';
+  const onSubmit = async (data) => {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => formData.append(key, value));
+    if (profilePhoto) {
+      formData.append('profile_photo', profilePhoto);
+    }
 
-    const newEmployee = {
-      id: newId,
-      ...data,
-      profile_photo: profilePhotoURL,
-    };
+    try {
+      const response = await api.post('/api/employees/create', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
-    setEmployees((prev) => [...prev, newEmployee]);
-    handleClose();
+      const savedEmployee = response.data;
+
+      if (!savedEmployee.employee_id) {
+        console.error('Missing employee_id in response:', savedEmployee);
+        return alert('Employee created, but missing employee ID.');
+      }
+
+      // Add to table only after successful response with employee_id
+      setEmployees((prev) => [...prev, savedEmployee]);
+      handleClose();
+    } catch (err) {
+      console.error(err);
+      alert('Error creating employee');
+    }
   };
 
   const columns = [
@@ -135,6 +174,7 @@ export default function EmployeeGrid() {
         columns={columns}
         pageSize={5}
         rowsPerPageOptions={[5]}
+        getRowId={(row) => row.employee_id} // Ensure this is using employee_id
       />
 
       <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -148,8 +188,6 @@ export default function EmployeeGrid() {
               ['last_name', 'Last Name'],
               ['phone_number', 'Phone Number'],
               ['date_of_birth', 'Date of Birth', 'date'],
-              ['agency', 'Agency'],
-              ['group', 'Group'],
               ['password', 'Password', 'password'],
             ].map(([name, label, type = 'text']) => (
               <Controller
@@ -169,12 +207,58 @@ export default function EmployeeGrid() {
               />
             ))}
 
+            {/* Agency dropdown */}
+            <Controller
+              name="agency"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Agency"
+                  fullWidth
+                  error={!!errors.agency}
+                  helperText={errors.agency?.message}
+                  {...field}
+                >
+                  {agencies.map((agency) => (
+                    <MenuItem key={agency.id} value={agency.id}>
+                      {agency.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+
+            {/* Group dropdown */}
+            <Controller
+              name="group"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Group"
+                  fullWidth
+                  error={!!errors.group}
+                  helperText={errors.group?.message}
+                  {...field}
+                >
+                  {groups.map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {group.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+
+            {/* Profile photo upload */}
             <input
               type="file"
               accept="image/*"
               onChange={(e) => setProfilePhoto(e.target.files[0])}
             />
           </DialogContent>
+
           <DialogActions>
             <Button onClick={handleClose}>Cancel</Button>
             <Button type="submit" variant="contained">
