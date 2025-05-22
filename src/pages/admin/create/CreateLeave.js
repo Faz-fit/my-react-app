@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -19,6 +19,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import api from 'utils/api'
 
 // Validation schema
 const schema = yup.object({
@@ -77,10 +78,24 @@ const initialHolidayData = [
 ];
 
 export default function HolidayGrid() {
-  const [holidayData, setHolidayData] = useState(initialHolidayData);
+  const [leaveData, setLeaveData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editHoliday, setEditHoliday] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const fetchLeaves = async () => {
+    try {
+      const res = await api.get('/api/leavetypes/');
+
+      setLeaveData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch Holidays:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaves()
+  }, [])
 
   const {
     control,
@@ -130,12 +145,12 @@ export default function HolidayGrid() {
     setLoading(true);
     setTimeout(() => {
       if (editHoliday) {
-        setHolidayData((prev) =>
+        setLeaveData((prev) =>
           prev.map((item) => (item.id === editHoliday.id ? { ...item, ...data } : item))
         );
       } else {
-        const newId = holidayData.length ? Math.max(...holidayData.map((item) => item.id)) + 1 : 1;
-        setHolidayData((prev) => [...prev, { id: newId, ...data }]);
+        const newId = leaveData.length ? Math.max(...leaveData.map((item) => item.id)) + 1 : 1;
+        setLeaveData((prev) => [...prev, { id: newId, ...data }]);
       }
       setLoading(false);
       closeDialog();
@@ -209,7 +224,7 @@ export default function HolidayGrid() {
       </Button>
 
       <DataGrid
-        rows={holidayData}
+        rows={leaveData}
         columns={columns}
         pageSize={7}
         rowsPerPageOptions={[5, 7, 10]}

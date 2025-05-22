@@ -33,8 +33,8 @@ const CreateOutlet = ({ onSuccess }) => {
   } = useForm();
 
   useEffect(() => {
-    api.get('http://127.0.0.1:8000/api/getemployees').then(res => setManagers(res.data));
-    api.get('http://127.0.0.1:8000/api/agencies/').then(res => setAgencies(res.data));
+    api.get('/api/getemployees').then(res => setManagers(res.data));
+    api.get('/api/agencies/').then(res => setAgencies(res.data));
   }, []);
 
   const onMapClick = (e) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -23,6 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import api from 'utils/api';
 
 // Validation schema
 const schema = yup.object({
@@ -61,23 +62,25 @@ const holidayNameOptions = [
 ];
 
 export default function HolidayGrid() {
-  const [holidayData, setHolidayData] = useState([
-    {
-      id: 1,
-      hcode: 'PoD',
-      holiday_type: 'PBM',
-      holiday_type_name: 'Public/Bank/Mercantile',
-      holiday_name: 'Duruthu Full Moon Poya Day',
-      hdate: new Date('2025-01-13'),
-      active: true,
-      holidayOT: 200,
-      holidayRegular_PayPercentage: 200,
-    },
-    // ...more initial data here
-  ]);
+  const [holidayData, setHolidayData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editHoliday, setEditHoliday] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const fetchHolidays = async () => {
+    try {
+      const res = await api.get('/api/holidays/');
+
+      setHolidayData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch Holidays:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchHolidays()
+  }, [])
+
 
   const {
     control,
