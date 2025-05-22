@@ -128,21 +128,41 @@ export default function HolidayGrid() {
     setEditHoliday(null);
   };
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      const formattedData = {
+        ...data,
+        hdate: new Date(data.hdate).toISOString().split('T')[0],
+        holiday_ot_pay_percentage: data.holidayOT ? Number(data.holidayOT).toFixed(2) : null,
+        holiday_regular_pay_percentage: data.holidayRegular_PayPercentage ? Number(data.holidayRegular_PayPercentage).toFixed(2) : null,
+      };
+
+      let response;
       if (editHoliday) {
+        response = await api.put(`api/holidays/${editHoliday.id}/`, formattedData);
+        const updatedHoliday = response.data;
+
         setHolidayData((prev) =>
-          prev.map((item) => (item.id === editHoliday.id ? { ...item, ...data } : item))
+          prev.map((item) => (item.id === editHoliday.id ? updatedHoliday : item))
         );
       } else {
-        const newId = holidayData.length ? Math.max(...holidayData.map((item) => item.id)) + 1 : 1;
-        setHolidayData((prev) => [...prev, { id: newId, ...data }]);
+        response = await api.post('api/holidays/', formattedData);
+        const newHoliday = response.data;
+
+        setHolidayData((prev) => [...prev, newHoliday]);
       }
-      setLoading(false);
+
       closeDialog();
-    }, 600);
+    } catch (error) {
+      console.error('Submission error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+
 
   const columns = [
     { field: 'hcode', headerName: 'Hcode', width: 100 },
