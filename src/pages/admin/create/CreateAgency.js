@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -14,6 +14,7 @@ import {
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import api from 'utils/api'
 
 const MAX_LENGTH = 255;
 
@@ -24,12 +25,16 @@ const initialAgencies = [
 ];
 
 export default function AgencyGrid() {
-  const [agencies, setAgencies] = useState(initialAgencies);
+  const [agencies, setAgencies] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editAgency, setEditAgency] = useState(null);
   const [form, setForm] = useState({ name: '', address: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    api.get('/api/getagencies/').then(res => setAgencies(res.data));
+  }, []);
 
   // Open dialog for add or edit
   const openAddDialog = () => {
@@ -60,8 +65,9 @@ export default function AgencyGrid() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!form.name.trim() || !form.address.trim()) {
       setError('Please fill in all required fields.');
       return;
@@ -69,22 +75,32 @@ export default function AgencyGrid() {
 
     setLoading(true);
 
-    // Simulate API delay
-    setTimeout(() => {
+    try {
+
       if (editAgency) {
-        // Update existing
+        // Edit existing agency — include the ID
+        const response = await api.put(`api/agencies/${editAgency.id}/`, form);
+        const updatedAgency = response.data;
+
         setAgencies((prev) =>
-          prev.map((a) => (a.id === editAgency.id ? { ...a, ...form } : a))
+          prev.map((a) => (a.id === editAgency.id ? updatedAgency : a))
         );
       } else {
         // Add new agency
-        const newId = agencies.length ? Math.max(...agencies.map((a) => a.id)) + 1 : 1;
-        setAgencies((prev) => [...prev, { id: newId, ...form }]);
+        const response = await api.post('api/agencies/', form); // Also changed to use `api` instead of `axios`
+        const newAgency = response.data;
+
+        setAgencies((prev) => [...prev, newAgency]);
       }
-      setLoading(false);
       closeDialog();
-    }, 600);
+    } catch (err) {
+      console.error('API error:', err);
+      setError('Failed to save agency. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   const columns = [
     { field: 'name', headerName: 'Agency Name', flex: 1, minWidth: 180 },

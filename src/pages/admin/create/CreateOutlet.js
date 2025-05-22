@@ -34,7 +34,7 @@ const CreateOutlet = ({ onSuccess }) => {
 
   useEffect(() => {
     api.get('/api/getemployees').then(res => setManagers(res.data));
-    api.get('/api/agencies/').then(res => setAgencies(res.data));
+    api.get('/api/getagencies/').then(res => setAgencies(res.data));
   }, []);
 
   const onMapClick = (e) => {
