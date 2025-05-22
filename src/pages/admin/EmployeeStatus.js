@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  IconButton,
-  Tooltip,
-  Typography,
+  Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, MenuItem, Tooltip, Typography
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -19,80 +10,48 @@ import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 
-// Validation schema for form
+// Validation schema
 const schema = yup.object({
-  name: yup.string().required('Name is required'),
-  role: yup.string().required('Role is required'),
-  phone: yup.string(),
-  location: yup.string(),
-  status: yup.string().oneOf(['active', 'inactive']).required('Status required'),
+  fullname: yup.string().required('Full name is required'),
+  email: yup.string().email().required('Email is required'),
+  first_name: yup.string().required('First name is required'),
+  last_name: yup.string().required('Last name is required'),
+  phone_number: yup.string(),
+  date_of_birth: yup.string().required('Date of birth is required'),
+  password: yup.string().required('Password is required'),
+  agency: yup.string().required('Agency is required'),
+  group: yup.string().required('Group is required'),
 });
 
-const initialEmployees = [
-  {
-    id: 1,
-    name: 'John Doe',
-    role: 'Software Engineer',
-    phone: '123-456-7890',
-    status: 'active',
-    location: 'New York',
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    role: 'Project Manager',
-    phone: '987-654-3210',
-    status: 'inactive',
-    location: 'New York',
-  },
-  {
-    id: 3,
-    name: 'Alice Johnson',
-    role: 'UX Designer',
-    phone: '555-123-4567',
-    status: 'active',
-    location: 'Melbourne',
-  },
-];
+const initialEmployees = [];
 
 export default function EmployeeGrid() {
   const [employees, setEmployees] = useState(initialEmployees);
   const [openDialog, setOpenDialog] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
+  const [profilePhoto, setProfilePhoto] = useState(null);
 
-  // react-hook-form setup
   const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
+    control, handleSubmit, reset, formState: { errors }
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: '',
-      role: '',
-      phone: '',
-      location: '',
-      status: 'active',
+      fullname: '',
+      email: '',
+      first_name: '',
+      last_name: '',
+      phone_number: '',
+      date_of_birth: '',
+      agency: '',
+      group: '',
+      password: '',
     },
   });
 
-  // Open dialog for Add or Edit
   const handleOpenAdd = () => {
+    reset();
+    setProfilePhoto(null);
     setEditEmployee(null);
-    reset({
-      name: '',
-      role: '',
-      phone: '',
-      location: '',
-      status: 'active',
-    });
-    setOpenDialog(true);
-  };
-
-  const handleOpenEdit = (employee) => {
-    setEditEmployee(employee);
-    reset(employee);
     setOpenDialog(true);
   };
 
@@ -102,45 +61,42 @@ export default function EmployeeGrid() {
   };
 
   const onSubmit = (data) => {
-    if (editEmployee) {
-      // Edit mode - update employee
-      setEmployees((prev) =>
-        prev.map((emp) => (emp.id === editEmployee.id ? { ...emp, ...data } : emp))
-      );
-    } else {
-      // Add mode - add new employee with new id
-      const newId = employees.length ? Math.max(...employees.map((e) => e.id)) + 1 : 1;
-      setEmployees((prev) => [...prev, { id: newId, ...data }]);
-    }
+    const newId = employees.length ? Math.max(...employees.map((e) => e.id)) + 1 : 1;
+    const profilePhotoURL = profilePhoto ? URL.createObjectURL(profilePhoto) : '';
+
+    const newEmployee = {
+      id: newId,
+      ...data,
+      profile_photo: profilePhotoURL,
+    };
+
+    setEmployees((prev) => [...prev, newEmployee]);
     handleClose();
   };
 
-  // Define columns for DataGrid
   const columns = [
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 150 },
-    { field: 'role', headerName: 'Role', flex: 1, minWidth: 150 },
-    { field: 'phone', headerName: 'Phone', flex: 1, minWidth: 130 },
-    { field: 'location', headerName: 'Location', flex: 1, minWidth: 130 },
+    { field: 'fullname', headerName: 'Full Name', flex: 1 },
+    { field: 'email', headerName: 'Email', flex: 1 },
+    { field: 'first_name', headerName: 'First Name', flex: 1 },
+    { field: 'last_name', headerName: 'Last Name', flex: 1 },
+    { field: 'phone_number', headerName: 'Phone', flex: 1 },
+    { field: 'date_of_birth', headerName: 'DOB', flex: 1 },
+    { field: 'agency', headerName: 'Agency', flex: 1 },
+    { field: 'group', headerName: 'Group', flex: 1 },
     {
-      field: 'status',
-      headerName: 'Status',
-      width: 120,
-      renderCell: (params) => (
-        <Typography
-          sx={{
-            color: params.value === 'active' ? 'green' : 'red',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-          }}
-        >
-          {params.value}
-        </Typography>
-      ),
+      field: 'profile_photo',
+      headerName: 'Photo',
+      width: 100,
+      renderCell: (params) =>
+        params.value ? (
+          <img src={params.value} alt="Profile" width={40} height={40} style={{ borderRadius: '50%' }} />
+        ) : (
+          'No Photo'
+        ),
     },
     {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
       width: 80,
       getActions: (params) => [
         <GridActionsCellItem
@@ -150,26 +106,26 @@ export default function EmployeeGrid() {
             </Tooltip>
           }
           label="Edit"
-          onClick={() => handleOpenEdit(params.row)}
-          showInMenu={false}
-          key="edit"
+          onClick={() => {
+            reset(params.row);
+            setProfilePhoto(null);
+            setEditEmployee(params.row);
+            setOpenDialog(true);
+          }}
         />,
       ],
     },
   ];
 
   return (
-    <Box sx={{ height: 500, width: '90%', mx: 'auto', mt: 5, position: 'relative' }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>
-        Employees
-      </Typography>
+    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5 }}>
+      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Employees</Typography>
 
-      {/* Add Button top right */}
       <Button
         variant="contained"
         startIcon={<AddIcon />}
-        sx={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}
         onClick={handleOpenAdd}
+        sx={{ mb: 2 }}
       >
         Add Employee
       </Button>
@@ -178,73 +134,45 @@ export default function EmployeeGrid() {
         rows={employees}
         columns={columns}
         pageSize={5}
-        rowsPerPageOptions={[5, 10]}
-        disableSelectionOnClick
-        sx={{ mt: 4 }}
+        rowsPerPageOptions={[5]}
       />
 
-      {/* Dialog for Add/Edit */}
       <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>{editEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Controller
-              name="name"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Name"
-                  fullWidth
-                  error={!!errors.name}
-                  helperText={errors.name?.message}
-                  {...field}
-                />
-              )}
-            />
-            <Controller
-              name="role"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Role"
-                  fullWidth
-                  error={!!errors.role}
-                  helperText={errors.role?.message}
-                  {...field}
-                />
-              )}
-            />
-            <Controller
-              name="phone"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Phone"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-            <Controller
-              name="location"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Location"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-            <Controller
-              name="status"
-              control={control}
-              render={({ field }) => (
-                <TextField select label="Status" fullWidth error={!!errors.status} helperText={errors.status?.message} {...field}>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </TextField>
-              )}
+            {[
+              ['fullname', 'Full Name'],
+              ['email', 'Email'],
+              ['first_name', 'First Name'],
+              ['last_name', 'Last Name'],
+              ['phone_number', 'Phone Number'],
+              ['date_of_birth', 'Date of Birth', 'date'],
+              ['agency', 'Agency'],
+              ['group', 'Group'],
+              ['password', 'Password', 'password'],
+            ].map(([name, label, type = 'text']) => (
+              <Controller
+                key={name}
+                name={name}
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    label={label}
+                    type={type}
+                    fullWidth
+                    error={!!errors[name]}
+                    helperText={errors[name]?.message}
+                    {...field}
+                  />
+                )}
+              />
+            ))}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setProfilePhoto(e.target.files[0])}
             />
           </DialogContent>
           <DialogActions>
