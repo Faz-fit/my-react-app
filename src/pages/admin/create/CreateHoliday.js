@@ -159,12 +159,18 @@ export default function HolidayGrid() {
     { field: 'holiday_type', headerName: 'Holiday Type', width: 120 },
     { field: 'holiday_type_name', headerName: 'Holiday Type Name', flex: 1, minWidth: 180 },
     { field: 'holiday_name', headerName: 'Holiday Name', flex: 1, minWidth: 180 },
-    {
-      field: 'hdate',
-      headerName: 'Date',
-      width: 130,
-      valueFormatter: (params) => new Date(params.value).toLocaleDateString(),
-    },
+{
+  field: 'hdate',
+  headerName: 'Date',
+  width: 130,
+  renderCell: (params) => {
+    if (!params.value) return '';
+    const d = new Date(params.value);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+  },
+}
+
+,
     {
       field: 'active',
       headerName: 'Active',
@@ -176,7 +182,6 @@ export default function HolidayGrid() {
       headerName: 'Holiday OT',
       width: 110,
       type: 'number',
-      valueFormatter: (params) => parseFloat(params.value).toFixed(2),
     },
     {
       field: 'holiday_regular_pay_percentage',
