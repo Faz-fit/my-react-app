@@ -1,157 +1,136 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Checkbox,
-  FormControlLabel,
   Typography,
-  Tooltip,
+  TextField,
+  Button,
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
-import EditIcon from '@mui/icons-material/Edit';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 
-// Dummy employees
-const employees = [
-  { id: 'e1', name: 'John Doe', department: 'Engineering' },
-  { id: 'e2', name: 'Jane Smith', department: 'Marketing' },
+const initialLeaveRequests = [
+  { id: 1, employeeName: 'John Doe', leaveType: 'Sick Leave', startDate: '2025-05-10', endDate: '2025-05-12', status: 'Pending' },
+  { id: 2, employeeName: 'Jane Smith', leaveType: 'Vacation', startDate: '2025-05-15', endDate: '2025-05-20', status: 'Pending' },
+  { id: 3, employeeName: 'Alice Johnson', leaveType: 'Personal Leave', startDate: '2025-05-18', endDate: '2025-05-19', status: 'Pending' },
+  { id: 4, employeeName: 'Michael Brown', leaveType: 'Maternity Leave', startDate: '2025-05-25', endDate: '2025-06-25', status: 'Pending' },
+  { id: 5, employeeName: 'Linda Carter', leaveType: 'Vacation', startDate: '2025-04-01', endDate: '2025-04-07', status: 'Approved' },
+  { id: 6, employeeName: 'James Wilson', leaveType: 'Sick Leave', startDate: '2025-03-14', endDate: '2025-03-16', status: 'Approved' },
+  { id: 7, employeeName: 'Sophia Turner', leaveType: 'Emergency Leave', startDate: '2025-04-10', endDate: '2025-04-12', status: 'Rejected' },
+  { id: 8, employeeName: 'William Scott', leaveType: 'Personal Leave', startDate: '2025-04-20', endDate: '2025-04-21', status: 'Rejected' },
 ];
 
-// Pre-made leave types
-const leaveTypes = [
-  { id: 'lt1', name: 'Sick Leave' },
-  { id: 'lt2', name: 'Maternity Leave' },
-  { id: 'lt3', name: 'Casual Leave' },
-];
+export default function LeaveApproval() {
+  const [requests, setRequests] = useState(initialLeaveRequests);
+  const [search, setSearch] = useState('');
 
-export default function EmployeeLeaveAssignmentSimple() {
-  // employeeLeaves: map employeeId => array of leaveType ids assigned
-  const [employeeLeaves, setEmployeeLeaves] = useState({
-    e1: ['lt1'], // John Doe assigned Sick Leave
-    e2: [], // Jane Smith no leaves assigned yet
-  });
-
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-
-  // Open dialog for editing employee leaves
-  const handleEditClick = (employee) => {
-    setSelectedEmployee(employee);
-    setOpenDialog(true);
+  const handleApprove = (id) => {
+    setRequests((prev) =>
+      prev.map((req) =>
+        req.id === id ? { ...req, status: 'Approved' } : req
+      )
+    );
   };
 
-  const handleClose = () => {
-    setOpenDialog(false);
-    setSelectedEmployee(null);
+  const handleReject = (id) => {
+    setRequests((prev) =>
+      prev.map((req) =>
+        req.id === id ? { ...req, status: 'Rejected' } : req
+      )
+    );
   };
 
-  // Toggle leave type assignment checkbox
-  const handleToggleLeave = (leaveTypeId) => {
-    setEmployeeLeaves((prev) => {
-      const current = prev[selectedEmployee.id] || [];
-      if (current.includes(leaveTypeId)) {
-        // remove
-        return {
-          ...prev,
-          [selectedEmployee.id]: current.filter((id) => id !== leaveTypeId),
-        };
-      } else {
-        // add
-        return {
-          ...prev,
-          [selectedEmployee.id]: [...current, leaveTypeId],
-        };
-      }
-    });
-  };
+  const filterRequests = (statusList) =>
+    requests.filter(
+      (req) =>
+        statusList.includes(req.status) &&
+        (req.employeeName.toLowerCase().includes(search.toLowerCase()) ||
+         req.leaveType.toLowerCase().includes(search.toLowerCase()))
+    );
 
-  // Prepare grid rows - each employee + count of assigned leaves
-  const rows = employees.map((emp) => ({
-    id: emp.id,
-    name: emp.name,
-    department: emp.department,
-    leaveCount: (employeeLeaves[emp.id] || []).length,
-  }));
+  const commonColumns = [
+    { field: 'employeeName', headerName: 'Employee Name', flex: 1 },
+    { field: 'leaveType', headerName: 'Leave Type', flex: 1 },
+    { field: 'startDate', headerName: 'Start Date', flex: 1 },
+    { field: 'endDate', headerName: 'End Date', flex: 1 },
+  ];
 
-  const columns = [
-    { field: 'name', headerName: 'Employee Name', flex: 1 },
-    { field: 'department', headerName: 'Department', flex: 1 },
-    {
-      field: 'leaveCount',
-      headerName: 'Assigned Leaves',
-      width: 150,
-      align: 'center',
-      headerAlign: 'center',
-    },
+  const pendingColumns = [
+    ...commonColumns,
     {
       field: 'actions',
-      headerName: 'Actions',
-      width: 100,
       type: 'actions',
+      headerName: 'Actions',
       getActions: (params) => [
         <GridActionsCellItem
-          key="edit"
-          icon={
-            <Tooltip title="Assign Leaves">
-              <EditIcon />
-            </Tooltip>
-          }
-          label="Assign Leaves"
-          onClick={() => handleEditClick(employees.find((e) => e.id === params.id))}
-          showInMenu={false}
+          icon={<CheckCircleIcon color="success" />}
+          label="Approve"
+          onClick={() => handleApprove(params.id)}
+        />,
+        <GridActionsCellItem
+          icon={<CancelIcon color="error" />}
+          label="Reject"
+          onClick={() => handleReject(params.id)}
         />,
       ],
     },
   ];
 
+  const historyColumns = [
+    ...commonColumns,
+    {
+      field: 'status',
+      headerName: 'Status',
+      flex: 1,
+      renderCell: (params) => (
+        <Typography
+          color={params.value === 'Approved' ? 'green' : 'red'}
+          fontWeight="bold"
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+  ];
+
   return (
-    <Box sx={{ height: 500, width: '90%', mx: 'auto', mt: 4 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
-        Employee Leave Assignment
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 2 }}>
+        Leave Management
       </Typography>
 
-      <DataGrid rows={rows} columns={columns} pageSize={7} rowsPerPageOptions={[7, 14]} />
+      <TextField
+        variant="outlined"
+        fullWidth
+        label="Search by Employee or Leave Type"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 4 }}
+      />
 
-      {/* Dialog */}
-      <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Assign Leaves to {selectedEmployee ? selectedEmployee.name : ''}
-        </DialogTitle>
+      <Typography variant="h5" sx={{ mb: 2 }}>
+        Pending Leave Requests
+      </Typography>
+      <Box sx={{ height: 400, mb: 5 }}>
+        <DataGrid
+          rows={filterRequests(['Pending'])}
+          columns={pendingColumns}
+          pageSize={5}
+          disableRowSelectionOnClick
+        />
+      </Box>
 
-        <DialogContent dividers>
-          {leaveTypes.map((leaveType) => {
-            const isChecked =
-              selectedEmployee &&
-              employeeLeaves[selectedEmployee.id]?.includes(leaveType.id);
-
-            return (
-              <FormControlLabel
-                key={leaveType.id}
-                control={
-                  <Checkbox
-                    checked={isChecked || false}
-                    onChange={() => handleToggleLeave(leaveType.id)}
-                  />
-                }
-                label={leaveType.name}
-              />
-            );
-          })}
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleClose}
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Typography variant="h5" sx={{ mb: 2 }}>
+        Leave History
+      </Typography>
+      <Box sx={{ height: 400 }}>
+        <DataGrid
+          rows={filterRequests(['Approved', 'Rejected'])}
+          columns={historyColumns}
+          pageSize={5}
+          disableRowSelectionOnClick
+        />
+      </Box>
     </Box>
   );
 }
