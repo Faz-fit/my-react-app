@@ -8,8 +8,7 @@ import {
   DialogActions,
   TextField,
   Typography,
-  Tooltip,
-  IconButton,
+  Tooltip
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -17,12 +16,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import api from 'utils/api'
 
 const MAX_LENGTH = 255;
-
-const initialAgencies = [
-  { id: 1, name: 'Tech Solutions', address: '123 Tech St, Silicon Valley' },
-  { id: 2, name: 'HealthCare Ltd', address: '456 Wellness Ave, New York' },
-  { id: 3, name: 'EduWorld', address: '789 Learning Rd, London' },
-];
 
 export default function AgencyGrid() {
   const [agencies, setAgencies] = useState([]);

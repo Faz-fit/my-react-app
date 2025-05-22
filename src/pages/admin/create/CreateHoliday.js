@@ -34,18 +34,17 @@ const schema = yup.object({
   active: yup.boolean(),
   holidayOT: yup
     .number()
-    .typeError('OT must be a number')
+    .typeError('OT must be a decimal number')
     .min(0, 'Cannot be negative')
     .required('Holiday OT is required'),
   holidayRegular_PayPercentage: yup
     .number()
-    .typeError('Pay Percentage must be a number')
+    .typeError('Pay Percentage must be a decimal number')
     .min(0, 'Cannot be negative')
     .max(100, 'Cannot be more than 100')
     .required('Pay Percentage is required'),
 }).required();
 
-// Dummy options — you can extract these from your data
 const hcodeOptions = ['PoD', 'TTPD', 'ND', 'MD', 'RFD', 'NY', 'MayD', 'HFD', 'MUN', 'DFD', 'CHD'];
 const holidayTypeOptions = ['PBM', 'PB'];
 const holidayTypeNameOptions = ['Public/Bank/Mercantile', 'Public/Bank'];
@@ -57,7 +56,6 @@ const holidayNameOptions = [
   'Ramazan Festival Day',
   'May Day',
   'Christmas Day',
-  // add more from your data
 ];
 
 export default function HolidayGrid() {
@@ -69,7 +67,6 @@ export default function HolidayGrid() {
   const fetchHolidays = async () => {
     try {
       const res = await api.get('/api/holidays/');
-
       setHolidayData(res.data);
     } catch (err) {
       console.error('Failed to fetch Holidays:', err);
@@ -77,9 +74,8 @@ export default function HolidayGrid() {
   };
 
   useEffect(() => {
-    fetchHolidays()
-  }, [])
-
+    fetchHolidays();
+  }, []);
 
   const {
     control,
@@ -116,7 +112,6 @@ export default function HolidayGrid() {
   };
 
   const openEditDialog = (row) => {
-    // Need to convert date string to Date object if stored as string
     const holidayDate = row.hdate instanceof Date ? row.hdate : new Date(row.hdate);
     setEditHoliday(row);
     reset({ ...row, hdate: holidayDate });
@@ -130,27 +125,24 @@ export default function HolidayGrid() {
 
   const onSubmit = async (data) => {
     setLoading(true);
-
     try {
       const formattedData = {
         ...data,
         hdate: new Date(data.hdate).toISOString().split('T')[0],
-        holiday_ot_pay_percentage: data.holidayOT ? Number(data.holidayOT).toFixed(2) : null,
-        holiday_regular_pay_percentage: data.holidayRegular_PayPercentage ? Number(data.holidayRegular_PayPercentage).toFixed(2) : null,
+        holiday_ot_pay_percentage: parseFloat(data.holidayOT),
+        holiday_regular_pay_percentage: parseFloat(data.holidayRegular_PayPercentage),
       };
 
       let response;
       if (editHoliday) {
         response = await api.put(`api/holidays/${editHoliday.id}/`, formattedData);
         const updatedHoliday = response.data;
-
         setHolidayData((prev) =>
           prev.map((item) => (item.id === editHoliday.id ? updatedHoliday : item))
         );
       } else {
         response = await api.post('api/holidays/', formattedData);
         const newHoliday = response.data;
-
         setHolidayData((prev) => [...prev, newHoliday]);
       }
 
@@ -161,8 +153,6 @@ export default function HolidayGrid() {
       setLoading(false);
     }
   };
-
-
 
   const columns = [
     { field: 'hcode', headerName: 'Hcode', width: 100 },
@@ -186,12 +176,14 @@ export default function HolidayGrid() {
       headerName: 'Holiday OT',
       width: 110,
       type: 'number',
+      valueFormatter: (params) => parseFloat(params.value).toFixed(2),
     },
     {
       field: 'holidayRegular_PayPercentage',
       headerName: 'Pay %',
       width: 110,
       type: 'number',
+      valueFormatter: (params) => parseFloat(params.value).toFixed(2),
     },
     {
       field: 'actions',
@@ -203,7 +195,6 @@ export default function HolidayGrid() {
           icon={<Tooltip title="Edit"><EditIcon /></Tooltip>}
           label="Edit"
           onClick={() => openEditDialog(params.row)}
-          showInMenu={false}
           key="edit"
         />,
       ],
@@ -260,7 +251,6 @@ export default function HolidayGrid() {
                 </TextField>
               )}
             />
-
             <Controller
               name="holiday_type"
               control={control}
@@ -283,7 +273,6 @@ export default function HolidayGrid() {
                 </TextField>
               )}
             />
-
             <Controller
               name="holiday_type_name"
               control={control}
@@ -306,7 +295,6 @@ export default function HolidayGrid() {
                 </TextField>
               )}
             />
-
             <Controller
               name="holiday_name"
               control={control}
@@ -329,7 +317,6 @@ export default function HolidayGrid() {
                 </TextField>
               )}
             />
-
             <Controller
               name="hdate"
               control={control}
@@ -352,7 +339,6 @@ export default function HolidayGrid() {
                 </LocalizationProvider>
               )}
             />
-
             <Controller
               name="active"
               control={control}
@@ -363,7 +349,6 @@ export default function HolidayGrid() {
                 />
               )}
             />
-
             <Controller
               name="holidayOT"
               control={control}
@@ -372,15 +357,14 @@ export default function HolidayGrid() {
                   {...field}
                   label="Holiday OT"
                   type="number"
+                  inputProps={{ step: '0.01', min: 0 }}
                   sx={{ minWidth: 150 }}
                   error={!!errors.holidayOT}
                   helperText={errors.holidayOT?.message}
                   disabled={loading}
-                  inputProps={{ min: 0 }}
                 />
               )}
             />
-
             <Controller
               name="holidayRegular_PayPercentage"
               control={control}
@@ -389,11 +373,11 @@ export default function HolidayGrid() {
                   {...field}
                   label="Pay Percentage"
                   type="number"
+                  inputProps={{ step: '0.01', min: 0, max: 100 }}
                   sx={{ minWidth: 150 }}
                   error={!!errors.holidayRegular_PayPercentage}
                   helperText={errors.holidayRegular_PayPercentage?.message}
                   disabled={loading}
-                  inputProps={{ min: 0, max: 100 }}
                 />
               )}
             />

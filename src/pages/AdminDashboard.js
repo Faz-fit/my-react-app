@@ -12,8 +12,8 @@ const AdminDashboard = () => {
   const theme = useTheme();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [employees, setEmployees] = useState([]);
-  const [agencies, setAgencies] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [setAgencies] = useState([]);
+  const [setGroups] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [managers, setManagers] = useState([]);
   
