@@ -1,16 +1,23 @@
-// src/components/Header.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppBar, Box, Toolbar, IconButton, Typography, Tooltip } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, logout } from '../utils/auth';
 
 function Header({ onMenuClick }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // This is where we use `navigate`
+  
+  // Track authentication state locally
+  const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
 
+  // Update authentication state on login/logout
+  useEffect(() => {
+    setIsLoggedIn(isAuthenticated());
+  }, []);  // Empty dependency array to run once when the component mounts
+  
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    logout(); // Clear session data (like tokens)
+    navigate('/'); // Use `navigate` to redirect to the homepage or login page
   };
 
   return (
@@ -40,7 +47,7 @@ function Header({ onMenuClick }) {
         </Typography>
 
         {/* Logout */}
-        {isAuthenticated() && (
+        {isLoggedIn && (
           <Tooltip title="Logout" arrow>
             <Box
               component="img"

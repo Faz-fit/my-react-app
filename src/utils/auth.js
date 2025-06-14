@@ -1,10 +1,8 @@
 // utils/auth.js
 
-
 export const isAuthenticated = () => {
   return !!localStorage.getItem('access_token');
 };
-
 
 export const getUserRole = () => {
   const accessToken = localStorage.getItem('access_token');
@@ -14,13 +12,16 @@ export const getUserRole = () => {
   return decoded.role;
 };
 
-
 export const logout = () => {
+  // Remove all relevant auth-related keys from localStorage
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('auth');
   localStorage.removeItem('role');
   localStorage.removeItem('outlet');
   localStorage.removeItem('outletList');
-  // add any other keys you want to clear on logout
+  // Add other keys to clear here if needed
+
+  // Force a hard reload of the page to reset app state fully
+  window.location.reload();
 };

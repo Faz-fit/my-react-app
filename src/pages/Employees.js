@@ -1,149 +1,234 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  Grid,
-  Typography,
-  TextField,
-  Box,
-  Avatar,
-  InputAdornment,
-  IconButton,
-  Fade,
-  useTheme,
+  Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, MenuItem, Tooltip, Typography
 } from '@mui/material';
-import ClearIcon from '@mui/icons-material/Clear';
-import SearchIcon from '@mui/icons-material/Search';
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
+import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
+import api from 'utils/api';
 
-const employees = [
-  {
-    id: 1,
-    name: 'John Doe',
-    image: 'https://randomuser.me/api/portraits/men/1.jpg',
-    employeeId: 'E001',
-    contact: '123-456-7890',
-    designation: 'Software Engineer',
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    image: 'https://randomuser.me/api/portraits/women/1.jpg',
-    employeeId: 'E002',
-    contact: '987-654-3210',
-    designation: 'Project Manager',
-  },
-  {
-    id: 3,
-    name: 'Alice Johnson',
-    image: 'https://randomuser.me/api/portraits/women/2.jpg',
-    employeeId: 'E003',
-    contact: '555-123-4567',
-    designation: 'UX Designer',
-  },
-  // Add more employees as needed
-];
+// Validation schema
+const schema = yup.object({
+  fullname: yup.string().required('Full name is required'),
+  email: yup.string().email().required('Email is required'),
+  first_name: yup.string().required('First name is required'),
+  last_name: yup.string().required('Last name is required'),
+  phone_number: yup.string(),
+  date_of_birth: yup.string().required('Date of birth is required'),
+  password: yup.string().required('Password is required'),
+  agency: yup.string().required('Agency is required'),
+  group: yup.string().required('Group is required'),
+});
 
-function Employees() {
-  const theme = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
+const initialEmployees = [];
 
-  // Normalize search input
-  const normalizedSearch = searchTerm.trim().toLowerCase();
+export default function EmployeeGrid() {
+  const [employees, setEmployees] = useState(initialEmployees);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editEmployee, setEditEmployee] = useState(null);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [agencies, setAgencies] = useState([]);
+  const [groups, setGroups] = useState([]);
 
-  const filteredEmployees = employees.filter(({ name, employeeId, contact, designation }) => {
-    return (
-      name.toLowerCase().includes(normalizedSearch) ||
-      employeeId.toLowerCase().includes(normalizedSearch) ||
-      contact.toLowerCase().includes(normalizedSearch) ||
-      designation.toLowerCase().includes(normalizedSearch)
-    );
+  const {
+    control, handleSubmit, reset, formState: { errors }
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      fullname: '',
+      email: '',
+      first_name: '',
+      last_name: '',
+      phone_number: '',
+      date_of_birth: '',
+      agency: '',
+      group: '',
+      password: '',
+    },
   });
 
-  const handleClearSearch = () => setSearchTerm('');
+  const fetchEmployees = async () => {
+    try {
+      const response = await api.get('/api/getemployees');
+      setEmployees(response.data);
+    } catch (err) {
+      console.error('Error fetching employees:', err);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchEmployees();
+        const [agenciesRes, groupsRes] = await Promise.all([
+          api.get('/api/outlets/'),
+          api.get('/api/groups/')
+        ]);
+        setAgencies(agenciesRes.data);
+        setGroups(groupsRes.data);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        alert('Error fetching employees, agencies, or groups');
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleOpenAdd = () => {
+    reset();
+    setProfilePhoto(null);
+    setEditEmployee(null);
+    setOpenDialog(true);
+  };
+
+  const handleClose = () => {
+    setOpenDialog(false);
+    setEditEmployee(null);
+  };
+
+  const onSubmit = async (data) => {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => formData.append(key, value));
+    if (profilePhoto) {
+      formData.append('profile_photo', profilePhoto);
+    }
+
+    try {
+      await api.post('/api/employees/create', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      await fetchEmployees(); // Always re-fetch to ensure data consistency
+      handleClose(); // Close the form
+    } catch (err) {
+      console.error(err);
+      alert('Error creating employee');
+    }
+  };
+
+  const columns = [
+    { field: 'fullname', headerName: 'User Name', flex: 1 },
+    { field: 'first_name', headerName: 'Name', flex: 1 },
+    { field: 'phone_number', headerName: 'Phone', flex: 1 },
+    { field: 'date_of_birth', headerName: 'DOB', flex: 1 },
+    { field: 'agency', headerName: 'Outlets', flex: 1 },
+    { field: 'group', headerName: 'Role', flex: 1 },
+    /*{
+      field: 'profile_photo',
+      headerName: 'Photo',
+      width: 100,
+      renderCell: (params) =>
+        typeof params.value === 'string' ? (
+          <img src={params.value} alt="Profile" width={40} height={40} style={{ borderRadius: '50%' }} />
+        ) : (
+          'No Photo'
+        ),
+    },*/
+   
+  ];
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, margin: 'auto' }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 700, color: theme.palette.primary.main }}>
-        Employees
-      </Typography>
+    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5 }}>
+      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Employees</Typography>
 
-      <TextField
-        variant="outlined"
-        fullWidth
-        label="Search Employees"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Search by name, ID, contact, or designation"
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon color="action" />
-            </InputAdornment>
-          ),
-          endAdornment: searchTerm && (
-            <InputAdornment position="end">
-              <IconButton onClick={handleClearSearch} edge="end" size="small" aria-label="clear search">
-                <ClearIcon />
-              </IconButton>
-            </InputAdornment>
-          ),
-        }}
-        sx={{ mb: 4 }}
+      <DataGrid
+        rows={employees}
+        columns={columns}
+        pageSize={5}
+        rowsPerPageOptions={[5]}
+        getRowId={(row) => row.employee_id}
       />
 
-      {filteredEmployees.length === 0 ? (
-        <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', mt: 4 }}>
-          No employees found matching &quot;{searchTerm}&quot;.
-        </Typography>
-      ) : (
-        <Grid container spacing={4}>
-          {filteredEmployees.map((employee) => (
-            <Grid item xs={12} sm={6} md={4} key={employee.id}>
-              <Fade in timeout={400}>
-                <Card
-                  sx={{
-                    boxShadow: 3,
-                    borderRadius: 2,
-                    cursor: 'pointer',
-                    transition: 'transform 0.3s ease',
-                    '&:hover': {
-                      transform: 'scale(1.03)',
-                      boxShadow: 6,
-                    },
-                  }}
-                  tabIndex={0} // make focusable for accessibility
-                  role="button"
-                  aria-pressed="false"
-                >
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar
-                      src={employee.image}
-                      alt={employee.name}
-                      sx={{ width: 64, height: 64 }}
+      <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>{editEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {[['fullname', 'User Name'],
+              ['email', 'Email'],
+              ['first_name', 'First Name'],
+              ['last_name', 'Last Name'],
+              ['phone_number', 'Phone Number'],
+              ['date_of_birth', 'Date of Birth', 'date'],
+              ['password', 'Password', 'password']].map(([name, label, type = 'text']) => (
+                <Controller
+                  key={name}
+                  name={name}
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      label={label}
+                      type={type}
+                      fullWidth
+                      error={!!errors[name]}
+                      helperText={errors[name]?.message}
+                      {...field}
                     />
-                    <Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        {employee.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.3 }}>
-                        <strong>ID:</strong> {employee.employeeId}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.3 }}>
-                        <strong>Contact:</strong> {employee.contact}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        <strong>Designation:</strong> {employee.designation}
-                      </Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Fade>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+                  )}
+                />
+              ))}
+
+            <Controller
+              name="agency"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Outlets"
+                  fullWidth
+                  error={!!errors.agency}
+                  helperText={errors.agency?.message}
+                  {...field}
+                >
+                  {agencies.map((agency) => (
+                    <MenuItem key={agency.id} value={agency.id}>
+                      {agency.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="group"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Role"
+                  fullWidth
+                  error={!!errors.group}
+                  helperText={errors.group?.message}
+                  {...field}
+                >
+                  {groups.map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {group.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setProfilePhoto(e.target.files[0])}
+            />
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              {editEmployee ? 'Save' : 'Add'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </Box>
   );
 }
-
-export default Employees;

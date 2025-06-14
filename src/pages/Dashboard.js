@@ -1,4 +1,3 @@
-// src/pages/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -17,15 +16,22 @@ import {
 import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
+import api from 'utils/api';
 
 const Dashboard = () => {
   const theme = useTheme();
-  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Static data
-  const totalEmployees = 120;
-  const todaysAttendance = 95;
-  const todaysAbsentees = totalEmployees - todaysAttendance;
+  // Data states
+  const [employees, setEmployees] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [outlets, setOutlets] = useState([]);
+
+  // Current logged-in employee and outlet info
+  const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [currentOutletName, setCurrentOutletName] = useState('');
+  const [loggedInUserData, setLoggedInUserData] = useState(null);
+
+  const loggedInUserId = 12; // replace with your actual logged-in user id
 
   // Dummy pending leaves
   const pendingLeaves = [
@@ -34,25 +40,79 @@ const Dashboard = () => {
     { id: 3, name: 'Bob Johnson', outlet: 'Outlet 2', dates: '2025-05-22 to 2025-05-24', status: 'Pending' },
   ];
 
-  // Update current time every second
+  // Fetch employees, groups, outlets on mount
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const fetchData = async () => {
+      try {
+        const [employeesRes, groupsRes, outletsRes] = await Promise.all([
+          api.get('/api/getemployees'),
+          api.get('/api/groups/'),
+          api.get('/api/outlets/'),
+        ]);
+        setEmployees(employeesRes.data);
+        setGroups(groupsRes.data);
+        setOutlets(outletsRes.data);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        alert('Error fetching employees, groups, or outlets');
+      }
+    };
+    fetchData();
   }, []);
+
+  // Fetch logged-in user data (to get outlets array)
+  useEffect(() => {
+    const fetchLoggedInUser = async () => {
+      try {
+        const res = await api.get(`/api/users/${loggedInUserId}`); // adjust API endpoint as needed
+        setLoggedInUserData(res.data);
+      } catch (error) {
+        console.error('Failed to fetch logged-in user data:', error);
+      }
+    };
+    fetchLoggedInUser();
+  }, [loggedInUserId]);
+
+  // Find current employee from employees list
+  useEffect(() => {
+    if (employees.length > 0) {
+      const emp = employees.find((e) => e.user === loggedInUserId);
+      setCurrentEmployee(emp || null);
+    }
+  }, [employees, loggedInUserId]);
+
+  // Determine outlet name:
+  // Priority: loggedInUserData.outlets array first, fallback to currentEmployee.outlet id matching outlets list
+  useEffect(() => {
+    if (loggedInUserData?.outlets?.length > 0) {
+      setCurrentOutletName(loggedInUserData.outlets[0].name);
+    } else if (currentEmployee && outlets.length > 0) {
+      const outlet = outlets.find((o) => o.id === Number(currentEmployee.outlet));
+      setCurrentOutletName(outlet ? outlet.name : '');
+    }
+  }, [loggedInUserData, currentEmployee, outlets]);
+
+  // Calculate employees in current outlet
+  const employeesInOutlet = currentEmployee
+    ? employees.filter((e) => String(e.outlet) === String(currentEmployee.outlet))
+    : [];
+
+  const totalEmployees = employeesInOutlet.length;
+
+  // For demo, hardcoded todaysAttendance; replace with real logic if available
+  const todaysAttendance = 95;
+  const todaysAbsentees = totalEmployees - todaysAttendance;
 
   return (
     <Box sx={{ padding: 2, maxWidth: 1400, margin: 'auto', fontFamily: 'Roboto, sans-serif' }}>
-      {/* Header with title and live time */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      {/* Header with only outlet name */}
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
         <Typography variant="h3" fontWeight="bold" sx={{ color: 'text.primary' }}>
-          Dashboard
-        </Typography>
-        <Typography variant="h5" fontWeight="bold" sx={{ color: 'text.primary' }}>
-          {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
+          {currentOutletName || 'Loading...'}
         </Typography>
       </Box>
 
-      {/* Main Layout: Left summary cards, Right pending leaves table */}
+      {/* Main Layout */}
       <Box
         sx={{
           display: 'flex',
@@ -61,19 +121,15 @@ const Dashboard = () => {
           alignItems: 'stretch',
         }}
       >
-        {/* Left side cards with stats */}
+        {/* Left side cards */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-
-
-
           <Grid container spacing={2}>
             {[
               { label: 'Total Employees', value: totalEmployees, icon: <PeopleIcon color="primary" sx={{ fontSize: 40 }} /> },
               { label: "Today's Attendance", value: todaysAttendance, icon: <EventAvailableIcon color="primary" sx={{ fontSize: 40 }} /> },
               { label: "Today's Absentees", value: todaysAbsentees, icon: <EventBusyIcon color="error" sx={{ fontSize: 40 }} /> },
             ].map((item, i) => (
-              <Grid item  md={6}>
-
+              <Grid item md={6} key={i}>
                 <Paper
                   elevation={12}
                   sx={{
@@ -84,7 +140,7 @@ const Dashboard = () => {
                     alignItems: 'center',
                     textAlign: 'center',
                     height: '100%',
-                    gap:1,
+                    gap: 1,
                   }}
                 >
                   {item.icon}
@@ -104,7 +160,7 @@ const Dashboard = () => {
           </Grid>
         </Box>
 
-        {/* Right side: Pending Leave Requests Table */}
+        {/* Right side: Pending Leaves Table */}
         <Box sx={{ flex: 1 }}>
           <Paper
             elevation={6}
@@ -113,9 +169,9 @@ const Dashboard = () => {
               borderRadius: 3,
               backgroundColor: theme.palette.background.paper,
               height: '100%',
-              overflowY: 'auto',       // vertical scroll only
-              overflowX: 'hidden',     // hide horizontal scroll
-              paddingRight: '15px',    // add right padding for scrollbar space
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              paddingRight: '15px',
             }}
           >
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>

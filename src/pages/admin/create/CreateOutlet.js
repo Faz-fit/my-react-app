@@ -12,9 +12,10 @@ import {
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 const defaultCenter = {
-  lat: 12.9716,
-  lng: 77.5946,
+  lat: 7.2906,
+  lng: 80.6337,
 };
+
 
 const CreateOutlet = ({ onSuccess }) => {
   const [managers, setManagers] = useState([]);

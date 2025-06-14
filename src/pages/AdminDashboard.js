@@ -1,26 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Grid, Paper, Typography, LinearProgress,useTheme,TableContainer, Table, TableHead, TableBody, TableRow, TableCell } from '@mui/material';
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  LinearProgress,
+  useTheme,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@mui/material';
+
 import PeopleIcon from '@mui/icons-material/People';
 import StoreIcon from '@mui/icons-material/Store';
 import ManagerIcon from '@mui/icons-material/SupervisorAccount';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+
 import api from 'utils/api';
 
 const AdminDashboard = () => {
   const theme = useTheme();
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [employees, setEmployees] = useState([]);
-  const [setAgencies] = useState([]);
-  const [setGroups] = useState([]);
+  const [agencies, setAgencies] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [managers, setManagers] = useState([]);
-  
-  const [todaysAttendance] = useState(95); // Hardcoded as 95 for now
-  const [pendingLeaveRequests] = useState(15); // Hardcoded for now
 
-  const getAttendancePercent = (present, total) => Math.round((present / total) * 100);
+  // Hardcoded for now; replace with real API data if available
+  const [todaysAttendance] = useState(95);
+  const [pendingLeaveRequests] = useState(15);
+
+  const getAttendancePercent = (present, total) =>
+    total > 0 ? Math.round((present / total) * 100) : 0;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,7 +47,7 @@ const AdminDashboard = () => {
           api.get('/api/getemployees'),
           api.get('/api/getagencies/'),
           api.get('/api/groups/'),
-          api.get('/api/outlets/')
+          api.get('/api/outlets/'),
         ]);
 
         setEmployees(employeesRes.data);
@@ -37,12 +55,8 @@ const AdminDashboard = () => {
         setGroups(groupsRes.data);
         setOutlets(outletsRes.data);
 
-        // Get the managers count by group
         const managersRes = await api.get('/api/groups/managers');
         setManagers(managersRes.data);
-
-        // Update Attendance and Pending Leave Requests (You can set them from your API if available)
-        // For now, hardcoded values are used, but you can update them with actual data if needed.
       } catch (error) {
         console.error('Failed to fetch data:', error);
         alert('Error fetching employees, agencies, groups, or outlets');
@@ -57,39 +71,107 @@ const AdminDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Dynamic counts
   const totalEmployees = employees.length;
+  const totalAgencies = agencies.length;
+  const totalGroups = groups.length;
   const totalOutlets = outlets.length;
   const totalManagers = managers.length;
 
-  const outletAttendance = outlets.map(outlet => ({
-    outlet: outlet.name, // Assuming outlet has a 'name' field
-    total: outlet.totalEmployees, // Assuming outlet has a 'totalEmployees' field
-    present: outlet.present, // Assuming outlet has a 'present' field
-    absent: outlet.absent, // Assuming outlet has a 'absent' field
-  }));
+  // Count employees per outlet by matching employee.outlet with outlet.id
+  const outletAttendance = outlets.map((outlet) => {
+    const employeesForOutlet = employees.filter(
+      (emp) => String(emp.outlet) === String(outlet.id)
+    );
+    const totalEmployees = employeesForOutlet.length;
+
+    return {
+      outlet: outlet.name || 'Unnamed Outlet',
+      total: totalEmployees,
+      present: 0, // update if attendance info per employee available
+      absent: 0,
+    };
+  });
 
   return (
-    <Box sx={{ padding: 1, maxWidth: 1200, margin: 'auto', fontFamily: 'Roboto, sans-serif' }}>
-      <Typography variant="h3" align="left" fontWeight="bold" sx={{ letterSpacing: 1, color: 'text.primary' }}>
+    <Box
+      sx={{
+        padding: 1,
+        maxWidth: 1200,
+        margin: 'auto',
+        fontFamily: 'Roboto, sans-serif',
+      }}
+    >
+      <Typography
+        variant="h3"
+        align="left"
+        fontWeight="bold"
+        sx={{ letterSpacing: 1, color: 'text.primary' }}
+      >
         Dashboard
       </Typography>
 
-      <Typography variant="h5" sx={{ color: 'text.primary' }} align="right" fontWeight="bold">
+      <Typography
+        variant="h5"
+        sx={{ color: 'text.primary' }}
+        align="right"
+        fontWeight="bold"
+        gutterBottom
+      >
         {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
       </Typography>
 
       {/* Summary Cards */}
       <Grid container spacing={3} justifyContent="center" sx={{ marginBottom: 5 }}>
         {[
-          { label: 'Total Employees', value: totalEmployees, icon: <PeopleIcon color="primary" sx={{ fontSize: 40 }} /> },
-          { label: 'Total Outlets', value: totalOutlets, icon: <StoreIcon color="primary" sx={{ fontSize: 40 }} /> },
-          { label: 'Total Managers', value: totalManagers, icon: <ManagerIcon color="primary" sx={{ fontSize: 40 }} /> },
-          { label: "Today's Attendance", value: todaysAttendance, icon: <EventAvailableIcon color="primary" sx={{ fontSize: 40 }} /> },
-          { label: "Today's Absentees", value: totalEmployees - todaysAttendance, icon: <EventBusyIcon color="error" sx={{ fontSize: 40 }} /> },
-          { label: 'Pending Leave Requests', value: pendingLeaveRequests, icon: <HourglassEmptyIcon color="warning" sx={{ fontSize: 40 }} /> },
+          {
+            label: 'Total Employees',
+            value: totalEmployees,
+            icon: <PeopleIcon color="primary" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: 'Total Agencies',
+            value: totalAgencies,
+            icon: <StoreIcon color="primary" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: 'Total Groups',
+            value: totalGroups,
+            icon: <ManagerIcon color="primary" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: 'Total Outlets',
+            value: totalOutlets,
+            icon: <StoreIcon color="primary" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: 'Total Managers',
+            value: totalManagers,
+            icon: <ManagerIcon color="primary" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: "Today's Attendance",
+            value: todaysAttendance,
+            icon: <EventAvailableIcon color="primary" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: "Today's Absentees",
+            value: totalEmployees - todaysAttendance,
+            icon: <EventBusyIcon color="error" sx={{ fontSize: 40 }} />,
+          },
+          {
+            label: 'Pending Leave Requests',
+            value: pendingLeaveRequests,
+            icon: <HourglassEmptyIcon color="warning" sx={{ fontSize: 40 }} />,
+          },
         ].map((item, i) => (
-          <Grid item xs={6} sm={4} md={2} key={i} sx={{ minHeight: 140, display: 'flex', justifyContent: 'center' }}>
+          <Grid
+            item
+            xs={6}
+            sm={4}
+            md={2}
+            key={i}
+            sx={{ minHeight: 140, display: 'flex', justifyContent: 'center' }}
+          >
             <Paper
               elevation={6}
               sx={{
@@ -108,10 +190,17 @@ const AdminDashboard = () => {
               }}
             >
               {item.icon}
-              <Typography variant="subtitle1" sx={{ mt: 1, mb: 0.5, fontWeight: 600, color: theme.palette.text.secondary }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ mt: 1, mb: 0.5, fontWeight: 600, color: theme.palette.text.secondary }}
+              >
                 {item.label}
               </Typography>
-              <Typography variant="h3" color={item.label.includes('Absent') ? 'error' : 'primary'} sx={{ fontWeight: 700, letterSpacing: 1 }}>
+              <Typography
+                variant="h3"
+                color={item.label.includes('Absent') ? 'error' : 'primary'}
+                sx={{ fontWeight: 700, letterSpacing: 1 }}
+              >
                 {item.value}
               </Typography>
             </Paper>
@@ -119,11 +208,19 @@ const AdminDashboard = () => {
         ))}
       </Grid>
 
-      {/* Tables for Outlet-wise Attendance and Pending Leave Requests */}
+      {/* Outlet Attendance Table and Pending Leave Requests */}
       <Grid container spacing={3} justifyContent="center">
-        {/* Outlet-wise Attendance */}
-        <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', alignItems: 'stretch', flexWrap: 'nowrap', marginTop: 4 }}>
-          {/* Outlet-wise Attendance - Slightly Wider */}
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 3,
+            justifyContent: 'center',
+            alignItems: 'stretch',
+            flexWrap: 'nowrap',
+            marginTop: 4,
+          }}
+        >
+          {/* Outlet-wise Attendance */}
           <Paper
             elevation={6}
             sx={{
@@ -173,7 +270,12 @@ const AdminDashboard = () => {
                             },
                           }}
                         />
-                        <Typography variant="caption" align="center" display="block" sx={{ mt: 1, fontWeight: 600 }}>
+                        <Typography
+                          variant="caption"
+                          align="center"
+                          display="block"
+                          sx={{ mt: 1, fontWeight: 600 }}
+                        >
                           {getAttendancePercent(present, total)}%
                         </Typography>
                       </TableCell>
@@ -199,7 +301,7 @@ const AdminDashboard = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
               Pending Leave Requests
             </Typography>
-            {/* Leave requests table logic remains the same */}
+            {/* Implement pending leave requests UI here */}
           </Paper>
         </Box>
       </Grid>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';  // Correct import
+import { jwtDecode } from 'jwt-decode'; 
 import {
   Box,
   TextField,
@@ -18,63 +18,73 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  const loginUser = async (username, password) => {
     try {
       const response = await axios.post('http://139.59.243.2:8000/api/token/', {
         username,
         password,
       });
+      return response.data;
+    } catch (err) {
+      throw new Error('Login failed. Please check your credentials.');
+    }
+  };
 
-      if (response.status === 200) {
-        localStorage.setItem('access_token', response.data.access);
-        localStorage.setItem('refresh_token', response.data.refresh);
+  const fetchUserDetails = async (token) => {
+    try {
+      const response = await axios.get('http://139.59.243.2:8000/api/user/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (err) {
+      throw new Error('Failed to get user details');
+    }
+  };
 
-        // Decode the access token
-        const decoded = jwtDecode(response.data.access);
-        console.log(decoded); // Debugging log
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-        const role = decoded.role;
-        //const role = 'manager';
-        const getUserDetails = async () => {
-          try {
-            const token = localStorage.getItem('access_token');
-            const response = await axios.get('http://139.59.243.2:8000/api/user/', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
+    if (!username || !password) {
+      setError('Both fields are required.');
+      setLoading(false);
+      return;
+    }
 
-            const outlets = response.data.outlets;
-            console.log('User outlets:', outlets);
+    try {
+      const { access, refresh } = await loginUser(username, password);
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
 
-            if (role === 'Admin') {
-              navigate('/Admindashboard');
-            } else if (role === 'manager') {
-              if (outlets.length === 1) {
-                localStorage.setItem('outlet', outlets[0]); // Consider using JSON.stringify
-                navigate('/dashboard');
-              } else {
-                localStorage.setItem('outletList', JSON.stringify(outlets));
-                navigate('/select-outlet');
-              }
-            } else {
-              setError('Unknown role');
-            }
+      const decoded = jwtDecode(access);
+      const { role } = decoded;
 
-          } catch (error) {
-            console.error('Failed to get user details:', error);
-          }
-        };
-        getUserDetails();
-      }
-    } catch (error) {
-      setError('Login failed. Please check your credentials.');
-      console.error(error);
+      const userDetails = await fetchUserDetails(access);
+      const { outlets } = userDetails;
+
+      handleRoleBasedNavigation(role, outlets);
+
+      // After successful login, perform a hard refresh
+      window.location.reload();  // Force the page to reload
+
+    } catch (err) {
+      setError(err.message);
+      console.error(err);
     }
     setLoading(false);
+  };
+
+  const handleRoleBasedNavigation = (role, outlets) => {
+    const roleBasedRedirect = {
+      Admin: '/Admindashboard',
+      Manager: outlets.length === 1 ? '/dashboard' : '/select-outlet',
+    };
+
+    const navigateToRolePage = roleBasedRedirect[role] || '/';
+    navigate(navigateToRolePage);
   };
 
   return (
@@ -102,15 +112,7 @@ const LoginPage = () => {
           backgroundColor: '#ffffff',
         }}
       >
-        <Box
-          sx={{
-            width: '45%',
-            backgroundColor: '#f8f8f8',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
+        <Box sx={{ width: '45%', backgroundColor: '#f8f8f8' }} >
           <Box
             sx={{
               width: 320,
@@ -121,29 +123,21 @@ const LoginPage = () => {
               backgroundColor: 'white',
               display: 'flex',
               justifyContent: 'center',
+              marginTop: 15,
+              marginLeft:6,
               alignItems: 'center',
             }}
           >
             <img
               src="/logo.png"
               alt="Logo"
-              style={{ width: '70%', height: '70%', objectFit: 'contain' }}
+              style={{ width: '70%', height: '70%', objectFit: 'fill' }}
             />
           </Box>
         </Box>
 
-        <Box
-          sx={{
-            width: '55%',
-            p: 6,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h4" align="center" fontWeight="bold">
-            Welcome!
-          </Typography>
+        <Box sx={{ width: '55%', p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <Typography variant="h4" align="center" fontWeight="bold">Welcome!</Typography>
 
           {error && (
             <Typography color="error" align="center" sx={{ mt: 2 }}>
@@ -185,9 +179,7 @@ const LoginPage = () => {
                 backgroundColor: '#e6b904',
                 color: '#000',
                 fontWeight: 'bold',
-                '&:hover': {
-                  backgroundColor: '#d1a803',
-                },
+                '&:hover': { backgroundColor: '#d1a803' },
                 borderRadius: 2,
                 py: 1.5,
               }}

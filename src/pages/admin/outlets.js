@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -7,7 +7,6 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
 import MapIcon from '@mui/icons-material/Map';
-import axios from 'axios';
 import {
   GridRowModes,
   DataGrid,
@@ -15,12 +14,13 @@ import {
   GridRowEditStopReasons,
   Toolbar,
   ToolbarButton,
+  
 } from '@mui/x-data-grid';
-import { Autocomplete, TextField } from '@mui/material';
+import { Autocomplete, TextField ,Typography} from '@mui/material';
 import api from 'utils/api';
 import MapDialog from 'components/MapDialog';
 import CreateOutlet from './create/CreateOutlet'
-import { Dialog, DialogTitle, DialogContent, IconButton, Box } from '@mui/material';
+import { Dialog,DialogContent, IconButton, Box } from '@mui/material';
 
 // Helper random ID generator (replace with your method)
 const randomId = () => Math.random().toString(36).substr(2, 9);
@@ -41,6 +41,7 @@ function EditToolbar(props) {
   };
 
   return (
+    
     <Toolbar>
       <Tooltip title="Add record">
         <ToolbarButton onClick={handleClick}>
@@ -105,57 +106,59 @@ function AgencyEditCell({ id, field, value, api, options }) {
 export default function FullFeaturedCrudGrid() {
   const [rows, setRows] = useState([]); // Use outlets here later
   const [rowModesModel, setRowModesModel] = useState({});
-  const [outlets, setOutlets] = useState([]);
+  const [setOutlets] = useState([]);
+
   const [agencies, setAgencies] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [selectedOutlet, setSelectedOutlet] = useState(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchOutlets();
-    fetchAgencies();
-    fetchEmployees();
-  }, []);
 
-  const fetchOutlets = async () => {
-    try {
-      const res = await api.get('/api/outlets/');
+// ⬆️ Place all 3 fetch functions above the useEffect
+const fetchOutlets = React.useCallback(async () => {
+  try {
+    const res = await api.get('/api/outlets/');
+    const transformedData = res.data.map((outlet) => ({
+      ...outlet,
+      coordinates: {
+        lat: outlet.latitude,
+        lng: outlet.longitude,
+      },
+    }));
+    setRows(transformedData);
+    setOutlets(res.data);
+    setRowModesModel({});
+  } catch (err) {
+    console.error('Failed to fetch outlets:', err);
+  }
+}, [setOutlets]);
 
-      const transformedData = res.data.map((outlet) => ({
-        ...outlet,
-        coordinates: {
-          lat: outlet.latitude,
-          lng: outlet.longitude,
-        },
-      }));
+const fetchAgencies = React.useCallback(async () => {
+  try {
+    const res = await api.get('/api/getagencies/');
+    setAgencies(res.data);
+  } catch (err) {
+    console.error('Failed to fetch agencies:', err);
+  }
+}, []);
 
-      setRows(transformedData);
-      setOutlets(res.data); // only needed if you're using outlets elsewhere
-      setRowModesModel({});
-    } catch (err) {
-      console.error('Failed to fetch outlets:', err);
-    }
-  };
+const fetchEmployees = React.useCallback(async () => {
+  try {
+    const res = await api.get('/api/getemployees/');
+    setEmployees(res.data);
+  } catch (err) {
+    console.error('Failed to fetch employees:', err);
+  }
+}, []);
 
+// ✅ Call them inside useEffect after defining
+React.useEffect(() => {
+  fetchOutlets();
+  fetchAgencies();
+  fetchEmployees();
+}, [fetchOutlets, fetchAgencies, fetchEmployees]);
 
-  const fetchAgencies = async () => {
-    try {
-      const res = await api.get('/api/agencies/');
-      setAgencies(res.data);
-    } catch (err) {
-      console.error('Failed to fetch agencies:', err);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const res = await api.get('/api/getemployees/');
-      setEmployees(res.data);
-    } catch (err) {
-      console.error('Failed to fetch employees:', err);
-    }
-  };
 
   const handleRowEditStop = (params, event) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
@@ -391,7 +394,11 @@ export default function FullFeaturedCrudGrid() {
 
   return (
     <Box sx={{ position: 'relative', height: 500, width: '100%' }}>
+      <Typography variant="h4" sx={{ mb: 1 }} fontWeight="bold">
+        OUTLETS
+      </Typography>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+         
         <IconButton
           sx={{ backgroundColor: 'primary.main', color: 'white', '&:hover': { backgroundColor: 'primary.dark' } }}
           onClick={() => setCreateDialogOpen(true)}
@@ -418,9 +425,10 @@ export default function FullFeaturedCrudGrid() {
         onClose={() => setMapDialogOpen(false)}
         onSave={handleSaveCoordinates}
         initialCoordinates={{
-          lat: selectedOutlet?.latitude ?? 7.2906,
-          lng: selectedOutlet?.longitude ?? 80.6337,
-        }}
+  lat: selectedOutlet?.coordinates?.lat ?? 7.2906,
+  lng: selectedOutlet?.coordinates?.lng ?? 80.6337,
+}}
+
       />
 
       <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>

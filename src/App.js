@@ -56,9 +56,9 @@ function App() {
 
         {/* Manager Dashboard */}
         <Route
-          path="/dashboard"
+          path="/Dashboard"
           element={
-            <ProtectedRoute role={role} requiredRole="manager">
+            <ProtectedRoute role={role} requiredRole="Manager">
               <Layout>
                 <Dashboard />
               </Layout>
@@ -68,22 +68,22 @@ function App() {
 
         {/* Manager Routes */}
         <Route path="/employees" element={
-          <ProtectedRoute role={role} requiredRole="manager">
+          <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><Employees /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/select-outlet" element={
-          <ProtectedRoute role={role} requiredRole="manager">
+          <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><SelectOutlet /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/leave-approval" element={
-          <ProtectedRoute role={role} requiredRole="manager">
+          <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><LeaveApproval /></Layout>
           </ProtectedRoute>
         } />
         <Route path="/reports" element={
-          <ProtectedRoute role={role} requiredRole="manager">
+          <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><Reports /></Layout>
           </ProtectedRoute>
         } />
@@ -127,7 +127,7 @@ function App() {
             <Layout><CreateWorkShift /></Layout>
           </ProtectedRoute>
         } />
-        <Route path="/admin/create/manager" element={
+        <Route path="/admin/create/Manager" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateManager /></Layout>
           </ProtectedRoute>
@@ -139,7 +139,7 @@ function App() {
             <Layout><AssignEmployeeOutlet /></Layout>
           </ProtectedRoute>
         } />
-        <Route path="/admin/assign/manager-outlet" element={
+        <Route path="/admin/assign/Manager-outlet" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AssignManagerOutlet /></Layout>
           </ProtectedRoute>

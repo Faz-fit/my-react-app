@@ -51,17 +51,44 @@ export default function EmployeeGrid() {
     },
   });
 
-  // Fetch agencies and groups
+  const fetchEmployees = async () => {
+    try {
+      const [employeesRes, outletsRes] = await Promise.all([
+        api.get('/api/getemployees'), 
+        api.get('/api/outlets/')
+      ]);
+
+      const outlets = outletsRes.data.reduce((acc, outlet) => {
+        acc[outlet.id] = outlet.name; // Creating a mapping of outlet ID to outlet name
+        return acc;
+      }, {});
+
+      const updatedEmployees = employeesRes.data.map((employee) => {
+        // Get the outlet name using the outlet ID from employee data
+        const outletName = outlets[employee.outlet] || 'Unknown'; 
+        
+        return { 
+          ...employee, 
+          agency: outletName, // Adding the mapped outlet name to agency field
+          group: employee.groups.join(', ') // Mapping groups to a readable string
+        };
+      });
+      
+      setEmployees(updatedEmployees);
+    } catch (err) {
+      console.error('Error fetching employees:', err);
+    }
+  };
+
+  // Initial load
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [employeesRes, agenciesRes, groupsRes] = await Promise.all([
-          api.get('/api/getemployees'),
-          api.get('/api/getagencies/'),
-          api.get('/api/groups/')
+        await fetchEmployees();
+        const [agenciesRes, groupsRes] = await Promise.all([
+          api.get('/api/outlets/'),
+          api.get('/api/groups/'),
         ]);
-
-        setEmployees(employeesRes.data);
         setAgencies(agenciesRes.data);
         setGroups(groupsRes.data);
       } catch (error) {
@@ -69,7 +96,6 @@ export default function EmployeeGrid() {
         alert('Error fetching employees, agencies, or groups');
       }
     };
-
     fetchData();
   }, []);
 
@@ -93,57 +119,42 @@ export default function EmployeeGrid() {
     }
 
     try {
-      const response = await api.post('/api/employees/create', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      const savedEmployee = response.data;
-
-      if (!savedEmployee.employee_id) {
-        console.error('Missing employee_id in response:', savedEmployee);
-        return alert('Employee created, but missing employee ID.');
+      if (editEmployee) {
+        // If editing, PUT request
+        await api.put(`/api/employees/update/${editEmployee.employee_id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        // If adding, POST request
+        await api.post('/api/employees/create', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       }
 
-      // Add to table only after successful response with employee_id
-      setEmployees((prev) => [...prev, savedEmployee]);
-      handleClose();
+      await fetchEmployees(); // Always re-fetch to ensure data consistency
+      handleClose(); // Close the form
     } catch (err) {
       console.error(err);
-      alert('Error creating employee');
+      alert('Error creating/updating employee');
     }
   };
 
   const columns = [
-    { field: 'fullname', headerName: 'Full Name', flex: 1 },
-    { field: 'email', headerName: 'Email', flex: 1 },
+    { field: 'fullname', headerName: 'User Name', flex: 1 },
     { field: 'first_name', headerName: 'First Name', flex: 1 },
     { field: 'last_name', headerName: 'Last Name', flex: 1 },
     { field: 'phone_number', headerName: 'Phone', flex: 1 },
     { field: 'date_of_birth', headerName: 'DOB', flex: 1 },
-    { field: 'agency', headerName: 'Agency', flex: 1 },
-    { field: 'group', headerName: 'Group', flex: 1 },
-    {
-      field: 'profile_photo',
-      headerName: 'Photo',
-      width: 100,
-      renderCell: (params) =>
-        params.value ? (
-          <img src={params.value} alt="Profile" width={40} height={40} style={{ borderRadius: '50%' }} />
-        ) : (
-          'No Photo'
-        ),
-    },
+    { field: 'agency', headerName: 'Outlets', flex: 1 },
+    { field: 'group', headerName: 'Role', flex: 1 },
     {
       field: 'actions',
       type: 'actions',
+      headerName: 'Edit',
       width: 80,
       getActions: (params) => [
         <GridActionsCellItem
-          icon={
-            <Tooltip title="Edit">
-              <EditIcon />
-            </Tooltip>
-          }
+          icon={<Tooltip title="Edit"><EditIcon /></Tooltip>}
           label="Edit"
           onClick={() => {
             reset(params.row);
@@ -157,14 +168,14 @@ export default function EmployeeGrid() {
   ];
 
   return (
-    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5 }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Employees</Typography>
+    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5, display: 'flex', flexDirection: 'column' }}>
+      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>EMPLOYEES</Typography>
 
       <Button
         variant="contained"
         startIcon={<AddIcon />}
         onClick={handleOpenAdd}
-        sx={{ mb: 2 }}
+        sx={{ mb: 2, ml: 'auto' }} // This will push the button to the right
       >
         Add Employee
       </Button>
@@ -174,7 +185,7 @@ export default function EmployeeGrid() {
         columns={columns}
         pageSize={5}
         rowsPerPageOptions={[5]}
-        getRowId={(row) => row.employee_id} // Ensure this is using employee_id
+        getRowId={(row) => row.employee_id}
       />
 
       <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -182,7 +193,7 @@ export default function EmployeeGrid() {
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {[
-              ['fullname', 'Full Name'],
+              ['fullname', 'User Name'],
               ['email', 'Email'],
               ['first_name', 'First Name'],
               ['last_name', 'Last Name'],
@@ -207,14 +218,13 @@ export default function EmployeeGrid() {
               />
             ))}
 
-            {/* Agency dropdown */}
             <Controller
               name="agency"
               control={control}
               render={({ field }) => (
                 <TextField
                   select
-                  label="Agency"
+                  label="Outlets"
                   fullWidth
                   error={!!errors.agency}
                   helperText={errors.agency?.message}
@@ -229,14 +239,13 @@ export default function EmployeeGrid() {
               )}
             />
 
-            {/* Group dropdown */}
             <Controller
               name="group"
               control={control}
               render={({ field }) => (
                 <TextField
                   select
-                  label="Group"
+                  label="Role"
                   fullWidth
                   error={!!errors.group}
                   helperText={errors.group?.message}
@@ -251,7 +260,6 @@ export default function EmployeeGrid() {
               )}
             />
 
-            {/* Profile photo upload */}
             <input
               type="file"
               accept="image/*"

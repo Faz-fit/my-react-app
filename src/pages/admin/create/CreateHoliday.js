@@ -41,7 +41,7 @@ const schema = yup.object({
     .number()
     .typeError('Pay Percentage must be a decimal number')
     .min(0, 'Cannot be negative')
-    .max(100, 'Cannot be more than 100')
+    
     .required('Pay Percentage is required'),
 }).required();
 
