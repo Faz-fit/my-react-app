@@ -21,26 +21,6 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from 'utils/api';
 
-// Leave types mapping
-const attTypeMap = {
-  A: 'Annual',
-  C: 'Casual Leave',
-  C19q: 'Covid 19 Quarantine',
-  Co: 'Compassionate',
-  H1: 'Half Day Leave1',
-  H2: 'Half Day Leave2',
-  M: 'Maternity Leave',
-  NP: 'No Pay',
-  NwL: 'Non-working Leave',
-  O: 'Day Off',
-  P: 'Paternity Leave',
-  S: 'Sick Leave',
-  SL: 'Short Leave',
-  V: 'Vacation',
-  W: 'Work from Home',
-  PCUR: 'Police Curfew',
-};
-
 // Validation schema
 const schema = yup.object({
   att_type: yup.string().required('Attendance Type is required'),
@@ -96,6 +76,7 @@ export default function HolidayGrid() {
     handleSubmit,
     reset,
     setValue,
+    getValues, // <-- Include getValues here
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -151,8 +132,6 @@ export default function HolidayGrid() {
       year_start_date: data.year_start_date ? new Date(data.year_start_date).toISOString().split('T')[0] : '',
       year_end_date: data.year_end_date ? new Date(data.year_end_date).toISOString().split('T')[0] : '',
     };
-
-    console.log("Formatted Data onSubmit:", formattedData); // Check the formatted data
 
     try {
       if (editHoliday) {
@@ -227,6 +206,12 @@ export default function HolidayGrid() {
     },
   ];
 
+  // Automatically set `att_type` to the value of `att_type_name`
+  useEffect(() => {
+    const attTypeName = getValues('att_type_name');
+    setValue('att_type', attTypeName); // Automatically set `att_type` to `att_type_name`
+  }, [getValues, setValue]);
+
   return (
     <Box sx={{ height: 500, width: '90%', mx: 'auto', mt: 5, position: 'relative' }}>
       <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>
@@ -255,32 +240,19 @@ export default function HolidayGrid() {
         <DialogTitle>{editHoliday ? 'Edit Attendance Type' : 'Add Attendance Type'}</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            {/* Replace attTypeMap with custom input */}
             <Controller
               name="att_type"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  select
-                  label="AttType"
+                  label="Attendance Type"
                   fullWidth
                   error={!!errors.att_type}
                   helperText={errors.att_type?.message}
                   disabled={loading}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    const selectedName = attTypeMap[e.target.value] || '';
-                    setValue('att_type_name', selectedName);
-                    setValue('att_type_group', e.target.value); // Group is same as AttType
-                  }}
-                >
-                  <MenuItem value="">Select AttType</MenuItem>
-                  {Object.keys(attTypeMap).map((key) => (
-                    <MenuItem key={key} value={key}>
-                      {attTypeMap[key]}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
               )}
             />
 
@@ -296,11 +268,9 @@ export default function HolidayGrid() {
                   error={!!errors.att_type_name}
                   helperText={errors.att_type_name?.message}
                   disabled={loading}
-                  InputProps={{ readOnly: true }}
                 />
               )}
             />
-
             {/* Active checkbox */}
             <Controller
               name="active"
