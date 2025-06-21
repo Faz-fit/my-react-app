@@ -20,7 +20,7 @@ const schema = yup.object({
   phone_number: yup.string(),
   date_of_birth: yup.string().required('Date of birth is required'),
   password: yup.string().required('Password is required'),
-  agency: yup.string().required('Agency is required'),
+  outlets: yup.array().of(yup.string()).required('At least one outlet is required'),
   group: yup.string().required('Group is required'),
 });
 
@@ -31,7 +31,7 @@ export default function EmployeeGrid() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [agencies, setAgencies] = useState([]);
+  const [outlets, setOutlets] = useState([]);
   const [groups, setGroups] = useState([]);
 
   const {
@@ -45,7 +45,7 @@ export default function EmployeeGrid() {
       last_name: '',
       phone_number: '',
       date_of_birth: '',
-      agency: '',
+      outlets: [],
       group: '',
       password: '',
     },
@@ -65,15 +65,15 @@ export default function EmployeeGrid() {
     const fetchData = async () => {
       try {
         await fetchEmployees();
-        const [agenciesRes, groupsRes] = await Promise.all([
+        const [outletsRes, groupsRes] = await Promise.all([
           api.get('/api/outlets/'),
           api.get('/api/groups/')
         ]);
-        setAgencies(agenciesRes.data);
+        setOutlets(outletsRes.data);
         setGroups(groupsRes.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
-        alert('Error fetching employees, agencies, or groups');
+        alert('Error fetching employees, outlets, or groups');
       }
     };
     fetchData();
@@ -93,7 +93,13 @@ export default function EmployeeGrid() {
 
   const onSubmit = async (data) => {
     const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => formData.append(key, value));
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'outlets') {
+        value.forEach(outletId => formData.append('outlets[]', outletId));
+      } else {
+        formData.append(key, value);
+      }
+    });
     if (profilePhoto) {
       formData.append('profile_photo', profilePhoto);
     }
@@ -116,7 +122,15 @@ export default function EmployeeGrid() {
     { field: 'first_name', headerName: 'Name', flex: 1 },
     { field: 'phone_number', headerName: 'Phone', flex: 1 },
     { field: 'date_of_birth', headerName: 'DOB', flex: 1 },
-    { field: 'agency', headerName: 'Outlets', flex: 1 },
+    {
+      field: 'outlets',
+      headerName: 'Outlets',
+      flex: 1,
+      valueGetter: (params) => {
+        if (!params.value) return '';
+        return params.value.map(outlet => outlet.name).join(', ');
+      }
+    },
     { field: 'group', headerName: 'Role', flex: 1 },
     /*{
       field: 'profile_photo',
@@ -129,7 +143,7 @@ export default function EmployeeGrid() {
           'No Photo'
         ),
     },*/
-   
+
   ];
 
   return (
@@ -149,44 +163,47 @@ export default function EmployeeGrid() {
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {[['fullname', 'User Name'],
-              ['email', 'Email'],
-              ['first_name', 'First Name'],
-              ['last_name', 'Last Name'],
-              ['phone_number', 'Phone Number'],
-              ['date_of_birth', 'Date of Birth', 'date'],
-              ['password', 'Password', 'password']].map(([name, label, type = 'text']) => (
-                <Controller
-                  key={name}
-                  name={name}
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      label={label}
-                      type={type}
-                      fullWidth
-                      error={!!errors[name]}
-                      helperText={errors[name]?.message}
-                      {...field}
-                    />
-                  )}
-                />
-              ))}
+            ['email', 'Email'],
+            ['first_name', 'First Name'],
+            ['last_name', 'Last Name'],
+            ['phone_number', 'Phone Number'],
+            ['date_of_birth', 'Date of Birth', 'date'],
+            ['password', 'Password', 'password']].map(([name, label, type = 'text']) => (
+              <Controller
+                key={name}
+                name={name}
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    label={label}
+                    type={type}
+                    fullWidth
+                    error={!!errors[name]}
+                    helperText={errors[name]?.message}
+                    {...field}
+                  />
+                )}
+              />
+            ))}
 
             <Controller
-              name="agency"
+              name="outlets"
               control={control}
               render={({ field }) => (
                 <TextField
                   select
                   label="Outlets"
                   fullWidth
-                  error={!!errors.agency}
-                  helperText={errors.agency?.message}
+                  SelectProps={{
+                    multiple: true
+                  }}
+                  error={!!errors.outlets}
+                  helperText={errors.outlets?.message}
                   {...field}
                 >
-                  {agencies.map((agency) => (
-                    <MenuItem key={agency.id} value={agency.id}>
-                      {agency.name}
+                  {outlets.map((outlet) => (
+                    <MenuItem key={outlet.id} value={outlet.id}>
+                      {outlet.name}
                     </MenuItem>
                   ))}
                 </TextField>

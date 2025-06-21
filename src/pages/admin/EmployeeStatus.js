@@ -10,6 +10,7 @@ import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import api from 'utils/api';
+import api2 from 'utils/api2';
 
 // Validation schema
 const schema = yup.object({
@@ -113,28 +114,33 @@ export default function EmployeeGrid() {
   };
 
   const onSubmit = async (data) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === 'outlets') {
-        value.forEach((id) => formData.append('outlets', id));
-      }
-      else {
-        formData.append(key, value);
-      }
-    });
-
-    if (profilePhoto) {
-      formData.append('profile_photo', profilePhoto);
-    }
-
     try {
+      const formData = new FormData();
+
+      // Add basic fields
+      for (const key in data) {
+        if (key === 'outlets') {
+          data.outlets.forEach((id) => {
+            formData.append('outlets', id); // ✅ No '[]'
+          });
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+
+      // Append file
+      if (profilePhoto) {
+        formData.append('profile_photo', profilePhoto);
+      }
+
+      // Submit
       if (editEmployee) {
         await api.put(`/api/editemployees/${editEmployee.employee_id}/`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
         await api.post('/api/employees/create', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
 
