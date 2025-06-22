@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode'; 
+import { jwtDecode } from 'jwt-decode';
 import {
   Box,
   TextField,
@@ -69,6 +69,8 @@ const LoginPage = () => {
 
       const userDetails = await fetchUserDetails(access);
       const { outlets } = userDetails;
+      localStorage.setItem('outlet', outlets[0].id);
+      localStorage.setItem('outlet_name', outlets[0].name);
 
       handleRoleBasedNavigation(role, outlets);
 
@@ -131,7 +133,7 @@ const LoginPage = () => {
               display: 'flex',
               justifyContent: 'center',
               marginTop: 15,
-              marginLeft:6,
+              marginLeft: 6,
               alignItems: 'center',
             }}
           >

@@ -1,5 +1,4 @@
-// src/pages/SelectOutlet.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -10,16 +9,37 @@ import {
   FormControl,
   InputLabel,
   Paper,
+  CircularProgress,
 } from '@mui/material';
+import api from 'utils/api';
 
 function SelectOutlet() {
   const navigate = useNavigate();
-  const outlets = JSON.parse(localStorage.getItem('outletList') || '[]');
+  const [outlets, setOutlets] = useState([]);
   const [selectedOutlet, setSelectedOutlet] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await api.get('/api/user/');
+        const userOutlets = response.data.outlets || [];
+        setOutlets(userOutlets);
+      } catch (err) {
+        console.error('Failed to fetch user details:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
 
   const handleSubmit = () => {
     if (selectedOutlet) {
+      const outlet = outlets.find((o) => o.id === selectedOutlet);
       localStorage.setItem('outlet', selectedOutlet);
+      localStorage.setItem('outlet_name', outlet?.name || '');
       navigate('/dashboard');
     }
   };
@@ -94,45 +114,53 @@ function SelectOutlet() {
             Select an Outlet
           </Typography>
 
-          <FormControl fullWidth sx={{ mt: 4 }}>
-            <InputLabel>Outlet</InputLabel>
-            <Select
-              value={selectedOutlet}
-              label="Outlet"
-              onChange={(e) => setSelectedOutlet(e.target.value)}
-              required
-              sx={{
-                backgroundColor: '#fafafa',
-                borderRadius: 2,
-              }}
-            >
-              {outlets.map((outlet, index) => (
-                <MenuItem key={index} value={outlet.name}>
-                  {outlet.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {loading ? (
+            <Box sx={{ mt: 6, display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <FormControl fullWidth sx={{ mt: 4 }}>
+                <InputLabel>Outlet</InputLabel>
+                <Select
+                  value={selectedOutlet}
+                  label="Outlet"
+                  onChange={(e) => setSelectedOutlet(e.target.value)}
+                  required
+                  sx={{
+                    backgroundColor: '#fafafa',
+                    borderRadius: 2,
+                  }}
+                >
+                  {outlets.map((outlet) => (
+                    <MenuItem key={outlet.id} value={outlet.id}>
+                      {outlet.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{
-              mt: 4,
-              backgroundColor: '#e6b904',
-              color: '#000',
-              fontWeight: 'bold',
-              '&:hover': {
-                backgroundColor: '#d1a803',
-              },
-              borderRadius: 2,
-              py: 1.5,
-            }}
-            onClick={handleSubmit}
-            disabled={!selectedOutlet}
-          >
-            Continue to Dashboard
-          </Button>
+              <Button
+                variant="contained"
+                fullWidth
+                sx={{
+                  mt: 4,
+                  backgroundColor: '#e6b904',
+                  color: '#000',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    backgroundColor: '#d1a803',
+                  },
+                  borderRadius: 2,
+                  py: 1.5,
+                }}
+                onClick={handleSubmit}
+                disabled={!selectedOutlet}
+              >
+                Continue to Dashboard
+              </Button>
+            </>
+          )}
         </Box>
       </Paper>
     </Box>

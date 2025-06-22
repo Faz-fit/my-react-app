@@ -8,6 +8,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { useForm, Controller } from 'react-hook-form';
 import api from 'utils/api';
+import api2 from 'utils/api2';
 
 const initialEmployees = [];
 
@@ -89,40 +90,36 @@ const { control, handleSubmit, reset, formState: { errors } } = useForm();
   };
 
   const onSubmit = async (data) => {
-    // Check if password is provided when creating a new employee
-    if (!editEmployee && !data.password) {
-      setPasswordError('Password is required when adding a new employee!');
-      return;
-    }
-
-    const formData = new FormData();
-
-    // Loop through form data and append to formData object
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === 'outlets') {
-        value.forEach((id) => formData.append('outlets', id));
-      } else {
-        formData.append(key, value);
-      }
-    });
-
-    // Add profile photo if available
-    if (profilePhoto) {
-      formData.append('profile_photo', profilePhoto);
-    }
-
     try {
-      // Check if we're editing or creating an employee
+      const formData = new FormData();
+
+      // Add basic fields
+      for (const key in data) {
+        if (key === 'outlets') {
+          data.outlets.forEach((id) => {
+            formData.append('outlets', id); // ✅ No '[]'
+          });
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+
+      // Append file
+      if (profilePhoto) {
+        formData.append('profile_photo', profilePhoto);
+      }
+
+      // Submit
       if (editEmployee) {
         // Update existing employee
         await api.put(`/api/editemployees/${editEmployee.employee_id}/`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
         alert('Employee updated successfully!');
       } else {
         // Create new employee
         await api.post('/api/employees/create', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
         alert('Employee created successfully!');
       }
