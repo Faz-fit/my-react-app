@@ -18,17 +18,19 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const loginUser = async (username, password) => {
+  const loginUser = async (username, password, deviceType) => {
     try {
       const response = await axios.post('http://139.59.243.2:8000/api/token/', {
         username,
         password,
+        device_type: deviceType,  // Added device type
       });
       return response.data;
     } catch (err) {
       throw new Error('Login failed. Please check your credentials.');
     }
   };
+
 
   const fetchUserDetails = async (token) => {
     try {
@@ -43,10 +45,13 @@ const LoginPage = () => {
     }
   };
 
-  const handleLogin = async (e) => {
+    const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    const deviceType = "web";  // Add this line to define the device type as web
+
 
     if (!username || !password) {
       setError('Both fields are required.');
@@ -55,7 +60,7 @@ const LoginPage = () => {
     }
 
     try {
-      const { access, refresh } = await loginUser(username, password);
+      const { access, refresh } = await loginUser(username, password, deviceType);  // Pass deviceType
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
 
@@ -81,6 +86,8 @@ const LoginPage = () => {
     const roleBasedRedirect = {
       Admin: '/Admindashboard',
       Manager: outlets.length === 1 ? '/dashboard' : '/select-outlet',
+      //Manager: '/dashboard' ,
+
     };
 
     const navigateToRolePage = roleBasedRedirect[role] || '/';

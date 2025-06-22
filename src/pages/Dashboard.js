@@ -17,29 +17,43 @@ import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import api from 'utils/api';
+import { set } from 'date-fns';
 
 const Dashboard = () => {
   const theme = useTheme();
 
   // Data states
   const [employees, setEmployees] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [setGroups] = useState([]);
   const [outlets, setOutlets] = useState([]);
 
   // Current logged-in employee and outlet info
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [currentOutletName, setCurrentOutletName] = useState('');
   const [loggedInUserData, setLoggedInUserData] = useState(null);
+  const [pendingLeaves, setpendingLeaves] = useState([]);
+
 
   const loggedInUserId = 12; // replace with your actual logged-in user id
 
   // Dummy pending leaves
-  const pendingLeaves = [
+  /*setpendingLeaves([
     { id: 1, name: 'John Doe', outlet: 'Outlet 1', dates: '2025-05-21 to 2025-05-23', status: 'Pending' },
     { id: 2, name: 'Jane Smith', outlet: 'Outlet 3', dates: '2025-05-25 to 2025-05-27', status: 'Pending' },
     { id: 3, name: 'Bob Johnson', outlet: 'Outlet 2', dates: '2025-05-22 to 2025-05-24', status: 'Pending' },
-  ];
-
+  ]);*/
+   const fetchLeavebyoutlet = async () => {
+      try {
+        const res = await api.get('api/attendance/outletleaverequests/', {
+  params: {
+    outlet_id: 3
+  }
+}); // adjust API endpoint as needed
+        setpendingLeaves(res.data);
+      } catch (error) {
+        console.error('Failed to fetch logged-in user data:', error);
+      }
+    };
   // Fetch employees, groups, outlets on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -54,7 +68,7 @@ const Dashboard = () => {
         setOutlets(outletsRes.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
-        alert('Error fetching employees, groups, or outlets');
+        //alert('Error fetching employees, groups, or outlets');
       }
     };
     fetchData();
@@ -64,7 +78,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchLoggedInUser = async () => {
       try {
-        const res = await api.get(`/api/users/${loggedInUserId}`); // adjust API endpoint as needed
+        const res = await api.get(`/api/user/`); // adjust API endpoint as needed
         setLoggedInUserData(res.data);
       } catch (error) {
         console.error('Failed to fetch logged-in user data:', error);
@@ -90,7 +104,10 @@ const Dashboard = () => {
       const outlet = outlets.find((o) => o.id === Number(currentEmployee.outlet));
       setCurrentOutletName(outlet ? outlet.name : '');
     }
+    fetchLeavebyoutlet()
   }, [loggedInUserData, currentEmployee, outlets]);
+
+
 
   // Calculate employees in current outlet
   const employeesInOutlet = currentEmployee
@@ -182,27 +199,19 @@ const Dashboard = () => {
                 <TableHead>
                   <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
                     <TableCell sx={{ fontWeight: 'bold' }}>Employee Name</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Outlet</TableCell>
+                    
                     <TableCell sx={{ fontWeight: 'bold' }}>Dates</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
+  
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pendingLeaves.map(({ id, name, outlet, dates, status }) => (
+                  {pendingLeaves.map(({ id, employee_name,leave_date, status }) => (
                     <TableRow key={id} hover>
-                      <TableCell>{name}</TableCell>
-                      <TableCell>{outlet}</TableCell>
-                      <TableCell>{dates}</TableCell>
+                      <TableCell>{employee_name}</TableCell>                  
+                      <TableCell>{leave_date}</TableCell>
                       <TableCell>{status}</TableCell>
-                      <TableCell align="center" sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-                        <Button variant="contained" color="success" size="medium" sx={{ minWidth: 100 }}>
-                          Approve
-                        </Button>
-                        <Button variant="contained" color="error" size="medium" sx={{ minWidth: 100 }}>
-                          Reject
-                        </Button>
-                      </TableCell>
+                      
                     </TableRow>
                   ))}
                   {pendingLeaves.length === 0 && (

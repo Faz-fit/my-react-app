@@ -1,134 +1,186 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Box, Typography } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
-const initialLeaveRequests = [
-  { id: 1, employeeName: 'John Doe', leaveType: 'Sick Leave', startDate: '2025-05-10', endDate: '2025-05-12', status: 'Pending' },
-  { id: 2, employeeName: 'Jane Smith', leaveType: 'Vacation', startDate: '2025-05-15', endDate: '2025-05-20', status: 'Pending' },
-  { id: 3, employeeName: 'Alice Johnson', leaveType: 'Personal Leave', startDate: '2025-05-18', endDate: '2025-05-19', status: 'Pending' },
-  { id: 4, employeeName: 'Michael Brown', leaveType: 'Maternity Leave', startDate: '2025-05-25', endDate: '2025-06-25', status: 'Pending' },
-  { id: 5, employeeName: 'Linda Carter', leaveType: 'Vacation', startDate: '2025-04-01', endDate: '2025-04-07', status: 'Approved' },
-  { id: 6, employeeName: 'James Wilson', leaveType: 'Sick Leave', startDate: '2025-03-14', endDate: '2025-03-16', status: 'Approved' },
-  { id: 7, employeeName: 'Sophia Turner', leaveType: 'Emergency Leave', startDate: '2025-04-10', endDate: '2025-04-12', status: 'Rejected' },
-  { id: 8, employeeName: 'William Scott', leaveType: 'Personal Leave', startDate: '2025-04-20', endDate: '2025-04-21', status: 'Rejected' },
-];
-
 export default function LeaveApproval() {
-  const [requests, setRequests] = useState(initialLeaveRequests);
-  const [search, setSearch] = useState('');
+  const [requests, setRequests] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleApprove = (id) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: 'Approved' } : req
-      )
-    );
+  // Retrieve JWT token from localStorage or sessionStorage
+  const token = localStorage.getItem('access_token'); // or sessionStorage.getItem('token')
+
+  // Fetch leave requests and employee data from the API
+  useEffect(() => {
+    const fetchLeaveRequests = async () => {
+      try {
+        const response = await axios.get('http://139.59.243.2:8000/api/attendance/outletleaverequests/', {
+          params: {
+    outlet_id: 3
+  },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setRequests(response.data); // Storing leave requests
+      } catch (error) {
+        console.error('Error fetching leave requests:', error);
+      }
+    };
+
+    const fetchEmployeeData = async () => {
+      try {
+        const response = await axios.get('http://139.59.243.2:8000/api/getemployees/', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setEmployees(response.data); // Storing employee data
+      } catch (error) {
+        console.error('Error fetching employee data:', error);
+      }
+    };
+
+    if (token) {
+      fetchLeaveRequests();
+      fetchEmployeeData();
+    } else {
+      console.error('No token found for authorization');
+    }
+  }, [token]);
+
+  // Approve leave request
+  const handleApprove = async (id) => {
+    try {
+      const response = await axios.put(
+        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,  // Ensure this matches the backend pattern
+        { status: 'approved' },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.status === 200) {
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.leave_refno === id ? { ...req, status: 'approved' } : req
+          )
+        );
+        alert('Leave Approved');
+      } else {
+        alert('Error approving leave request!');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Error approving leave request!');
+    }
   };
 
-  const handleReject = (id) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === id ? { ...req, status: 'Rejected' } : req
-      )
-    );
+  // Reject leave request
+  const handleReject = async (id) => {
+    try {
+      const response = await axios.put(
+        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,  // Ensure this matches the backend pattern
+        { status: 'rejected' },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.status === 200) {
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.leave_refno === id ? { ...req, status: 'rejected' } : req
+          )
+        );
+        alert('Leave Rejected');
+      } else {
+        alert('Error rejecting leave request!');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Error rejecting leave request!');
+    }
   };
 
-  const filterRequests = (statusList) =>
-    requests.filter(
-      (req) =>
-        statusList.includes(req.status) &&
-        (req.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-         req.leaveType.toLowerCase().includes(search.toLowerCase()))
-    );
+  // Map employee data to leave requests based on employee_id
+  const mapEmployeeData = (requests, employees) => {
+    return requests.map(request => {
+      const employee = employees.find(emp => emp.employee_id === request.employee); // Match employee ID
+      return {
+        ...request,
+        employeeName: employee ? employee.fullname : 'Unknown', // Map employee fullname
+      };
+    });
+  };
 
-  const commonColumns = [
-    { field: 'employeeName', headerName: 'Employee Name', flex: 1 },
-    { field: 'leaveType', headerName: 'Leave Type', flex: 1 },
-    { field: 'startDate', headerName: 'Start Date', flex: 1 },
-    { field: 'endDate', headerName: 'End Date', flex: 1 },
-  ];
+  // Wait for both leave requests and employee data to be available
+  useEffect(() => {
+    if (requests.length > 0 && employees.length > 0) {
+      const mappedRequests = mapEmployeeData(requests, employees);
+      setRequests(mappedRequests);
+      setLoading(false); // Set loading to false after mapping is done
+    }
+  }, [requests, employees]);
 
-  const pendingColumns = [
-    ...commonColumns,
+  if (loading) {
+    return <Typography>Loading...</Typography>;
+  }
+
+  // Define columns to be displayed in DataGrid
+  const columns = [
+    { field: 'leave_refno', headerName: 'Leave Ref No', width: 150 },
+    { field: 'leave_date', headerName: 'Leave Date', width: 150 },
+    { field: 'remarks', headerName: 'Remarks', width: 200 },
+    { field: 'add_date', headerName: 'Added On', width: 150 },
+    { field: 'employee', headerName: 'Employee ID', width: 150 },
+    { field: 'employeeName', headerName: 'Full Name', width: 200 },
+    { field: 'leave_type_name', headerName: 'Leave Type', width: 200 },
     {
       field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
-      getActions: (params) => [
-        <GridActionsCellItem
-          icon={<CheckCircleIcon color="success" />}
-          label="Approve"
-          onClick={() => handleApprove(params.id)}
-        />,
-        <GridActionsCellItem
-          icon={<CancelIcon color="error" />}
-          label="Reject"
-          onClick={() => handleReject(params.id)}
-        />,
-      ],
-    },
-  ];
-
-  const historyColumns = [
-    ...commonColumns,
-    {
-      field: 'status',
       headerName: 'Status',
-      flex: 1,
+      width: 150,
       renderCell: (params) => (
-        <Typography
-          color={params.value === 'Approved' ? 'green' : 'red'}
-          fontWeight="bold"
-        >
-          {params.value}
-        </Typography>
+        <>
+          {params.row.status === 'pending' ? (
+            <>
+              <GridActionsCellItem
+                icon={<CheckCircleIcon color="success" />}
+                label="Approve"
+                onClick={() => handleApprove(params.row.leave_refno)}
+              />
+              <GridActionsCellItem
+                icon={<CancelIcon color="error" />}
+                label="Reject"
+                onClick={() => handleReject(params.row.leave_refno)}
+              />
+            </>
+          ) : (
+            <Typography>{params.row.status}</Typography>
+          )}
+        </>
       ),
     },
   ];
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 2 }}>
-        Leave Management
+      {/* Header Section */}
+      <Typography variant="h4" sx={{ mb: 2 }} fontWeight="bold">
+        LEAVE REQUESTS
       </Typography>
 
-      <TextField
-        variant="outlined"
-        fullWidth
-        label="Search by Employee or Leave Type"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 4 }}
-      />
-
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Pending Leave Requests
-      </Typography>
-      <Box sx={{ height: 400, mb: 5 }}>
-        <DataGrid
-          rows={filterRequests(['Pending'])}
-          columns={pendingColumns}
-          pageSize={5}
-          disableRowSelectionOnClick
-        />
-      </Box>
-
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Leave History
-      </Typography>
+      {/* DataGrid displaying leave requests */}
       <Box sx={{ height: 400 }}>
         <DataGrid
-          rows={filterRequests(['Approved', 'Rejected'])}
-          columns={historyColumns}
+          rows={requests}
+          columns={columns}
           pageSize={5}
           disableRowSelectionOnClick
+          getRowId={(row) => row.leave_refno} // Use 'leave_refno' as the unique id
         />
       </Box>
     </Box>

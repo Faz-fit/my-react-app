@@ -7,26 +7,7 @@ import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { useForm, Controller } from 'react-hook-form';
-import * as yup from 'yup';
-import { yupResolver } from '@hookform/resolvers/yup';
 import api from 'utils/api';
-
-// Validation schema
-const schema = yup.object({
-  fullname: yup.string().required('Full name is required'),
-  email: yup.string().email().required('Email is required'),
-  first_name: yup.string().required('First name is required'),
-  last_name: yup.string().required('Last name is required'),
-  phone_number: yup.string(),
-  date_of_birth: yup.string().required('Date of birth is required'),
-  password: yup.string().required('Password is required'),
-  outlets: yup
-    .array()
-    .of(yup.number())
-    .min(1, 'At least one outlet is required')
-    .required('Outlets is required'),
-  group: yup.number().typeError('Group is required').required('Group is required'),
-});
 
 const initialEmployees = [];
 
@@ -37,23 +18,7 @@ export default function EmployeeGrid() {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [outlets, setOutlets] = useState([]);
   const [groups, setGroups] = useState([]);
-
-  const {
-    control, handleSubmit, reset, formState: { errors }
-  } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      fullname: '',
-      email: '',
-      first_name: '',
-      last_name: '',
-      phone_number: '',
-      date_of_birth: '',
-      outlets: [],
-      group: '',
-      password: '',
-    },
-  });
+  const [passwordError, setPasswordError] = useState('')
 
   const fetchEmployees = async () => {
     try {
@@ -100,12 +65,23 @@ export default function EmployeeGrid() {
     fetchData();
   }, []);
 
-  const handleOpenAdd = () => {
-    reset();
-    setProfilePhoto(null);
-    setEditEmployee(null);
-    setOpenDialog(true);
-  };
+const handleOpenAdd = () => {
+  reset({
+    fullname: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    phone_number: '',
+    date_of_birth: '',
+    outlets: [],
+    group: '',
+    password: '',
+  }); // Reset form values when opening the add dialog
+  setProfilePhoto(null);
+  setEditEmployee(null); // Ensure we don't prefill any employee data
+  setOpenDialog(true); // Open the dialog
+};
+const { control, handleSubmit, reset, formState: { errors } } = useForm();
 
   const handleClose = () => {
     setOpenDialog(false);
@@ -113,36 +89,52 @@ export default function EmployeeGrid() {
   };
 
   const onSubmit = async (data) => {
+    // Check if password is provided when creating a new employee
+    if (!editEmployee && !data.password) {
+      setPasswordError('Password is required when adding a new employee!');
+      return;
+    }
+
     const formData = new FormData();
+
+    // Loop through form data and append to formData object
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'outlets') {
         value.forEach((id) => formData.append('outlets', id));
-      }
-      else {
+      } else {
         formData.append(key, value);
       }
     });
 
+    // Add profile photo if available
     if (profilePhoto) {
       formData.append('profile_photo', profilePhoto);
     }
 
     try {
+      // Check if we're editing or creating an employee
       if (editEmployee) {
+        // Update existing employee
         await api.put(`/api/editemployees/${editEmployee.employee_id}/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        alert('Employee updated successfully!');
       } else {
+        // Create new employee
         await api.post('/api/employees/create', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        alert('Employee created successfully!');
       }
 
+      // Re-fetch employees list after the operation
       await fetchEmployees();
+
+      // Close the dialog after submission
       handleClose();
     } catch (err) {
-      console.error(err);
-      alert('Error creating/updating employee');
+      console.error('Error during employee creation/updating:', err);
+      alert('There was an error while processing your request. Please try again.');
     }
   };
 
@@ -175,6 +167,7 @@ export default function EmployeeGrid() {
             setProfilePhoto(null);
             setEditEmployee(params.row);
             setOpenDialog(true);
+            setPasswordError('');
           }}
         />,
       ],
@@ -203,93 +196,121 @@ export default function EmployeeGrid() {
       />
 
       <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-          <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {[['fullname', 'User Name'],
-            ['email', 'Email'],
-            ['first_name', 'First Name'],
-            ['last_name', 'Last Name'],
-            ['phone_number', 'Phone Number'],
-            ['date_of_birth', 'Date of Birth', 'date'],
-            ['password', 'Password', 'password'],
-            ].map(([name, label, type = 'text']) => (
-              <Controller
-                key={name}
-                name={name}
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    label={label}
-                    type={type}
-                    fullWidth
-                    error={!!errors[name]}
-                    helperText={errors[name]?.message}
-                    {...field}
-                  />
-                )}
-              />
+  <DialogTitle>{editEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
+  <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
+    <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+      {/* User Information Fields */}
+      {[
+        ['fullname', 'User Name'],
+        ['email', 'Email'],
+        ['first_name', 'First Name'],
+        ['last_name', 'Last Name'],
+        ['phone_number', 'Phone Number'],
+        ['date_of_birth', 'Date of Birth', 'date'],
+      ].map(([name, label, type = 'text']) => (
+        <Controller
+          key={name}
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <TextField
+              label={label}
+              type={type}
+              fullWidth
+              error={!!errors[name]}
+              helperText={errors[name]?.message}
+              {...field}
+              autoComplete="off"  // Prevent autofill for all fields
+            />
+          )}
+        />
+      ))}
+
+      {/* Conditional Password Field */}
+      {!editEmployee && (
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              error={!!passwordError || !!errors.password}
+              helperText={passwordError || errors.password?.message}
+              {...field}
+              autoComplete="new-password" // Prevent autofill for password field
+            />
+          )}
+        />
+      )}
+
+      {/* Outlets Multi-Select */}
+      <Controller
+        name="outlets"
+        control={control}
+        render={({ field }) => (
+          <TextField
+            select
+            label="Outlets"
+            fullWidth
+            SelectProps={{ multiple: true }}
+            error={!!errors.outlets}
+            helperText={errors.outlets?.message}
+            {...field}
+            autoComplete="off"  // Prevent autofill for multi-select outlets
+          >
+            {outlets.map((outlet) => (
+              <MenuItem key={outlet.id} value={outlet.id}>
+                {outlet.name}
+              </MenuItem>
             ))}
+          </TextField>
+        )}
+      />
 
-            {/* Outlets Multi-Select */}
-            <Controller
-              name="outlets"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  select
-                  label="Outlets"
-                  fullWidth
-                  SelectProps={{ multiple: true }}
-                  error={!!errors.outlets}
-                  helperText={errors.outlets?.message}
-                  {...field}
-                >
-                  {outlets.map((outlet) => (
-                    <MenuItem key={outlet.id} value={outlet.id}>
-                      {outlet.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
+      {/* Group (Role) Selection */}
+      <Controller
+        name="group"
+        control={control}
+        render={({ field }) => (
+          <TextField
+            select
+            label="Role"
+            fullWidth
+            error={!!errors.group}
+            helperText={errors.group?.message}
+            {...field}
+            autoComplete="off"  // Prevent autofill for the role field
+          >
+            {groups.map((group) => (
+              <MenuItem key={group.id} value={group.id}>
+                {group.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
+      />
 
-            <Controller
-              name="group"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  select
-                  label="Role"
-                  fullWidth
-                  error={!!errors.group}
-                  helperText={errors.group?.message}
-                  {...field}
-                >
-                  {groups.map((group) => (
-                    <MenuItem key={group.id} value={group.id}>
-                      {group.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
+      {/* Profile Photo Upload */}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setProfilePhoto(e.target.files[0])}
+      />
+    </DialogContent>
 
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setProfilePhoto(e.target.files[0])}
-            />
-          </DialogContent>
+    {/* Dialog Actions */}
+    <DialogActions>
+      <Button onClick={handleClose}>Cancel</Button>
+      <Button type="submit" variant="contained">
+        {editEmployee ? 'Save' : 'Add'}
+      </Button>
+    </DialogActions>
+  </form>
+</Dialog>
 
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button type="submit" variant="contained">
-              {editEmployee ? 'Save' : 'Add'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
     </Box>
   );
 }

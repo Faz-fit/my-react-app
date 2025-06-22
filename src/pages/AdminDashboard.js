@@ -6,14 +6,9 @@ import {
   Typography,
   LinearProgress,
   useTheme,
-  TableContainer,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
 } from '@mui/material';
 
+import { DataGrid } from '@mui/x-data-grid'; // Import the DataGrid component
 import PeopleIcon from '@mui/icons-material/People';
 import StoreIcon from '@mui/icons-material/Store';
 import ManagerIcon from '@mui/icons-material/SupervisorAccount';
@@ -28,14 +23,12 @@ const AdminDashboard = () => {
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [employees, setEmployees] = useState([]);
-  const [agencies, setAgencies] = useState([]);
-  const [groups, setGroups] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
 
-  // Hardcoded for now; replace with real API data if available
   const [todaysAttendance] = useState(95);
-  const [pendingLeaveRequests] = useState(15);
+  const [pendingLeaveRequests, setPendingLeaveRequests] = useState(0);
 
   const getAttendancePercent = (present, total) =>
     total > 0 ? Math.round((present / total) * 100) : 0;
@@ -43,23 +36,30 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [employeesRes, agenciesRes, groupsRes, outletsRes] = await Promise.all([
-          api.get('/api/getemployees'),
-          api.get('/api/getagencies/'),
-          api.get('/api/groups/'),
-          api.get('/api/outlets/'),
-        ]);
-
+        // Fetch employees and outlets
+        const employeesRes = await api.get('/api/getemployees');
         setEmployees(employeesRes.data);
-        setAgencies(agenciesRes.data);
-        setGroups(groupsRes.data);
+
+        const outletsRes = await api.get('/api/outlets/');
         setOutlets(outletsRes.data);
 
-        const managersRes = await api.get('/api/groups/managers');
-        setManagers(managersRes.data);
+        // Calculate the number of managers based on the 'groups' field
+        const managersList = employeesRes.data.filter(employee =>
+          employee.groups.includes("Manager")
+        );
+        setManagers(managersList);
+
+        // Fetch leave requests from API
+        const leaveRequestsRes = await api.get('http://139.59.243.2:8000/api/attendance/allleaverequests');
+        setLeaveRequests(leaveRequestsRes.data);
+
+        // Count pending leave requests
+        const pendingRequests = leaveRequestsRes.data.filter(request => request.status === 'pending').length;
+        setPendingLeaveRequests(pendingRequests);
+
       } catch (error) {
         console.error('Failed to fetch data:', error);
-        alert('Error fetching employees, agencies, groups, or outlets');
+        alert('Error fetching employees, outlets, or leave requests');
       }
     };
 
@@ -72,40 +72,54 @@ const AdminDashboard = () => {
   }, []);
 
   const totalEmployees = employees.length;
-  const totalAgencies = agencies.length;
-  const totalGroups = groups.length;
   const totalOutlets = outlets.length;
   const totalManagers = managers.length;
 
-  // Count employees per outlet by matching employee.outlet with outlet.id
-  const outletAttendance = outlets.map((outlet) => {
-    const employeesForOutlet = employees.filter(
-      (emp) => String(emp.outlet) === String(outlet.id)
+  // Count employees per outlet by checking their outlet array
+  const outletEmployeeCount = outlets.map((outlet) => {
+    const employeesForOutlet = employees.filter((emp) =>
+      emp.outlets.includes(outlet.id) // Check if outlet.id exists in the employee's outlets array
     );
-    const totalEmployees = employeesForOutlet.length;
+
+    // Count present and absent employees
+    const present = employeesForOutlet.filter(emp => emp.attendance === 'Present').length;
+    const absent = employeesForOutlet.length - present;
 
     return {
+      id: outlet.id,  // Use outlet.id as the unique identifier for DataGrid
       outlet: outlet.name || 'Unnamed Outlet',
-      total: totalEmployees,
-      present: 0, // update if attendance info per employee available
-      absent: 0,
+      total: employeesForOutlet.length,
+      present: present,
+      absent: absent,
     };
   });
 
+  // Columns for Outlet-wise Employee DataGrid
+  const outletColumns = [
+    { field: 'outlet', headerName: 'Outlet', width: 200 },
+    { field: 'total', headerName: 'Total Employees', width: 180 },
+    { field: 'present', headerName: 'Present', width: 180 },
+    { field: 'absent', headerName: 'Absent', width: 180 },
+    { field: 'attendancePercentage', headerName: 'Attendance %', width: 180 },
+  ];
+
+  // Columns for Leave Requests DataGrid
+  const leaveColumns = [
+    { field: 'leave_refno', headerName: 'Leave Ref No', width: 150 },
+    { field: 'employee', headerName: 'Employee ID', width: 150 },
+    { field: 'leave_date', headerName: 'Leave Date', width: 180 },
+    { field: 'leave_type_name', headerName: 'Leave Type', width: 180 },
+    { field: 'remarks', headerName: 'Remarks', width: 250 },
+    { field: 'add_date', headerName: 'Added On', width: 180 },
+  ];
+
   return (
-    <Box
-      sx={{
-        padding: 1,
-        maxWidth: 1200,
-        margin: 'auto',
-        fontFamily: 'Roboto, sans-serif',
-      }}
-    >
+    <Box sx={{ padding: 3, maxWidth: 1200, margin: 'auto' }}>
       <Typography
         variant="h3"
         align="left"
         fontWeight="bold"
-        sx={{ letterSpacing: 1, color: 'text.primary' }}
+        sx={{ letterSpacing: 1, color: 'text.primary', mb: 3 }}
       >
         Dashboard
       </Typography>
@@ -122,21 +136,11 @@ const AdminDashboard = () => {
 
       {/* Summary Cards */}
       <Grid container spacing={3} justifyContent="center" sx={{ marginBottom: 5 }}>
-        {[
+        {[ 
           {
             label: 'Total Employees',
             value: totalEmployees,
             icon: <PeopleIcon color="primary" sx={{ fontSize: 40 }} />,
-          },
-          {
-            label: 'Total Agencies',
-            value: totalAgencies,
-            icon: <StoreIcon color="primary" sx={{ fontSize: 40 }} />,
-          },
-          {
-            label: 'Total Groups',
-            value: totalGroups,
-            icon: <ManagerIcon color="primary" sx={{ fontSize: 40 }} />,
           },
           {
             label: 'Total Outlets',
@@ -208,103 +212,33 @@ const AdminDashboard = () => {
         ))}
       </Grid>
 
-      {/* Outlet Attendance Table and Pending Leave Requests */}
-      <Grid container spacing={3} justifyContent="center">
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 3,
-            justifyContent: 'center',
-            alignItems: 'stretch',
-            flexWrap: 'nowrap',
-            marginTop: 4,
-          }}
-        >
-          {/* Outlet-wise Attendance */}
-          <Paper
-            elevation={6}
-            sx={{
-              flex: 1.1,
-              padding: 4,
-              borderRadius: 3,
-              height: '520px',
-              backgroundColor: theme.palette.background.paper,
-              overflow: 'auto',
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
-              Outlet-wise Attendance
-            </Typography>
-            <TableContainer>
-              <Table size="medium" stickyHeader aria-label="outlet attendance table">
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Outlet</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Total Employees</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Present</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Absent</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: 130 }}>Attendance %</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {outletAttendance.map(({ outlet, total, present, absent }, i) => (
-                    <TableRow key={i} hover>
-                      <TableCell>{outlet}</TableCell>
-                      <TableCell>{total}</TableCell>
-                      <TableCell>{present}</TableCell>
-                      <TableCell>{absent}</TableCell>
-                      <TableCell sx={{ width: 130 }}>
-                        <LinearProgress
-                          variant="determinate"
-                          value={getAttendancePercent(present, total)}
-                          color={present / total > 0.9 ? 'primary' : 'warning'}
-                          sx={{
-                            height: 12,
-                            borderRadius: 6,
-                            backgroundColor: theme.palette.grey[300],
-                            '& .MuiLinearProgress-bar': {
-                              borderRadius: 6,
-                              background: `linear-gradient(90deg, ${
-                                present / total > 0.9 ? '#1976d2' : '#fbc02d'
-                              }, ${present / total > 0.9 ? '#64b5f6' : '#fdd835'})`,
-                            },
-                          }}
-                        />
-                        <Typography
-                          variant="caption"
-                          align="center"
-                          display="block"
-                          sx={{ mt: 1, fontWeight: 600 }}
-                        >
-                          {getAttendancePercent(present, total)}%
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
+      {/* Outlet-wise Employees DataGrid */}
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
+        Outlet-wise Employees
+      </Typography>
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={outletEmployeeCount}
+          columns={outletColumns}
+          pageSize={5}
+          rowsPerPageOptions={[5]}
+          getRowId={(row) => row.id}  // Ensure each row has a unique 'id'
+        />
+      </div>
 
-          {/* Pending Leave Requests */}
-          <Paper
-            elevation={6}
-            sx={{
-              flex: 1.5,
-              padding: 4,
-              borderRadius: 3,
-              height: '520px',
-              backgroundColor: theme.palette.background.paper,
-              overflow: 'auto',
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
-              Pending Leave Requests
-            </Typography>
-            {/* Implement pending leave requests UI here */}
-          </Paper>
-        </Box>
-      </Grid>
+      {/* Leave Requests DataGrid */}
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, mt: 4 }}>
+        Leave Requests
+      </Typography>
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={leaveRequests}
+          columns={leaveColumns}
+          pageSize={5}
+          rowsPerPageOptions={[5]}
+          getRowId={(row) => row.leave_refno}  // Use leave_refno as unique 'id'
+        />
+      </div>
     </Box>
   );
 };

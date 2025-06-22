@@ -36,6 +36,7 @@ function Sidebar({ sidebarOpen, onClose }) {
 
     // Admin - Assign Section
     { text: 'Leave Managment', path: '/Admin/assign/leave', roles: ['Admin'], },
+    { text: 'Device Managment', path: '/Admin/assign/workshift', roles: ['Admin'], },
   ];
 
   // Group items by 'group' or default 'Main'

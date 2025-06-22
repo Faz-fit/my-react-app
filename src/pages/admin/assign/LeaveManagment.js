@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -9,6 +9,7 @@ export default function LeaveApproval() {
   const [requests, setRequests] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all'); // For status filter: 'all', 'pending', 'approved', 'rejected'
 
   // Retrieve JWT token from localStorage or sessionStorage
   const token = localStorage.getItem('access_token'); // or sessionStorage.getItem('token')
@@ -53,7 +54,7 @@ export default function LeaveApproval() {
   const handleApprove = async (id) => {
     try {
       const response = await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,  // Ensure this matches the backend pattern
+        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`, 
         { status: 'approved' },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -80,7 +81,7 @@ export default function LeaveApproval() {
   const handleReject = async (id) => {
     try {
       const response = await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,  // Ensure this matches the backend pattern
+        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`, 
         { status: 'rejected' },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -106,10 +107,10 @@ export default function LeaveApproval() {
   // Map employee data to leave requests based on employee_id
   const mapEmployeeData = (requests, employees) => {
     return requests.map(request => {
-      const employee = employees.find(emp => emp.employee_id === request.employee); // Match employee ID
+      const employee = employees.find(emp => emp.employee_id === request.employee); 
       return {
         ...request,
-        employeeName: employee ? employee.fullname : 'Unknown', // Map employee fullname
+        employeeName: employee ? employee.fullname : 'Unknown', 
       };
     });
   };
@@ -119,9 +120,14 @@ export default function LeaveApproval() {
     if (requests.length > 0 && employees.length > 0) {
       const mappedRequests = mapEmployeeData(requests, employees);
       setRequests(mappedRequests);
-      setLoading(false); // Set loading to false after mapping is done
+      setLoading(false); 
     }
   }, [requests, employees]);
+
+  // Filter requests based on status
+  const filteredRequests = statusFilter === 'all'
+    ? requests
+    : requests.filter(req => req.status === statusFilter);
 
   if (loading) {
     return <Typography>Loading...</Typography>;
@@ -167,17 +173,32 @@ export default function LeaveApproval() {
     <Box sx={{ p: 3 }}>
       {/* Header Section */}
       <Typography variant="h4" sx={{ mb: 2 }} fontWeight="bold">
-        LEAVE REQUESTS
+        LEAVE MANAGMENT
       </Typography>
 
-      {/* DataGrid displaying leave requests */}
+      {/* Dropdown for status filter */}
+      <FormControl sx={{ mb: 2 }} fullWidth>
+        <InputLabel>Status</InputLabel>
+        <Select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          label="Status"
+        >
+          <MenuItem value="all">All</MenuItem>
+          <MenuItem value="pending">Pending</MenuItem>
+          <MenuItem value="approved">Approved</MenuItem>
+          <MenuItem value="rejected">Rejected</MenuItem>
+        </Select>
+      </FormControl>
+
+      {/* DataGrid displaying filtered leave requests */}
       <Box sx={{ height: 400 }}>
         <DataGrid
-          rows={requests}
+          rows={filteredRequests}
           columns={columns}
           pageSize={5}
           disableRowSelectionOnClick
-          getRowId={(row) => row.leave_refno} // Use 'leave_refno' as the unique id
+          getRowId={(row) => row.leave_refno} 
         />
       </Box>
     </Box>
