@@ -20,6 +20,7 @@ import CreateManager from './pages/admin/create/CreateHoliday.js';
 import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
 import EmployeeStatus from './pages/admin/EmployeeStatus.js';
 import Outlets from './pages/admin/outlets.js';
+import Role from './pages/admin/Role.js';
 
 import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
@@ -168,6 +169,13 @@ function App() {
           </ProtectedRoute>
         } />
       </Routes>
+      
+        {/* Role Management */}
+        <Route path="/admin/role" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><Role /></Layout>
+          </ProtectedRoute>
+        } />
     </BrowserRouter>
   );
 }

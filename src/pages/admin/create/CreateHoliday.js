@@ -7,9 +7,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  MenuItem,
   Typography,
-  Tooltip,
   Switch,
   FormControlLabel,
 } from '@mui/material';
@@ -41,22 +39,8 @@ const schema = yup.object({
     .number()
     .typeError('Pay Percentage must be a decimal number')
     .min(0, 'Cannot be negative')
-    
     .required('Pay Percentage is required'),
 }).required();
-
-const hcodeOptions = ['PoD', 'TTPD', 'ND', 'MD', 'RFD', 'NY', 'MayD', 'HFD', 'MUN', 'DFD', 'CHD'];
-const holidayTypeOptions = ['PBM', 'PB'];
-const holidayTypeNameOptions = ['Public/Bank/Mercantile', 'Public/Bank'];
-const holidayNameOptions = [
-  'Duruthu Full Moon Poya Day',
-  'Tamil Thai Ponga Day',
-  'National Day',
-  'Mahasivarathri Day',
-  'Ramazan Festival Day',
-  'May Day',
-  'Christmas Day',
-];
 
 export default function HolidayGrid() {
   const [holidayData, setHolidayData] = useState([]);
@@ -129,8 +113,12 @@ export default function HolidayGrid() {
       const formattedData = {
         ...data,
         hdate: new Date(data.hdate).toISOString().split('T')[0],
-        holiday_ot_pay_percentage: data.holiday_ot_pay_percentage ? Number(data.holiday_ot_pay_percentage).toFixed(2) : null,
-        holiday_regular_pay_percentage: data.holiday_regular_pay_percentage ? Number(data.holiday_regular_pay_percentage).toFixed(2) : null,
+        holiday_ot_pay_percentage: data.holiday_ot_pay_percentage
+          ? Number(data.holiday_ot_pay_percentage).toFixed(2)
+          : null,
+        holiday_regular_pay_percentage: data.holiday_regular_pay_percentage
+          ? Number(data.holiday_regular_pay_percentage).toFixed(2)
+          : null,
       };
 
       let response;
@@ -156,21 +144,17 @@ export default function HolidayGrid() {
 
   const columns = [
     { field: 'hcode', headerName: 'Hcode', width: 100 },
-    { field: 'holiday_type', headerName: 'Holiday Type', width: 120 },
-    { field: 'holiday_type_name', headerName: 'Holiday Type Name', flex: 1, minWidth: 180 },
     { field: 'holiday_name', headerName: 'Holiday Name', flex: 1, minWidth: 180 },
-{
-  field: 'hdate',
-  headerName: 'Date',
-  width: 130,
-  renderCell: (params) => {
-    if (!params.value) return '';
-    const d = new Date(params.value);
-    return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
-  },
-}
-
-,
+    {
+      field: 'hdate',
+      headerName: 'Date',
+      width: 130,
+      renderCell: (params) => {
+        if (!params.value) return '';
+        const d = new Date(params.value);
+        return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+      },
+    },
     {
       field: 'active',
       headerName: 'Active',
@@ -196,7 +180,7 @@ export default function HolidayGrid() {
       width: 90,
       getActions: (params) => [
         <GridActionsCellItem
-          icon={<Tooltip title="Edit"><EditIcon /></Tooltip>}
+          icon={<EditIcon />}
           label="Edit"
           onClick={() => openEditDialog(params.row)}
           key="edit"
@@ -233,26 +217,19 @@ export default function HolidayGrid() {
         <DialogTitle>{editHoliday ? 'Edit Holiday' : 'Add Holiday'}</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <DialogContent sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
+            {/* Change dropdowns to text fields */}
             <Controller
               name="hcode"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  select
                   label="Hcode"
                   sx={{ minWidth: 150, flexGrow: 1 }}
                   error={!!errors.hcode}
                   helperText={errors.hcode?.message}
                   disabled={loading}
-                >
-                  <MenuItem value="">Select Hcode</MenuItem>
-                  {hcodeOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
               )}
             />
             <Controller
@@ -261,20 +238,12 @@ export default function HolidayGrid() {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  select
                   label="Holiday Type"
                   sx={{ minWidth: 150, flexGrow: 1 }}
                   error={!!errors.holiday_type}
                   helperText={errors.holiday_type?.message}
                   disabled={loading}
-                >
-                  <MenuItem value="">Select Holiday Type</MenuItem>
-                  {holidayTypeOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
               )}
             />
             <Controller
@@ -283,20 +252,12 @@ export default function HolidayGrid() {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  select
                   label="Holiday Type Name"
                   sx={{ minWidth: 200, flexGrow: 2 }}
                   error={!!errors.holiday_type_name}
                   helperText={errors.holiday_type_name?.message}
                   disabled={loading}
-                >
-                  <MenuItem value="">Select Holiday Type Name</MenuItem>
-                  {holidayTypeNameOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
               )}
             />
             <Controller
@@ -305,20 +266,12 @@ export default function HolidayGrid() {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  select
                   label="Holiday Name"
                   sx={{ minWidth: 300, flexGrow: 3 }}
                   error={!!errors.holiday_name}
                   helperText={errors.holiday_name?.message}
                   disabled={loading}
-                >
-                  <MenuItem value="">Select Holiday Name</MenuItem>
-                  {holidayNameOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                />
               )}
             />
             <Controller
