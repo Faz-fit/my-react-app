@@ -20,17 +20,8 @@ const schema = yup.object({
   phone_number: yup.string(),
   date_of_birth: yup.string().required('Date of birth is required'),
   password: yup.string().required('Password is required'),
-<<<<<<< HEAD
-  outlets: yup
-    .array()
-    .of(yup.number())
-    .min(1, 'At least one outlet is required')
-    .required('Outlets is required'),
-  group: yup.number().typeError('Group is required').required('Group is required'),
-=======
   outlets: yup.array().of(yup.string()).required('At least one outlet is required'),
   group: yup.string().required('Group is required'),
->>>>>>> 1e4b3c74ff77a083ac5c036f5edf535734a2f504
 });
 
 const initialEmployees = [];
@@ -94,19 +85,11 @@ export default function EmployeeGrid() {
     const fetchData = async () => {
       try {
         await fetchEmployees();
-<<<<<<< HEAD
-        const [outletRes, groupsRes] = await Promise.all([
-=======
         const [outletsRes, groupsRes] = await Promise.all([
->>>>>>> 1e4b3c74ff77a083ac5c036f5edf535734a2f504
           api.get('/api/outlets/'),
           api.get('/api/groups/'),
         ]);
-<<<<<<< HEAD
-        setOutlets(outletRes.data);
-=======
         setOutlets(outletsRes.data);
->>>>>>> 1e4b3c74ff77a083ac5c036f5edf535734a2f504
         setGroups(groupsRes.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -132,21 +115,11 @@ export default function EmployeeGrid() {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
       if (key === 'outlets') {
-<<<<<<< HEAD
-        value.forEach((id) => formData.append('outlets', id));
-      }
-      else {
-        formData.append(key, value);
-      }
-    });
-
-=======
         value.forEach(outletId => formData.append('outlets[]', outletId));
       } else {
         formData.append(key, value);
       }
     });
->>>>>>> 1e4b3c74ff77a083ac5c036f5edf535734a2f504
     if (profilePhoto) {
       formData.append('profile_photo', profilePhoto);
     }
@@ -258,12 +231,7 @@ export default function EmployeeGrid() {
             ['last_name', 'Last Name'],
             ['phone_number', 'Phone Number'],
             ['date_of_birth', 'Date of Birth', 'date'],
-<<<<<<< HEAD
-            ['password', 'Password', 'password'],
-            ].map(([name, label, type = 'text']) => (
-=======
             ['password', 'Password', 'password']].map(([name, label, type = 'text']) => (
->>>>>>> 1e4b3c74ff77a083ac5c036f5edf535734a2f504
               <Controller
                 key={name}
                 name={name}
@@ -290,13 +258,9 @@ export default function EmployeeGrid() {
                   select
                   label="Outlets"
                   fullWidth
-<<<<<<< HEAD
-                  SelectProps={{ multiple: true }}
-=======
                   SelectProps={{
                     multiple: true
                   }}
->>>>>>> 1e4b3c74ff77a083ac5c036f5edf535734a2f504
                   error={!!errors.outlets}
                   helperText={errors.outlets?.message}
                   {...field}

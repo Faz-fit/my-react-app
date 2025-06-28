@@ -115,24 +115,27 @@ export default function FullFeaturedCrudGrid() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
 
-// ⬆️ Place all 3 fetch functions above the useEffect
 const fetchOutlets = React.useCallback(async () => {
   try {
     const res = await api.get('/api/outlets/');
-    const transformedData = res.data.map((outlet) => ({
+    // Filter out outlets where the status is 0
+    const filteredData = res.data.filter((outlet) => outlet.status !== 0);
+    
+    const transformedData = filteredData.map((outlet) => ({
       ...outlet,
       coordinates: {
         lat: outlet.latitude,
         lng: outlet.longitude,
       },
     }));
-    setRows(transformedData);
-    setOutlets(res.data);
+    setRows(transformedData); // Update state with filtered data
+    setOutlets(res.data); // You can use filtered data here if needed
     setRowModesModel({});
   } catch (err) {
     console.error('Failed to fetch outlets:', err);
   }
 }, [setOutlets]);
+
 
 const fetchAgencies = React.useCallback(async () => {
   try {
