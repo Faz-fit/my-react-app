@@ -39,6 +39,13 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
+  "devServer": {
+    "allowedHosts": [
+      "arunalusupermarket.shop",
+      "localhost",
+      "0.0.0.0"
+    ]
+  },
   "eslintConfig": {
     "extends": [
       "react-app",
