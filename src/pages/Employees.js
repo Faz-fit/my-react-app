@@ -51,35 +51,45 @@ export default function EmployeeGrid() {
     },
   });
 
-  const fetchEmployees = async () => {
-    try {
-      const [employeesRes, outletsRes] = await Promise.all([
-        api.get('/api/getoutletemployees',{
-  params: {
-    outlet_id: 3
-    }}),
-        api.get('/api/outlets/')
-      ]);
+const fetchEmployees = async () => {
+  try {
+    // Retrieve the outlet ID from localStorage
+    const outletId = localStorage.getItem('outlet');
 
-      const outletsMap = outletsRes.data.reduce((acc, outlet) => {
-        acc[outlet.id] = outlet.name;
-        return acc;
-      }, {});
-
-      const updatedEmployees = employeesRes.data.map((employee) => {
-        const outletNames = employee.outlets?.map((id) => outletsMap[id]) || ['Unknown'];
-        return {
-          ...employee,
-          outlets: outletNames.join(', '),
-          group: employee.groups.join(', ')
-        };
-      });
-
-      setEmployees(updatedEmployees);
-    } catch (err) {
-      console.error('Error fetching employees:', err);
+    if (!outletId) {
+      console.error('Outlet ID not found in localStorage');
+      return;
     }
-  };
+
+    const [employeesRes, outletsRes] = await Promise.all([
+      api.get('/api/getoutletemployees', {
+        params: {
+          outlet_id: outletId // Use the outletId from localStorage
+        }
+      }),
+      api.get('/api/outlets/')
+    ]);
+
+    const outletsMap = outletsRes.data.reduce((acc, outlet) => {
+      acc[outlet.id] = outlet.name;
+      return acc;
+    }, {});
+
+    const updatedEmployees = employeesRes.data.map((employee) => {
+      const outletNames = employee.outlets?.map((id) => outletsMap[id]) || ['Unknown'];
+      return {
+        ...employee,
+        outlets: outletNames.join(', '),
+        group: employee.groups.join(', ')
+      };
+    });
+
+    setEmployees(updatedEmployees);
+  } catch (err) {
+    console.error('Error fetching employees:', err);
+  }
+};
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -147,9 +157,7 @@ export default function EmployeeGrid() {
     { field: 'fullname', headerName: 'User Name', flex: 1 },
     { field: 'first_name', headerName: 'First Name', flex: 1 },
     { field: 'last_name', headerName: 'Last Name', flex: 1 },
-    { field: 'phone_number', headerName: 'Phone', flex: 1 },
     { field: 'date_of_birth', headerName: 'DOB', flex: 1 },
-    { field: 'outlets', headerName: 'Outlets', flex: 1 },
     { field: 'group', headerName: 'Role', flex: 1 },
     {
       field: 'actions',
@@ -176,16 +184,8 @@ export default function EmployeeGrid() {
         />,
       ],
     },
-    {
-      field: 'outlets',
-      headerName: 'Outlets',
-      flex: 1,
-      valueGetter: (params) => {
-        if (!params.value) return '';
-        return params.value.map(outlet => outlet.name).join(', ');
-      }
-    },
-    { field: 'group', headerName: 'Role', flex: 1 },
+    
+
     /*{
       field: 'profile_photo',
       headerName: 'Photo',
@@ -204,14 +204,7 @@ export default function EmployeeGrid() {
     <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5, display: 'flex', flexDirection: 'column' }}>
       <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>EMPLOYEES</Typography>
 
-      <Button
-        variant="contained"
-        startIcon={<AddIcon />}
-        onClick={handleOpenAdd}
-        sx={{ mb: 2, ml: 'auto' }}
-      >
-        Add Employee
-      </Button>
+
 
       <DataGrid
         rows={employees}

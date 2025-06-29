@@ -12,6 +12,7 @@ import { isAuthenticated, getUserRole } from './utils/auth';
 
 // Import all new pages
 import CreateEmployee from './pages/admin/create/CreateEmployee.js';
+import CreateRole from './pages/admin/create/CreateRole.js';
 import CreateOutlet from './pages/admin/create/CreateOutlet.js';
 import CreateAgency from './pages/admin/create/CreateAgency.js';
 import CreateLeave from './pages/admin/create/CreateLeave.js';
@@ -20,7 +21,7 @@ import CreateManager from './pages/admin/create/CreateHoliday.js';
 import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
 import EmployeeStatus from './pages/admin/EmployeeStatus.js';
 import Outlets from './pages/admin/outlets.js';
-import Role from './pages/admin/Role.js';
+
 
 import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
@@ -162,6 +163,12 @@ function App() {
             <Layout><AdminReport /></Layout>  {/* Add the AdminReport component here */}
           </ProtectedRoute>
         } />
+         {/* Role Management */}
+        <Route path="/admin/create" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><CreateRole/></Layout>
+          </ProtectedRoute>
+        } />
         {/* Employee-status */}
         <Route path="/admin/employee-status" element={
           <ProtectedRoute role={role} requiredRole="Admin">
@@ -170,12 +177,7 @@ function App() {
         } />
       </Routes>
       
-        {/* Role Management */}
-        <Route path="/admin/role" element={
-          <ProtectedRoute role={role} requiredRole="Admin">
-            <Layout><Role /></Layout>
-          </ProtectedRoute>
-        } />
+       
     </BrowserRouter>
   );
 }

@@ -19,7 +19,7 @@ export default function LeaveApproval() {
       try {
         const response = await axios.get('http://139.59.243.2:8000/api/attendance/outletleaverequests/', {
           params: {
-    outlet_id: 3
+          outlet_id: localStorage.getItem('outlet')
   },
           headers: {
             Authorization: `Bearer ${token}`,
@@ -122,8 +122,9 @@ export default function LeaveApproval() {
     if (requests.length > 0 && employees.length > 0) {
       const mappedRequests = mapEmployeeData(requests, employees);
       setRequests(mappedRequests);
-      setLoading(false); // Set loading to false after mapping is done
+       // Set loading to false after mapping is done
     }
+    setLoading(false);
   }, [requests, employees]);
 
   if (loading) {

@@ -21,6 +21,7 @@ function Sidebar({ sidebarOpen, onClose }) {
     { text: normalizedRole === 'Admin' ? 'Admin Dashboard' : 'Manager Dashboard', path: normalizedRole === 'Admin' ? '/AdminDashboard' : '/Dashboard', roles: ['Admin', 'Manager'] },
     // Admin section
     { text: 'Employee', path: '/Admin/employee-status', roles: ['Admin'] },
+    { text: 'Role', path: '/admin/create', roles: ['Admin'] },
     { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
     { text: 'Outlets', path: '/Admin/outlets', roles: ['Admin'] },
     { text: 'Agancy', path: '/Admin/create/agency', roles: ['Admin'] },
