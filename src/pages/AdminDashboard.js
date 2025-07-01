@@ -4,7 +4,6 @@ import {
   Grid,
   Paper,
   Typography,
-  LinearProgress,
   useTheme,
 } from '@mui/material';
 
@@ -30,8 +29,7 @@ const AdminDashboard = () => {
   const [todaysAttendance] = useState(95);
   const [pendingLeaveRequests, setPendingLeaveRequests] = useState(0);
 
-  const getAttendancePercent = (present, total) =>
-    total > 0 ? Math.round((present / total) * 100) : 0;
+
 
   useEffect(() => {
     const fetchData = async () => {

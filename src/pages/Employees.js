@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
-import AddIcon from '@mui/icons-material/Add';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -109,12 +108,6 @@ const fetchEmployees = async () => {
     fetchData();
   }, []);
 
-  const handleOpenAdd = () => {
-    reset();
-    setProfilePhoto(null);
-    setEditEmployee(null);
-    setOpenDialog(true);
-  };
 
   const handleClose = () => {
     setOpenDialog(false);

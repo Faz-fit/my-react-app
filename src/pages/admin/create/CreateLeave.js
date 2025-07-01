@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  MenuItem,
   Typography,
   Tooltip,
   Checkbox,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Grid,
@@ -10,93 +10,89 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  Button,
   useTheme,
+  CircularProgress,  // Importing CircularProgress for the loading indicator
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import api from 'utils/api';
-import { set } from 'date-fns';
 
 const Dashboard = () => {
   const theme = useTheme();
 
   // Data states
   const [employees, setEmployees] = useState([]);
-  const [setGroups] = useState([]);
   const [outlets, setOutlets] = useState([]);
+  const [pendingLeaves, setPendingLeaves] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);  // Loading state
 
   // Current logged-in employee and outlet info
   const [currentEmployee, setCurrentEmployee] = useState(null);
   const [currentOutletName, setCurrentOutletName] = useState('');
   const [loggedInUserData, setLoggedInUserData] = useState(null);
-  const [pendingLeaves, setpendingLeaves] = useState([]);
 
+  // Fetch pending leave requests, memoized to prevent unnecessary re-renders
+  const fetchLeavebyoutlet = useCallback(async () => {
+    setIsLoading(true); // Start loading
+    const outletId = localStorage.getItem('outlet');
+    console.log('Fetching leaves for outletId:', outletId); // Log outlet ID for debugging
 
-  const loggedInUserId = 12; // replace with your actual logged-in user id
+    try {
+      const res = await api.get('api/attendance/outletleaverequests/', {
+        params: { outlet_id: outletId },
+      });
+      console.log('Fetched pending leave requests:', res.data); // Log the fetched data
+      setPendingLeaves(res.data);
+    } catch (error) {
+      console.error('Failed to fetch pending leave requests:', error);
+    } finally {
+      setIsLoading(false); // Stop loading
+    }
+  }, []);
 
-  // Dummy pending leaves
-  /*setpendingLeaves([
-    { id: 1, name: 'John Doe', outlet: 'Outlet 1', dates: '2025-05-21 to 2025-05-23', status: 'Pending' },
-    { id: 2, name: 'Jane Smith', outlet: 'Outlet 3', dates: '2025-05-25 to 2025-05-27', status: 'Pending' },
-    { id: 3, name: 'Bob Johnson', outlet: 'Outlet 2', dates: '2025-05-22 to 2025-05-24', status: 'Pending' },
-  ]);*/
-   const fetchLeavebyoutlet = async () => {
-      try {
-        const res = await api.get('api/attendance/outletleaverequests/', {
-  params: {
-    outlet_id: 3
-  }
-}); // adjust API endpoint as needed
-        setpendingLeaves(res.data);
-      } catch (error) {
-        console.error('Failed to fetch logged-in user data:', error);
-      }
-    };
-  // Fetch employees, groups, outlets on mount
+  // Fetch data for employees, outlets, and user on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [employeesRes, groupsRes, outletsRes] = await Promise.all([
+        const [employeesRes, outletsRes] = await Promise.all([
           api.get('/api/getemployees'),
-          api.get('/api/groups/'),
           api.get('/api/outlets/'),
         ]);
         setEmployees(employeesRes.data);
-        setGroups(groupsRes.data);
         setOutlets(outletsRes.data);
       } catch (error) {
         console.error('Failed to fetch data:', error);
-        //alert('Error fetching employees, groups, or outlets');
       }
     };
     fetchData();
-  }, []);
+  }, []);  // Empty dependency array, runs only once when the component mounts
 
   // Fetch logged-in user data (to get outlets array)
   useEffect(() => {
     const fetchLoggedInUser = async () => {
-      try {
-        const res = await api.get(`/api/user/`); // adjust API endpoint as needed
-        setLoggedInUserData(res.data);
-      } catch (error) {
-        console.error('Failed to fetch logged-in user data:', error);
+      if (!sessionStorage.getItem('hasRequestedUserData')) {
+        try {
+          const res = await api.get(`/api/user/`);
+          setLoggedInUserData(res.data);
+          sessionStorage.setItem('hasRequestedUserData', 'true'); // Set the flag to prevent repeated requests
+        } catch (error) {
+          console.error('Failed to fetch logged-in user data:', error);
+        }
       }
     };
     fetchLoggedInUser();
-  }, [loggedInUserId]);
+  }, []);  // Runs only once on component mount
 
   // Find current employee from employees list
   useEffect(() => {
-    if (employees.length > 0) {
-      const emp = employees.find((e) => e.user === loggedInUserId);
+    if (employees.length > 0 && loggedInUserData) {
+      const emp = employees.find((e) => e.user === loggedInUserData.user);
       setCurrentEmployee(emp || null);
     }
-  }, [employees, loggedInUserId]);
+  }, [employees, loggedInUserData]);  // Runs when employees or loggedInUserData change
 
-  // Determine outlet name:
-  // Priority: loggedInUserData.outlets array first, fallback to currentEmployee.outlet id matching outlets list
+  // Determine outlet name and fetch pending leaves
   useEffect(() => {
     if (loggedInUserData?.outlets?.length > 0) {
       setCurrentOutletName(loggedInUserData.outlets[0].name);
@@ -104,10 +100,19 @@ const Dashboard = () => {
       const outlet = outlets.find((o) => o.id === Number(currentEmployee.outlet));
       setCurrentOutletName(outlet ? outlet.name : '');
     }
-    fetchLeavebyoutlet()
-  }, [loggedInUserData, currentEmployee, outlets]);
 
+    // Fetch pending leave requests if outlet and employee are ready
+    if (currentEmployee && outlets.length > 0) {
+      fetchLeavebyoutlet();
+    }
+  }, [loggedInUserData, currentEmployee, outlets, fetchLeavebyoutlet]);  // Correctly handle dependencies
 
+  // Prevent multiple requests using sessionStorage (only fetch once per session)
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem('hasRequestedUserData');
+    };
+  }, []);  // Cleanup sessionStorage flag when component unmounts
 
   // Calculate employees in current outlet
   const employeesInOutlet = currentEmployee
@@ -115,9 +120,7 @@ const Dashboard = () => {
     : [];
 
   const totalEmployees = employeesInOutlet.length;
-
-  // For demo, hardcoded todaysAttendance; replace with real logic if available
-  const todaysAttendance = 95;
+  const todaysAttendance = 95; // For demo, replace with actual logic
   const todaysAbsentees = totalEmployees - todaysAttendance;
 
   return (
@@ -134,14 +137,14 @@ const Dashboard = () => {
         sx={{
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
-          gap: 3,
+          gap: 1,
           alignItems: 'stretch',
         }}
       >
         {/* Left side cards */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Grid container spacing={2}>
-            {[
+            {[ 
               { label: 'Total Employees', value: totalEmployees, icon: <PeopleIcon color="primary" sx={{ fontSize: 40 }} /> },
               { label: "Today's Attendance", value: todaysAttendance, icon: <EventAvailableIcon color="primary" sx={{ fontSize: 40 }} /> },
               { label: "Today's Absentees", value: todaysAbsentees, icon: <EventBusyIcon color="error" sx={{ fontSize: 40 }} /> },
@@ -156,7 +159,7 @@ const Dashboard = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     textAlign: 'center',
-                    height: '100%',
+                    height: '80%',
                     gap: 1,
                   }}
                 >
@@ -185,7 +188,7 @@ const Dashboard = () => {
               padding: 4,
               borderRadius: 3,
               backgroundColor: theme.palette.background.paper,
-              height: '100%',
+              height: '80%',
               overflowY: 'auto',
               overflowX: 'hidden',
               paddingRight: '15px',
@@ -194,36 +197,41 @@ const Dashboard = () => {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
               Pending Leave Requests
             </Typography>
-            <TableContainer>
-              <Table size="medium" aria-label="pending leave requests" sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Employee Name</TableCell>
-                    
-                    <TableCell sx={{ fontWeight: 'bold' }}>Dates</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-  
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pendingLeaves.map(({ id, employee_name,leave_date, status }) => (
-                    <TableRow key={id} hover>
-                      <TableCell>{employee_name}</TableCell>                  
-                      <TableCell>{leave_date}</TableCell>
-                      <TableCell>{status}</TableCell>
-                      
+
+            {/* Show loading spinner if data is being fetched */}
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <TableContainer sx={{ maxHeight: 200 }}>
+                <Table size="medium" aria-label="pending leave requests" sx={{ minWidth: 650 }}>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Employee Name</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Dates</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                     </TableRow>
-                  ))}
-                  {pendingLeaves.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center">
-                        No pending leave requests
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {pendingLeaves.map(({ id, employee_name, leave_date, status }) => (
+                      <TableRow key={id} hover>
+                        <TableCell>{employee_name}</TableCell>
+                        <TableCell>{leave_date}</TableCell>
+                        <TableCell>{status}</TableCell>
+                      </TableRow>
+                    ))}
+                    {pendingLeaves.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          No pending leave requests
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </Paper>
         </Box>
       </Box>
