@@ -1,8 +1,9 @@
 pipeline {
   agent any
-
+  
   environment {
-    NODE_HOME = '/usr/bin/node' // Specify the path to node if it's in a custom location
+    // Define the path for Node.js (if installed in a custom location)
+    NODE_HOME = '/usr/bin/node' // Adjust based on actual path if needed
   }
 
   stages {
@@ -12,35 +13,42 @@ pipeline {
       }
     }
 
-stage('Verify Node.js & npm versions') {
-  steps {
-    script {
-      // Check if node and npm are installed and print their versions
-      sh '''
-        if ! command -v node &> /dev/null
-        then
-            echo "Node.js could not be found. Installing Node.js."
-            apt-get install -y nodejs
-        else
-            echo "Node.js version: $(node -v)"
-        fi
-        
-        if ! command -v npm &> /dev/null
-        then
-            echo "npm could not be found. Installing npm."
-            apt-get install -y npm
-        else
-            echo "npm version: $(npm -v)"
-        fi
-      '''
+    stage('Verify Node.js & npm versions') {
+      steps {
+        script {
+          // Check if node and npm are installed and print their versions
+          sh '''
+            if ! command -v node &> /dev/null
+            then
+                echo "Node.js could not be found. Please install Node.js manually."
+            else
+                echo "Node.js version: $(node -v)"
+            fi
+            
+            if ! command -v npm &> /dev/null
+            then
+                echo "npm could not be found. Please install npm manually."
+            else
+                echo "npm version: $(npm -v)"
+            fi
+          '''
+        }
+      }
     }
-  }
-}
-
 
     stage('Install Dependencies') {
       steps {
-        sh 'npm install'
+        script {
+          // Ensure npm is installed if not already available
+          sh '''
+            if ! command -v npm &> /dev/null
+            then
+                echo "Installing npm..."
+                apt-get update && apt-get install -y npm
+            fi
+            npm install
+          '''
+        }
       }
     }
 
@@ -76,7 +84,7 @@ stage('Verify Node.js & npm versions') {
       }
     }
   }
-  
+
   post {
     always {
       // Clean up Docker images to avoid unnecessary disk usage
