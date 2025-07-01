@@ -9,6 +9,7 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
+        // Checkout the code from the GitHub repository
         git 'https://github.com/Faz-fit/my-react-app.git'
       }
     }
@@ -16,7 +17,7 @@ pipeline {
     stage('Verify Node.js & npm versions') {
       steps {
         script {
-          // Check if node and npm are installed and print their versions
+          // Check if Node.js and npm are installed, and print their versions
           sh '''
             if ! command -v node &> /dev/null
             then
@@ -54,6 +55,7 @@ pipeline {
 
     stage('Build React App') {
       steps {
+        // Run the build process for the React app
         sh 'npm run build'
       }
     }
@@ -78,7 +80,7 @@ pipeline {
               docker rm my-react-app-container
             fi
           '''
-          // Run Docker container on port 3000 mapping to port 80 in the container
+          // Run the Docker container on port 3000, mapping to port 80 in the container
           sh 'docker run -d -p 3000:80 --name my-react-app-container my-react-app:${gitCommitHash}'
         }
       }
