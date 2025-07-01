@@ -12,30 +12,31 @@ pipeline {
       }
     }
 
-    stage('Verify Node.js & npm versions') {
-      steps {
-        script {
-          // Check if node and npm are installed and print their versions
-          sh '''
-            if ! command -v node &> /dev/null
-            then
-                echo "Node.js could not be found. Installing Node.js."
-                sudo apt-get install -y nodejs
-            else
-                echo "Node.js version: $(node -v)"
-            fi
-            
-            if ! command -v npm &> /dev/null
-            then
-                echo "npm could not be found. Installing npm."
-                sudo apt-get install -y npm
-            else
-                echo "npm version: $(npm -v)"
-            fi
-          '''
-        }
-      }
+stage('Verify Node.js & npm versions') {
+  steps {
+    script {
+      // Check if node and npm are installed and print their versions
+      sh '''
+        if ! command -v node &> /dev/null
+        then
+            echo "Node.js could not be found. Installing Node.js."
+            apt-get install -y nodejs
+        else
+            echo "Node.js version: $(node -v)"
+        fi
+        
+        if ! command -v npm &> /dev/null
+        then
+            echo "npm could not be found. Installing npm."
+            apt-get install -y npm
+        else
+            echo "npm version: $(npm -v)"
+        fi
+      '''
     }
+  }
+}
+
 
     stage('Install Dependencies') {
       steps {
