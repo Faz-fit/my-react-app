@@ -1,9 +1,18 @@
-version: '3.8'
-
+version: '3'
 services:
-  react-app:
-    build: .
-    container_name: my-react-app-container
+  react:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "3000:80"
-    restart: unless-stopped
+      - "80:80"
+    volumes:
+      - .:/app
+    environment:
+      - NODE_ENV=production
+    networks:
+      - frontend
+
+networks:
+  frontend:
+    driver: bridge

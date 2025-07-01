@@ -1,14 +1,27 @@
-# Use nginx alpine image to serve static React files
+# Use Node.js 20 image
+FROM node:20 AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and install dependencies
+COPY package.json ./
+RUN npm install
+
+# Copy application files
+COPY . .
+
+# Build the React app
+RUN npm run build
+
+# Use Nginx to serve the app
 FROM nginx:alpine
 
-# Remove default nginx static files
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copy build folder (make sure this exists after build)
-COPY build /usr/share/nginx/html
+# Copy build files to Nginx
+COPY --from=build /app/build /usr/share/nginx/html
 
 # Expose port 80
 EXPOSE 80
 
-# Run nginx in foreground
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
