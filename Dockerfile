@@ -10,8 +10,8 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Increase memory limit for Node.js during build
-ENV NODE_OPTIONS="--max-old-space-size=4096"  # 4GB memory
+# Increase memory limit for Node.js during build (e.g., 1GB)
+ENV NODE_OPTIONS="--max-old-space-size=1024"  
 
 # Copy the entire application to the container
 COPY . .
