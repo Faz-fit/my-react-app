@@ -1,6 +1,9 @@
+version: '3.8'
+
 services:
   react-app:
     build: .
     ports:
-      - "3000:80"
-    container_name: react-app
+      - "3000:80"  # Maps localhost:3000 to Nginx port 80 inside the container
+    container_name: react_web_app
+    restart: always
