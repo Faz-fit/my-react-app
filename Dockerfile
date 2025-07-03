@@ -1,25 +1,29 @@
-# Stage 1: Build the React app
+# Stage 1: Build the React App
 FROM node:18 AS builder
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the app source code
-COPY . ./
+# Copy source files
+COPY . .
 
-# Build the React app for production
+# Build the React app
 RUN npm run build
 
-# Stage 2: Serve the build using Nginx
+# Stage 2: Serve with Nginx
 FROM nginx:alpine
 
-# Copy the production build to the Nginx public directory
+# Copy the build from the previous stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Expose port 80 (standard HTTP)
+# 🔥 Add custom nginx config to support SPA routing
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
 EXPOSE 80
 
 # Start Nginx
