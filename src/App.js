@@ -21,12 +21,14 @@ import CreateManager from './pages/admin/create/CreateHoliday.js';
 import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
 import EmployeeStatus from './pages/admin/EmployeeStatus.js';
 import Outlets from './pages/admin/outlets.js';
-
-
+import DeviceMangemnt from './pages/admin/assign/DeviceMangemnt.js';
+import AdminATTM from './pages/admin/assign/AdminATTM.js'; // Import Admin ATTM
+import ManagerATTM from './pages/manager/ManagerATTM.js'; // Import Manager ATTM
 import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
 import AssignLeave from './pages/admin/assign/LeaveManagment.js';
 import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
+
 
 import SelectOutlet from 'pages/SelectOutlet';
 
@@ -173,6 +175,26 @@ function App() {
         <Route path="/admin/employee-status" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><EmployeeStatus /></Layout>
+          </ProtectedRoute>
+        } />
+          {/* Device Management */}
+        <Route path="/admin/assign/DeviceMangemnt" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><DeviceMangemnt/></Layout>
+          </ProtectedRoute>
+        } />
+
+         {/* ATT Management */}
+        <Route path="/admin/assign/AdminATTM" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><AdminATTM/></Layout>
+          </ProtectedRoute>
+        } />
+
+         {/* Device Management */}
+        <Route path="/manager/ManagerATTM" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><ManagerATTM/></Layout>
           </ProtectedRoute>
         } />
       </Routes>

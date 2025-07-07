@@ -31,12 +31,15 @@ function Sidebar({ sidebarOpen, onClose }) {
     { text: 'Employees', path: '/employees', roles: ['Manager'] },
     { text: 'Leave Approval', path: '/leave-approval', roles: ['Manager'] },
     { text: 'Reports', path: '/reports', roles: ['Manager'] },
+    { text: 'Daily Attendance', path: '/manager/ManagerATTM', roles: ['Manager'] },
 
     // Admin section (Leave creation)
     { text: 'Leave', path: '/Admin/create/leave', roles: ['Admin'] },
+    { text: 'Device Manager', path: '/admin/assign/DeviceMangemnt', roles: ['Admin'] },
 
     // Admin - Assign Section
     { text: 'Leave Managment', path: '/Admin/assign/leave', roles: ['Admin'], },
+    { text: 'Daily Attendance', path: '/admin/assign/AdminATTM', roles: ['Admin'], },
   ];
 
   // Group items by 'group' or default 'Main'
