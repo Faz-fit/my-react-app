@@ -161,7 +161,7 @@ const Dashboard = () => {
   // Columns with safe valueGetter
   const columns = [
     { field: 'employeeId', headerName: 'Employee ID', width: 160 },
-    { field: 'fullName', headerName: 'Full Name', width: 220 },
+    { field: 'fullName', headerName: 'EMP_CODE', width: 220 },
     { field: 'firstName', headerName: 'First Name', width: 400 },
     { field: 'date', headerName: 'Date', width: 160 },
     { field: 'punchIn', headerName: 'Punch In', width: 180 },
@@ -243,7 +243,7 @@ const Dashboard = () => {
             { label: 'Total Employees', value: totalEmployees, color: 'black' },
             { label: 'Punch Ins', value: totalPunchIns, color: 'success' },
             { label: 'Punch Outs', value: totalPunchOuts, color: 'info' },
-            { label: 'Approved Leaves', value: totalLeaves, color: 'warning' },
+            { label: 'On Leaves', value: totalLeaves, color: 'warning' },
           ].map((item, index) => (
             <Box
               key={index}
@@ -264,7 +264,7 @@ const Dashboard = () => {
                 if (item.label === 'Punch Ins') handleOpenDialog('Employees with Punch In', (row) => row.punchIn);
                 if (item.label === 'Punch Outs') handleOpenDialog('Employees with Punch Out', (row) => row.punchOut);
                 if (item.label === 'Approved Leaves')
-                  handleOpenDialog('Employees on Approved Leave', (row) =>
+                  handleOpenDialog('Employees On Leave', (row) =>
                     row.approvedLeaves.includes(selectedDate)
                   );
               }}
