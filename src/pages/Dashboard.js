@@ -263,7 +263,7 @@ const Dashboard = () => {
                 if (item.label === 'Total Employees') handleOpenDialog('Total Employees', () => true);
                 if (item.label === 'Punch Ins') handleOpenDialog('Employees with Punch In', (row) => row.punchIn);
                 if (item.label === 'Punch Outs') handleOpenDialog('Employees with Punch Out', (row) => row.punchOut);
-                if (item.label === 'Approved Leaves')
+                if (item.label === 'On Leaves')
                   handleOpenDialog('Employees On Leave', (row) =>
                     row.approvedLeaves.includes(selectedDate)
                   );
