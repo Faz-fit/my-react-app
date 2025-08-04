@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  Typography, Tooltip, TextField
+  Typography, Tooltip
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from 'utils/api';
 
@@ -12,7 +11,6 @@ const initialDevices = [];
 
 export default function DeviceGrid() {
   const [devices, setDevices] = useState(initialDevices);
-  const [openDialog, setOpenDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState(null);
 
