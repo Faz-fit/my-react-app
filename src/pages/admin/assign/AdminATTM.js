@@ -60,7 +60,6 @@ export default function DailyAttendance() {
   }, [selectedOutletId]);  // Refetch attendance whenever the outlet ID changes
 
   const columns = [
-    { field: 'attendance_id', headerName: 'Attendance ID', flex: 1 },
     { field: 'employee_name', headerName: 'Employee Name', flex: 1 },
     { field: 'date', headerName: 'Date', flex: 1 },
     { field: 'check_in_time', headerName: 'Check-in Time', flex: 1 },

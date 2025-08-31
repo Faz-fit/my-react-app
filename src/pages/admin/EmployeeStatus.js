@@ -15,7 +15,6 @@ export default function EmployeeGrid() {
   const [employees, setEmployees] = useState(initialEmployees);
   const [openDialog, setOpenDialog] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
-  const [profilePhoto, setProfilePhoto] = useState(null);
   const [outlets, setOutlets] = useState([]);
   const [groups, setGroups] = useState([]);
   const [passwordError, setPasswordError] = useState('');
@@ -87,7 +86,6 @@ export default function EmployeeGrid() {
       etf_com_per: 3.0,
       idnumber: ''
     });
-    setProfilePhoto(null);
     setEditEmployee(null);
     setOpenDialog(true); // Open the dialog
   };
@@ -114,10 +112,7 @@ export default function EmployeeGrid() {
         }
       }
 
-      // Append file (profile photo)
-      if (profilePhoto) {
-        formData.append('profile_photo', profilePhoto);
-      }
+  
 
       // Submit the form data
       if (editEmployee) {
@@ -147,9 +142,7 @@ export default function EmployeeGrid() {
 
   const columns = [
     { field: 'fullname', headerName: 'User Name', flex: 1 },
-    { field: 'first_name', headerName: 'First Name', flex: 1 },
-    { field: 'last_name', headerName: 'Last Name', flex: 1 },
-    { field: 'phone_number', headerName: 'Phone', flex: 1 },
+    { field: 'first_name', headerName: 'Name', flex: 1 },
     { field: 'date_of_birth', headerName: 'DOB', flex: 1 },
     { field: 'outlets', headerName: 'Outlets', flex: 1 },
     { field: 'group', headerName: 'Role', flex: 1 },
@@ -171,7 +164,6 @@ export default function EmployeeGrid() {
               group: groups.find(g => params.row.group.includes(g.name))?.id || '',
             };
             reset(prefilled);
-            setProfilePhoto(null);
             setEditEmployee(params.row);
             setOpenDialog(true);
             setPasswordError('');
@@ -416,24 +408,20 @@ export default function EmployeeGrid() {
               )}
             />
 
-            <Controller
-              name="idnumber"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="ID Number"
-                  fullWidth
-                  {...field}
+            {!editEmployee && (
+                <Controller
+                  name="idnumber"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      label="ID Number"
+                      fullWidth
+                      {...field}
+                    />
+                  )}
                 />
               )}
-            />
 
-            {/* Profile Photo Upload */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setProfilePhoto(e.target.files[0])}
-            />
           </DialogContent>
 
           {/* Dialog Actions */}

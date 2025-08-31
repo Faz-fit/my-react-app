@@ -325,29 +325,6 @@ React.useEffect(() => {
       }
     },
     {
-      field: 'agency',
-      headerName: 'Agency',
-      flex: 1,
-      editable: true,
-      type: 'singleSelect',
-      renderCell: (params) => {
-        if (!params.row) return '';
-        const agency = agencies.find((a) => a.id === params?.value);
-        return agency ? agency.name : '';
-      },
-      valueOptions: agencies.map((e) => ({
-        value: e.id,
-        label: e.name,
-      })),
-      renderEditCell: (params) => (
-        <AgencyEditCell {...params} options={agencies} />
-      ),
-      valueFormatter: (params) => {
-        const agency = agencies.find((e) => e.id === params?.value);
-        return agency ? agency.name : '';
-      }
-    },
-    {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',

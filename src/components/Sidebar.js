@@ -35,7 +35,7 @@ function Sidebar({ sidebarOpen, onClose }) {
 
     // Admin section (Leave creation)
     { text: 'Leave', path: '/Admin/create/leave', roles: ['Admin'] },
-    { text: 'Device Manager', path: '/admin/assign/DeviceMangemnt', roles: ['Admin'] },
+    { text: 'Change Password', path: '/admin/assign/DeviceMangemnt', roles: ['Admin'] },
 
     // Admin - Assign Section
     { text: 'Leave Managment', path: '/Admin/assign/leave', roles: ['Admin'], },

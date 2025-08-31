@@ -1,100 +1,142 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  Typography, Tooltip
+  TextField, Tooltip, Typography
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
-import DeleteIcon from '@mui/icons-material/Delete';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 import api from 'utils/api';
 
-const initialDevices = [];
+const passwordSchema = yup.object({
+  password: yup.string().required('New password is required'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('password'), null], 'Passwords must match')
+    .required('Confirm password is required'),
+});
 
-export default function DeviceGrid() {
-  const [devices, setDevices] = useState(initialDevices);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState(null);
+export default function EmployeeGrid() {
+  const [employees, setEmployees] = useState([]);
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
-  // Fetch devices only
-  const fetchDevices = async () => {
+  const {
+    control: passwordControl,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPasswordForm,
+    formState: { errors: passwordErrors },
+  } = useForm({
+    resolver: yupResolver(passwordSchema),
+  });
+
+  const fetchEmployees = async () => {
     try {
-      const devicesRes = await api.get('/api/devices/');
-      setDevices(devicesRes.data);  // Update state with the devices
+      const response = await api.get('/api/getemployees');
+      setEmployees(response.data);
     } catch (err) {
-      console.error('Error fetching devices:', err);
+      console.error('Error fetching employees:', err);
     }
   };
 
   useEffect(() => {
-    fetchDevices();  // Fetch devices on initial load
+    fetchEmployees();
   }, []);
 
-  const handleDeleteClick = (deviceId) => {
-    setDeviceToDelete(deviceId);  // Set the device to be deleted
-    setDeleteConfirmOpen(true);   // Open the delete confirmation dialog
+  const handleClosePasswordDialog = () => {
+    setOpenPasswordDialog(false);
+    setSelectedEmployee(null);
+    resetPasswordForm();
   };
 
-const handleDeleteConfirm = async () => {
-  try {
-    await api.delete('/api/devices/delete/', {
-      headers: {
-        'Content-Type': 'application/json',  // Set content type to application/json
-      },
-      data: JSON.stringify({ device_id: deviceToDelete }),  // Send device_id as JSON in the body
-    });
-    alert('Device deleted successfully!');
-    fetchDevices();  // Refresh the list of devices after deletion
-  } catch (err) {
-    console.error('Error deleting device:', err);
-    alert('There was an error deleting the device.');
-  }
-  setDeleteConfirmOpen(false);  // Close the confirmation dialog
-};
-
-
-  const handleDeleteCancel = () => {
-    setDeleteConfirmOpen(false);  // Close the confirmation dialog without deleting
+  const onPasswordSubmit = async (data) => {
+    if (!selectedEmployee) return;
+    try {
+      await api.put(`/api/changepassword/${selectedEmployee.employee_id}/`, {
+        password: data.password,
+      });
+      alert('Password updated successfully!');
+      handleClosePasswordDialog();
+    } catch (err) {
+      console.error('Error updating password:', err);
+      alert('Error updating password');
+    }
   };
 
   const columns = [
-    { field: 'device_id', headerName: 'Device ID', flex: 1 },
-    { field: 'fullname', headerName: 'Employee ID', flex: 1 },
+    { field: 'fullname', headerName: 'User Name', flex: 1 },
+    { field: 'first_name', headerName: 'Name', flex: 1 },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 120,
       getActions: (params) => [
         <GridActionsCellItem
-          icon={<Tooltip title="Delete"><DeleteIcon /></Tooltip>}
-          label="Delete"
-          onClick={() => handleDeleteClick(params.row.device_id)} // Handle delete action
+          icon={<Tooltip title="Change Password"><LockResetIcon /></Tooltip>}
+          label="Change Password"
+          onClick={() => {
+            setSelectedEmployee(params.row);
+            setOpenPasswordDialog(true);
+          }}
         />,
       ],
     },
   ];
 
   return (
-    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Devices</Typography>
+    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5 }}>
+      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Change Password</Typography>
 
       <DataGrid
-        rows={devices}
+        rows={employees}
         columns={columns}
         pageSize={5}
         rowsPerPageOptions={[5]}
-        getRowId={(row) => row.device_id}
+        getRowId={(row) => row.employee_id}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this device?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} color="primary">Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="secondary">Delete</Button>
-        </DialogActions>
+      <Dialog open={openPasswordDialog} onClose={handleClosePasswordDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>Change Password for {selectedEmployee?.fullname}</DialogTitle>
+        <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} noValidate>
+          <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Controller
+              name="password"
+              control={passwordControl}
+              render={({ field }) => (
+                <TextField
+                  label="New Password"
+                  type="password"
+                  fullWidth
+                  autoFocus
+                  error={!!passwordErrors.password}
+                  helperText={passwordErrors.password?.message}
+                  {...field}
+                />
+              )}
+            />
+            <Controller
+              name="confirmPassword"
+              control={passwordControl}
+              render={({ field }) => (
+                <TextField
+                  label="Confirm New Password"
+                  type="password"
+                  fullWidth
+                  error={!!passwordErrors.confirmPassword}
+                  helperText={passwordErrors.confirmPassword?.message}
+                  {...field}
+                />
+              )}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePasswordDialog}>Cancel</Button>
+            <Button type="submit" variant="contained">Save</Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </Box>
   );
