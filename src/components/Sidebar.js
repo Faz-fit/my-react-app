@@ -18,7 +18,7 @@ function Sidebar({ sidebarOpen, onClose }) {
   console.log('Sidebar user role normalized:', normalizedRole);
 
   const navItems = [
-    { text: normalizedRole === 'Admin' ? 'Admin Dashboard' : 'Manager Dashboard', path: normalizedRole === 'Admin' ? '/AdminDashboard' : '/Dashboard', roles: ['Admin', 'Manager'] },
+    { text: normalizedRole === 'Admin' ? 'Dashboard' : 'Dashboard', path: normalizedRole === 'Admin' ? '/AdminDashboard' : '/Dashboard', roles: ['Admin', 'Manager'] },
     // Admin section
     { text: 'Employee', path: '/Admin/employee-status', roles: ['Admin'] },
     { text: 'Role', path: '/admin/create', roles: ['Admin'] },
@@ -28,10 +28,10 @@ function Sidebar({ sidebarOpen, onClose }) {
     { text: 'Holidays', path: '/Admin/create/manager', roles: ['Admin'] },
 
     // Manager section
-    { text: 'Employees', path: '/employees', roles: ['Manager'] },
+    { text: 'Employees', path: '/empman', roles: ['Manager'] },
     { text: 'Leave Approval', path: '/leave-approval', roles: ['Manager'] },
     { text: 'Reports', path: '/reports', roles: ['Manager'] },
-    { text: 'Daily Attendance', path: '/manager/ManagerATTM', roles: ['Manager'] },
+
 
     // Admin section (Leave creation)
     { text: 'Leave', path: '/Admin/create/leave', roles: ['Admin'] },

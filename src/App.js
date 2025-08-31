@@ -8,6 +8,7 @@ import Reports from './pages/Reports';
 import ManageUsers from './pages/ManageUsers';
 import Layout from './components/Layout';
 import { isAuthenticated, getUserRole } from './utils/auth';
+import ManEmp from './pages/EmpMan';
 
 
 // Import all new pages
@@ -76,6 +77,13 @@ function App() {
             <Layout><Employees /></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/empman" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><ManEmp /></Layout>
+          </ProtectedRoute>
+
+        }/>
+
         <Route path="/select-outlet" element={
           <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><SelectOutlet /></Layout>
