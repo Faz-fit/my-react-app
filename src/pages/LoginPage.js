@@ -84,17 +84,16 @@ const LoginPage = () => {
     setLoading(false);
   };
 
-  const handleRoleBasedNavigation = (role, outlets) => {
-    const roleBasedRedirect = {
-      Admin: '/Admindashboard',
-      Manager: outlets.length === 1 ? '/dashboard' : '/select-outlet',
-      //Manager: '/dashboard' ,
-
-    };
-
-    const navigateToRolePage = roleBasedRedirect[role] || '/';
-    navigate(navigateToRolePage);
+const handleRoleBasedNavigation = (role) => {
+  const roleBasedRedirect = {
+    Admin: '/Admindashboard',
+    Manager: '/dashboard',  // always go to dashboard now
   };
+
+  const navigateToRolePage = roleBasedRedirect[role] || '/';
+  navigate(navigateToRolePage);
+};
+
 
   return (
     <Box

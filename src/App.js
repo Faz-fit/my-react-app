@@ -9,7 +9,7 @@ import ManageUsers from './pages/ManageUsers';
 import Layout from './components/Layout';
 import { isAuthenticated, getUserRole } from './utils/auth';
 import ManEmp from './pages/EmpMan';
-
+import ManEmp2 from './pages/EmpMan2.js';
 
 // Import all new pages
 import CreateEmployee from './pages/admin/create/CreateEmployee.js';
@@ -29,6 +29,9 @@ import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
 import AssignLeave from './pages/admin/assign/LeaveManagment.js';
 import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
+import TEST from './pages/admin/assign/test.js';
+import DailyOutletAttadace from './pages/DailyOutletAttadace.js';
+import OutletLeaveSummary from 'pages/OutletLeaveSummary.js';
 
 
 import SelectOutlet from 'pages/SelectOutlet';
@@ -46,6 +49,28 @@ function App() {
       <Routes>
         {/* Public Route */}
         <Route path="/" element={<LoginPage />} />
+        
+                {/* Admin Dashboard */}
+        <Route
+          path="/test"
+          element={
+            <ProtectedRoute role={role} requiredRole="Admin">
+              <Layout>
+                <TEST />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="/ManEmp2"
+          element={
+            <ProtectedRoute role={role} requiredRole="Manager">
+              <Layout>
+                <ManEmp2 />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admin Dashboard */}
         <Route
@@ -203,6 +228,21 @@ function App() {
         <Route path="/manager/ManagerATTM" element={
           <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><ManagerATTM/></Layout>
+          </ProtectedRoute>
+        } />
+
+               {/* Daily attadace outlet */}
+        <Route path="/manager/DAO" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><DailyOutletAttadace/></Layout>
+          </ProtectedRoute>
+        } />
+
+        
+               {/* Leave Summary outlet */}
+        <Route path="/manager/OLS" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><OutletLeaveSummary/></Layout>
           </ProtectedRoute>
         } />
       </Routes>

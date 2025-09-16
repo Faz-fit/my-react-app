@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Box,
   List,
@@ -6,47 +6,155 @@ import {
   ListItemButton,
   ListItemText,
   ListSubheader,
-} from '@mui/material';
-import { NavLink } from 'react-router-dom';
-import { getUserRole } from '../utils/auth';
+  Divider,
+} from "@mui/material";
+import { NavLink } from "react-router-dom";
+import { getUserRole } from "../utils/auth";
+
+// Icons
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import PeopleIcon from "@mui/icons-material/People";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import BusinessIcon from "@mui/icons-material/Business";
+import EventIcon from "@mui/icons-material/Event";
+import SettingsIcon from "@mui/icons-material/Settings";
+import ReportIcon from "@mui/icons-material/BarChart";
+import LockIcon from "@mui/icons-material/Lock";
+import CoPresentIcon from '@mui/icons-material/CoPresent';
 
 function Sidebar({ sidebarOpen, onClose }) {
-  const role = getUserRole() || '';
-  // Normalize role casing: Capitalize first letter, lowercase rest
-  const normalizedRole = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+  const role = getUserRole() || "";
+  const normalizedRole =
+    role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
 
-  console.log('Sidebar user role normalized:', normalizedRole);
+  console.log("Sidebar user role normalized:", normalizedRole);
 
   const navItems = [
-    { text: normalizedRole === 'Admin' ? 'Dashboard' : 'Dashboard', path: normalizedRole === 'Admin' ? '/AdminDashboard' : '/Dashboard', roles: ['Admin', 'Manager'] },
-    // Admin section
-    { text: 'Employee', path: '/Admin/employee-status', roles: ['Admin'] },
-    { text: 'Role', path: '/admin/create', roles: ['Admin'] },
-    { text: 'Admin Reports', path: '/Admin/reports', roles: ['Admin'] },
-    { text: 'Outlets', path: '/Admin/outlets', roles: ['Admin'] },
-    { text: 'Agancy', path: '/Admin/create/agency', roles: ['Admin'] },
-    { text: 'Holidays', path: '/Admin/create/manager', roles: ['Admin'] },
+    // Common / Dashboard
+    {
+      text: "Dashboard",
+      path:
+        normalizedRole === "Admin" ? "/AdminDashboard" : "/Dashboard",
+      roles: ["Admin", "Manager"],
+      icon: <DashboardIcon />,
+      group: "Main",
+    },
 
-    // Manager section
-    { text: 'Employees', path: '/empman', roles: ['Manager'] },
-    { text: 'Leave Approval', path: '/leave-approval', roles: ['Manager'] },
-    { text: 'Reports', path: '/reports', roles: ['Manager'] },
+    // Admin Section
+    {
+      text: "Employee",
+      path: "/Admin/employee-status",
+      roles: ["Admin"],
+      icon: <PeopleIcon />,
+      group: "Management",
+    },
+    {
+      text: "Role",
+      path: "/admin/create",
+      roles: ["Admin"],
+      icon: <SettingsIcon />,
+      group: "Management",
+    },
+    {
+      text: "Outlets",
+      path: "/Admin/outlets",
+      roles: ["Admin"],
+      icon: <BusinessIcon />,
+      group: "Management",
+    },
+    {
+      text: "Agency",
+      path: "/Admin/create/agency",
+      roles: ["Admin"],
+      icon: <BusinessIcon />,
+      group: "Management",
+    },
+    {
+      text: "Holidays",
+      path: "/Admin/create/manager",
+      roles: ["Admin"],
+      icon: <EventIcon />,
+      group: "Management",
+    },
+    {
+      text: "Leave",
+      path: "/Admin/create/leave",
+      roles: ["Admin"],
+      icon: <EventIcon />,
+      group: "Management",
+    },
+    {
+      text: "Change Password",
+      path: "/admin/assign/DeviceMangemnt",
+      roles: ["Admin"],
+      icon: <LockIcon />,
+      group: "Settings",
+    },
+    {
+      text: "Leave Management",
+      path: "/Admin/assign/leave",
+      roles: ["Admin"],
+      icon: <AssignmentIcon />,
+      group: "Assignments",
+    },
+    {
+      text: "Daily Attendance",
+      path: "/admin/assign/AdminATTM",
+      roles: ["Admin"],
+      icon: <AssignmentIcon />,
+      group: "Assignments",
+    },
+    {
+      text: "Admin Reports",
+      path: "/Admin/reports",
+      roles: ["Admin"],
+      icon: <ReportIcon />,
+      group: "Reports",
+    },
 
-
-    // Admin section (Leave creation)
-    { text: 'Leave', path: '/Admin/create/leave', roles: ['Admin'] },
-    { text: 'Change Password', path: '/admin/assign/DeviceMangemnt', roles: ['Admin'] },
-
-    // Admin - Assign Section
-    { text: 'Leave Managment', path: '/Admin/assign/leave', roles: ['Admin'], },
-    { text: 'Daily Attendance', path: '/admin/assign/AdminATTM', roles: ['Admin'], },
+    // Manager Section
+    {
+      text: "Employees",
+      path: "/empman",
+      roles: ["Manager"],
+      icon: <PeopleIcon />,
+      group: "Management",
+    },
+    {
+      text: "Leave Approval",
+      path: "/leave-approval",
+      roles: ["Manager"],
+      icon: <AssignmentIcon />,
+      group: "Management",
+    },
+        {
+      text: "Outlet Log",
+      path: "/manager/DAO",
+      roles: ["Manager"],
+      icon: <CoPresentIcon />,
+      group: "Management",
+    },
+    {
+      text: "Outlet Leave Summary",
+      path: "/manager/OLS",
+      roles: ["Manager"],
+      icon: <CoPresentIcon />,
+      group: "Management",
+    },
+    {
+      text: "Reports",
+      path: "/reports",
+      roles: ["Manager"],
+      icon: <ReportIcon />,
+      group: "Reports",
+    },
   ];
 
-  // Group items by 'group' or default 'Main'
+  // Filter by role + group them
   const groupedItems = navItems
     .filter((item) => item.roles.includes(normalizedRole))
     .reduce((acc, item) => {
-      const group = item.group || 'Main';
+      const group = item.group || "Main";
       if (!acc[group]) acc[group] = [];
       acc[group].push(item);
       return acc;
@@ -55,24 +163,33 @@ function Sidebar({ sidebarOpen, onClose }) {
   return (
     <Box
       sx={{
-        width: sidebarOpen ? 240 : 0,
-        overflowY: 'auto',
+        width: sidebarOpen ? 260 : 0,
+        overflowY: "auto",
         pt: 8,
-        height: '100vh',
-        backgroundColor: '#f4f4f4',
-        borderRight: sidebarOpen ? '1px solid #ddd' : 'none',
-        transition: 'width 0.3s ease-in-out',
-        position: 'fixed',
+        height: "100vh",
+        backgroundColor: "#fff",
+        borderRight: sidebarOpen ? "1px solid #ddd" : "none",
+        transition: "width 0.3s ease-in-out",
+        position: "fixed",
         top: 0,
         left: 0,
         zIndex: 999,
       }}
     >
       <List sx={{ px: 1 }}>
-        {Object.entries(groupedItems).map(([group, items]) => (
+        {Object.entries(groupedItems).map(([group, items], index) => (
           <React.Fragment key={group}>
-            {group !== 'Main' && (
-              <ListSubheader sx={{ backgroundColor: 'inherit', pl: 2, py: 1 }}>
+            {group !== "Main" && (
+              <ListSubheader
+                sx={{
+                  backgroundColor: "inherit",
+                  pl: 2,
+                  py: 1,
+                  fontWeight: "bold",
+                  fontSize: "0.9rem",
+                  color: "#555",
+                }}
+              >
                 {group}
               </ListSubheader>
             )}
@@ -85,20 +202,26 @@ function Sidebar({ sidebarOpen, onClose }) {
                   sx={{
                     borderRadius: 2,
                     px: 2,
-                    '&.active': {
-                      backgroundColor: '#e6b904',
-                      color: '#000',
-                      fontWeight: 'bold',
+                    "&.active": {
+                      backgroundColor: "#e6b904",
+                      color: "#000",
+                      fontWeight: "bold",
                     },
-                    '&:hover': {
-                      backgroundColor: '#f0e2a1',
+                    "&:hover": {
+                      backgroundColor: "#f9e27a",
                     },
                   }}
                 >
+                  {item.icon && (
+                    <Box sx={{ mr: 2, color: "inherit" }}>{item.icon}</Box>
+                  )}
                   <ListItemText primary={item.text} />
                 </ListItemButton>
               </ListItem>
             ))}
+            {index < Object.entries(groupedItems).length - 1 && (
+              <Divider sx={{ my: 1 }} />
+            )}
           </React.Fragment>
         ))}
       </List>

@@ -1,214 +1,275 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import {
   Box,
   Typography,
-  MenuItem,
-  FormControl,
-  Select,
-  InputLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
-  Button,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 
-// Sample Data
-const leaveSummary = [
-  { name: 'John Doe', type: 'Sick Leave', days: 2, status: 'Approved' },
-  { name: 'Alice Johnson', type: 'Vacation', days: 5, status: 'Pending' },
-  { name: 'Jane Smith', type: 'Personal Leave', days: 1, status: 'Rejected' },
+// Define which fields should be visible by default
+const VISIBLE_FIELDS = [
+  'employee_id',
+  'employ_number',
+  'fullname',
+  'groups',
+  'date',
 ];
 
-const upcomingLeaves = [
-  { name: 'Bob Lee', from: '2025-05-10', to: '2025-05-12', type: 'Vacation' },
-  { name: 'Linda Carter', from: '2025-05-15', to: '2025-05-20', type: 'Sick Leave' },
-];
+export default function EmployeeDataReport() {
+  const [reportData, setReportData] = useState([]);
+  const [userOutlets, setUserOutlets] = useState([]);
+  const [selectedOutletId, setSelectedOutletId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-const employeeSummary = [
-  {
-    name: 'John Doe',
-    id: 'EMP001',
-    designation: 'Cashier',
-    present: 22,
-    absent: 2,
-    leaves: 1,
-    late: 3,
-    earlyExit: 1,
-  },
-  {
-    name: 'Jane Smith',
-    id: 'EMP002',
-    designation: 'Floor Manager',
-    present: 20,
-    absent: 4,
-    leaves: 2,
-    late: 1,
-    earlyExit: 0,
-  },
-  {
-    name: 'Alice Johnson',
-    id: 'EMP003',
-    designation: 'Sales Assistant',
-    present: 18,
-    absent: 5,
-    leaves: 2,
-    late: 2,
-    earlyExit: 3,
-  },
-];
+  const token = localStorage.getItem('access_token');
 
-// Excel Export
-const downloadExcel = () => {
-  const dataToExport = employeeSummary.map(emp => ({
-    'Employee ID': emp.id,
-    Name: emp.name,
-    Designation: emp.designation,
-    'Days Present': emp.present,
-    'Days Absent': emp.absent,
-    'Leaves Taken': emp.leaves,
-    'Late Arrivals': emp.late,
-    'Early Exits': emp.earlyExit,
-    'Attendance %': ((emp.present / (emp.present + emp.absent)) * 100).toFixed(1) + '%',
-  }));
+  useEffect(() => {
+    const fetchUserOutlets = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch('http://139.59.243.2:8000/api/user/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch user outlets');
+        const data = await res.json();
+        setUserOutlets(data.outlets);
+        if (data.outlets.length > 0) {
+          setSelectedOutletId(data.outlets[0].id);
+        }
+      } catch (err) { // <<< FIX IS HERE
+        setError(err.message);
+      }
+    };
+    fetchUserOutlets();
+  }, [token]);
 
-  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Employee Summary');
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  const dataBlob = new Blob([excelBuffer], { type: 'application/octet-stream' });
-  saveAs(dataBlob, 'EmployeeSummary.xlsx');
-};
+  useEffect(() => {
+    if (!selectedOutletId) return;
 
-function Reports() {
-  const [selectedSection, setSelectedSection] = useState('employee');
+    const fetchOutletData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch outlet data');
+        const data = await res.json();
+        setReportData(transformData(data));
+      } catch (err) {
+        setError(err.message);
+        setReportData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOutletData();
+  }, [selectedOutletId, token]);
+
+  const getAttendancePlaceholders = () => ({
+    check_in_time: '-',
+    check_out_time: '-',
+    worked_hours: '-',
+    ot_hours: '-',
+    punchin_verification: '-',
+    punchout_verification: '-',
+    check_in_location: '-',
+    check_out_location: '-',
+    attendance_id: '-',
+  });
+
+  const getLeavePlaceholders = () => ({
+    leave_type_name: '-',
+    remarks: '-',
+    leave_refno: '-',
+    add_date: '-',
+    action_date: '-',
+  });
+
+  const transformData = (data) => {
+    const result = [];
+    let id = 0;
+
+    if (!data || !data.employees) return result;
+
+    data.employees.forEach((emp) => {
+      const employeeInfo = {
+        employee_id: emp.employee_id,
+        employ_number: emp.employ_number,
+        fullname: `${emp.first_name} ${emp.last_name}`,
+        email: emp.email,
+        phone_number: emp.phone_number,
+        idnumber: emp.idnumber,
+        date_of_birth: emp.date_of_birth,
+        is_active: emp.is_active,
+        groups: emp.groups.join(', '),
+        basic_salary: emp.basic_salary,
+        epf_number: emp.epf_number,
+        epf_grade: emp.epf_grade,
+      };
+
+      if (emp.attendances.length === 0 && emp.leaves.length === 0) {
+        result.push({
+          id: id++,
+          ...employeeInfo,
+          record_type: 'Employee Info',
+          date: '-',
+          ...getAttendancePlaceholders(),
+          ...getLeavePlaceholders(),
+        });
+      }
+
+      emp.attendances.forEach((att) => {
+        result.push({
+          id: id++,
+          ...employeeInfo,
+          record_type: 'Attendance',
+          date: att.date,
+          status: att.status,
+          check_in_time: att.check_in_time,
+          check_out_time: att.check_out_time,
+          worked_hours: att.worked_hours,
+          ot_hours: att.ot_hours,
+          punchin_verification: att.punchin_verification,
+          punchout_verification: att.punchout_verification,
+          check_in_location: `${att.check_in_lat}, ${att.check_in_long}`,
+          check_out_location: att.check_out_lat ? `${att.check_out_lat}, ${att.check_out_long}` : '-',
+          attendance_id: att.attendance_id,
+          ...getLeavePlaceholders(),
+        });
+      });
+
+      emp.leaves.forEach((leave) => {
+        result.push({
+          id: id++,
+          ...employeeInfo,
+          record_type: 'Leave',
+          date: leave.leave_date,
+          status: leave.status,
+          leave_type_name: leave.leave_type_name,
+          remarks: leave.remarks,
+          leave_refno: leave.leave_refno,
+          add_date: leave.add_date,
+          action_date: leave.action_date,
+          ...getAttendancePlaceholders(),
+        });
+      });
+    });
+
+    return result;
+  };
+
+  const allColumns = [
+    { field: 'employee_id', headerName: 'Emp ID', width: 90 },
+    { field: 'employ_number', headerName: 'Emp No.', width: 90 },
+    { field: 'fullname', headerName: 'Full Name', flex: 1.5, minWidth: 180 },
+    { field: 'groups', headerName: 'Groups', width: 120 },
+    { field: 'date', headerName: 'Date', width: 120 },
+    // Other columns are now part of the grid and can be toggled
+    { field: 'is_active', headerName: 'Active', width: 90, type: 'boolean' },
+    { field: 'basic_salary', headerName: 'Basic Salary', width: 120, type: 'number' },
+    { field: 'status', headerName: 'Status', width: 120 },
+    { field: 'check_in_time', headerName: 'Check In', width: 180 },
+    { field: 'check_out_time', headerName: 'Check Out', width: 180 },
+    { field: 'worked_hours', headerName: 'Worked Hrs', width: 110, type: 'number' },
+    { field: 'ot_hours', headerName: 'OT Hrs', width: 90, type: 'number' },
+    { field: 'punchin_verification', headerName: 'Punch-In Verified', width: 150 },
+    { field: 'punchout_verification', headerName: 'Punch-Out Verified', width: 160 },
+    { field: 'check_in_location', headerName: 'Check-In Location', width: 160 },
+    { field: 'check_out_location', headerName: 'Check-Out Location', width: 160 },
+    { field: 'attendance_id', headerName: 'Attendance ID', width: 120 },
+    { field: 'leave_type_name', headerName: 'Leave Type', width: 130 },
+    { field: 'remarks', headerName: 'Remarks', flex: 1, minWidth: 150 },
+    { field: 'leave_refno', headerName: 'Leave Ref No', width: 120 },
+    { field: 'add_date', headerName: 'Leave Add Date', width: 130 },
+    { field: 'action_date', headerName: 'Leave Action Date', width: 150 },
+    { field: 'email', headerName: 'Email', flex: 1.5, minWidth: 200 },
+    { field: 'phone_number', headerName: 'Phone', width: 130 },
+    { field: 'idnumber', headerName: 'ID Number', width: 150 },
+    { field: 'date_of_birth', headerName: 'DOB', width: 120 },
+    { field: 'epf_number', headerName: 'EPF Number', width: 130 },
+    { field: 'epf_grade', headerName: 'EPF Grade', width: 100 },
+  ];
+
+  // Create an object for initial column visibility
+  const initialColumnVisibility = {};
+  allColumns.forEach(col => {
+    initialColumnVisibility[col.field] = VISIBLE_FIELDS.includes(col.field);
+  });
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
-        Outlet Reports
-      </Typography>
+    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: 'center',
+          mb: 3,
+          gap: 2,
+        }}
+      >
+        <Typography variant="h4" sx={{ fontWeight: 'bold', borderBottom: '3px solid #1976d2' }}>
+          EMPLOYEE REPORT
+        </Typography>
 
-      {/* Dropdown Selection */}
-      <FormControl fullWidth sx={{ mb: 4 }}>
-        <InputLabel>Select Report Section</InputLabel>
-        <Select
-          value={selectedSection}
-          label="Select Report Section"
-          onChange={(e) => setSelectedSection(e.target.value)}
-        >
-          <MenuItem value="employee">Employee Summary</MenuItem>
-          <MenuItem value="leave">Leave Summary</MenuItem>
-          <MenuItem value="upcoming">Upcoming Leaves</MenuItem>
-        </Select>
-      </FormControl>
-
-      {/* Render Section Based on Selection */}
-      {selectedSection === 'employee' && (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button variant="contained" onClick={downloadExcel}>
-              Download Excel
-            </Button>
-          </Box>
-
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-                <TableRow>
-                  <TableCell>Employee ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Designation</TableCell>
-                  <TableCell>Present</TableCell>
-                  <TableCell>Absent</TableCell>
-                  <TableCell>Leaves</TableCell>
-                  <TableCell>Late</TableCell>
-                  <TableCell>Early Exits</TableCell>
-                  <TableCell>Attendance %</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {employeeSummary.map((emp, index) => {
-                  const attendancePercent = (
-                    (emp.present / (emp.present + emp.absent)) *
-                    100
-                  ).toFixed(1);
-                  return (
-                    <TableRow key={index}>
-                      <TableCell>{emp.id}</TableCell>
-                      <TableCell>{emp.name}</TableCell>
-                      <TableCell>{emp.designation}</TableCell>
-                      <TableCell>{emp.present}</TableCell>
-                      <TableCell>{emp.absent}</TableCell>
-                      <TableCell>{emp.leaves}</TableCell>
-                      <TableCell>{emp.late}</TableCell>
-                      <TableCell>{emp.earlyExit}</TableCell>
-                      <TableCell>{attendancePercent}%</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </>
-      )}
-
-      {selectedSection === 'leave' && (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell>Employee</TableCell>
-                <TableCell>Leave Type</TableCell>
-                <TableCell>Days</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {leaveSummary.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.type}</TableCell>
-                  <TableCell>{row.days}</TableCell>
-                  <TableCell>{row.status}</TableCell>
-                </TableRow>
+        {userOutlets.length > 0 && (
+          <FormControl sx={{ minWidth: 220 }}>
+            <InputLabel>Select Outlet</InputLabel>
+            <Select
+              value={selectedOutletId}
+              label="Select Outlet"
+              onChange={(e) => setSelectedOutletId(e.target.value)}
+            >
+              {userOutlets.map((o) => (
+                <MenuItem key={o.id} value={o.id}>
+                  {o.name}
+                </MenuItem>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </Select>
+          </FormControl>
+        )}
+      </Box>
 
-      {selectedSection === 'upcoming' && (
-        <TableContainer component={Paper}>
-          <Table size="small">
-            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableRow>
-                <TableCell>Employee</TableCell>
-                <TableCell>From</TableCell>
-                <TableCell>To</TableCell>
-                <TableCell>Leave Type</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {upcomingLeaves.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.from}</TableCell>
-                  <TableCell>{row.to}</TableCell>
-                  <TableCell>{row.type}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Typography color="error" align="center" sx={{ mt: 4 }}>
+          {error}
+        </Typography>
+      ) : (
+        <div style={{ height: 600, width: '100%' }}>
+          <DataGrid
+            rows={reportData}
+            columns={allColumns} // Pass all columns
+            loading={loading}
+            components={{ Toolbar: GridToolbar }}
+            initialState={{
+              columns: {
+                columnVisibilityModel: initialColumnVisibility,
+              },
+            }}
+            pageSize={10}
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            disableRowSelectionOnClick
+            sx={{
+              borderRadius: 2,
+              '& .MuiDataGrid-row:hover': { backgroundColor: '#f5f5f5' },
+              '& .MuiDataGrid-cell:focus': { outline: 'none' },
+              '& .record-type-cell': { fontWeight: 'bold' },
+            }}
+          />
+        </div>
       )}
-    </Box>
+    </Paper>
   );
 }
-
-export default Reports;

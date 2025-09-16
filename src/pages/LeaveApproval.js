@@ -1,189 +1,213 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Box, Typography } from '@mui/material';
+import {
+  Box,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Paper,
+  Chip,
+} from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 export default function LeaveApproval() {
   const [requests, setRequests] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [userOutlets, setUserOutlets] = useState([]);
+  const [selectedOutlet, setSelectedOutlet] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Retrieve JWT token from localStorage or sessionStorage
-  const token = localStorage.getItem('access_token'); // or sessionStorage.getItem('token')
+  const token = localStorage.getItem('access_token');
 
-  // Fetch leave requests and employee data from the API
-  useEffect(() => {
-    const fetchLeaveRequests = async () => {
-      try {
-        const response = await axios.get('http://139.59.243.2:8000/api/attendance/outletleaverequests/', {
-          params: {
-          outlet_id: localStorage.getItem('outlet')
-  },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setRequests(response.data); // Storing leave requests
-      } catch (error) {
-        console.error('Error fetching leave requests:', error);
+  // Fetch logged-in user outlets
+  const fetchUser = async () => {
+    try {
+      const res = await axios.get('http://139.59.243.2:8000/api/user/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUserOutlets(res.data.outlets);
+
+      // Set default selected outlet immediately
+      if (res.data.outlets.length > 0) {
+        setSelectedOutlet(res.data.outlets[0].id);
       }
-    };
-
-    const fetchEmployeeData = async () => {
-      try {
-        const response = await axios.get('http://139.59.243.2:8000/api/getemployees/', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setEmployees(response.data); // Storing employee data
-      } catch (error) {
-        console.error('Error fetching employee data:', error);
-      }
-    };
-
-    if (token) {
-      fetchLeaveRequests();
-      fetchEmployeeData();
-    } else {
-      console.error('No token found for authorization');
+    } catch (err) {
+      console.error('Error fetching user:', err);
     }
+  };
+
+  // Fetch leave requests for selected outlet
+  const fetchLeaveRequests = async (outletId) => {
+    if (!outletId) return;
+
+    try {
+      const [leaveRes, empRes] = await Promise.all([
+        axios.get('http://139.59.243.2:8000/api/attendance/outletleaverequests/', {
+          params: { outlet_id: outletId },
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get('http://139.59.243.2:8000/api/getemployees/', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      // Map employee full name to leave requests
+const mapped = leaveRes.data.map((req) => ({
+  leave_refno: req.leave_refno,
+  leave_date: req.leave_date,
+  remarks: req.remarks,
+  action_date: req.action_date,
+  status: req.status,
+  employee_name: req.employee_name,
+  leave_type_name: req.leave_type_name,
+}));
+
+      setRequests(mapped);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching leave requests:', err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) fetchUser();
   }, [token]);
 
-  // Approve leave request
+  useEffect(() => {
+    fetchLeaveRequests(selectedOutlet);
+  }, [selectedOutlet]);
+
   const handleApprove = async (id) => {
     try {
-      const response = await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,  // Ensure this matches the backend pattern
+      await axios.put(
+        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,
         { status: 'approved' },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (response.status === 200) {
-        setRequests((prev) =>
-          prev.map((req) =>
-            req.leave_refno === id ? { ...req, status: 'approved' } : req
-          )
-        );
-        alert('Leave Approved');
-      } else {
-        alert('Error approving leave request!');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Error approving leave request!');
+      setRequests((prev) =>
+        prev.map((req) => (req.leave_refno === id ? { ...req, status: 'approved' } : req))
+      );
+    } catch (err) {
+      console.error('Error approving leave:', err);
     }
   };
 
-  // Reject leave request
   const handleReject = async (id) => {
     try {
-      const response = await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,  // Ensure this matches the backend pattern
+      await axios.put(
+        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,
         { status: 'rejected' },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (response.status === 200) {
-        setRequests((prev) =>
-          prev.map((req) =>
-            req.leave_refno === id ? { ...req, status: 'rejected' } : req
-          )
-        );
-        alert('Leave Rejected');
-      } else {
-        alert('Error rejecting leave request!');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Error rejecting leave request!');
+      setRequests((prev) =>
+        prev.map((req) => (req.leave_refno === id ? { ...req, status: 'rejected' } : req))
+      );
+    } catch (err) {
+      console.error('Error rejecting leave:', err);
     }
   };
 
-  // Map employee data to leave requests based on employee_id
-  const mapEmployeeData = (requests, employees) => {
-    return requests.map(request => {
-      const employee = employees.find(emp => emp.employee_id === request.employee); // Match employee ID
-      return {
-        ...request,
-        employeeName: employee ? employee.fullname : 'Unknown', // Map employee fullname
-      };
-    });
-  };
-
-  // Wait for both leave requests and employee data to be available
-  useEffect(() => {
-    if (requests.length > 0 && employees.length > 0) {
-      const mappedRequests = mapEmployeeData(requests, employees);
-      setRequests(mappedRequests);
-       // Set loading to false after mapping is done
-    }
-    setLoading(false);
-  }, [requests, employees]);
-
-  if (loading) {
-    return <Typography>Loading...</Typography>;
-  }
-
-  // Define columns to be displayed in DataGrid
-  const columns = [
-    { field: 'leave_refno', headerName: 'Leave Ref No', width: 150 },
-    { field: 'leave_date', headerName: 'Leave Date', width: 150 },
-    { field: 'remarks', headerName: 'Remarks', width: 200 },
-    { field: 'add_date', headerName: 'Added On', width: 150 },
-    { field: 'employee', headerName: 'Employee ID', width: 150 },
-    { field: 'employeeName', headerName: 'Full Name', width: 200 },
-    { field: 'leave_type_name', headerName: 'Leave Type', width: 200 },
-    {
-      field: 'actions',
-      headerName: 'Status',
-      width: 150,
-      renderCell: (params) => (
+const columns = [
+  { field: 'leave_refno', headerName: 'Leave Ref No', flex: 1 },
+  { field: 'leave_date', headerName: 'Leave Date', flex: 1 },
+  { field: 'remarks', headerName: 'Remarks', flex: 1 },
+  { field: 'action_date', headerName: 'Action Date', flex: 1 },
+  { field: 'employee_name', headerName: 'Full Name', flex: 2 },
+  { field: 'leave_type_name', headerName: 'Leave Type', flex: 1 },
+  {
+    field: 'status',
+    headerName: 'Status',
+    flex: 1,
+    renderCell: (params) =>
+      params.value === 'pending' ? (
         <>
-          {params.row.status === 'pending' ? (
-            <>
-              <GridActionsCellItem
-                icon={<CheckCircleIcon color="success" />}
-                label="Approve"
-                onClick={() => handleApprove(params.row.leave_refno)}
-              />
-              <GridActionsCellItem
-                icon={<CancelIcon color="error" />}
-                label="Reject"
-                onClick={() => handleReject(params.row.leave_refno)}
-              />
-            </>
-          ) : (
-            <Typography>{params.row.status}</Typography>
-          )}
+          <GridActionsCellItem
+            icon={<CheckCircleIcon color="success" />}
+            label="Approve"
+            onClick={() => handleApprove(params.row.leave_refno)}
+          />
+          <GridActionsCellItem
+            icon={<CancelIcon color="error" />}
+            label="Reject"
+            onClick={() => handleReject(params.row.leave_refno)}
+          />
         </>
+      ) : (
+        <Chip
+          label={params.value.toUpperCase()}
+          color={params.value === 'approved' ? 'success' : 'error'}
+          size="small"
+        />
       ),
-    },
-  ];
+  },
+];
+
+
+  if (loading) return <Typography>Loading...</Typography>;
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header Section */}
-      <Typography variant="h4" sx={{ mb: 2 }} fontWeight="bold">
-        LEAVE REQUESTS
-      </Typography>
+    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: 'center',
+          mb: 3,
+          gap: 2,
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 'bold',
+            borderBottom: '3px solid #1976d2',
+            display: 'inline-block',
+            pb: 0.5,
+          }}
+        >
+          LEAVE REQUESTS
+        </Typography>
 
-      {/* DataGrid displaying leave requests */}
-      <Box sx={{ height: 400 }}>
+        {userOutlets.length > 1 && (
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel id="outlet-select-label">Select Outlet</InputLabel>
+            <Select
+              labelId="outlet-select-label"
+              value={selectedOutlet || ''}
+              label="Select Outlet"
+              onChange={(e) => setSelectedOutlet(e.target.value)}
+            >
+              {userOutlets.map((o) => (
+                <MenuItem key={o.id} value={o.id}>
+                  {o.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      </Box>
+
+      <Box sx={{ height: 500, width: '100%' }}>
         <DataGrid
           rows={requests}
           columns={columns}
           pageSize={5}
+          rowsPerPageOptions={[5, 10, 20]}
+          getRowId={(row) => row.leave_refno}
           disableRowSelectionOnClick
-          getRowId={(row) => row.leave_refno} // Use 'leave_refno' as the unique id
+          sx={{
+            borderRadius: 2,
+            '& .MuiDataGrid-row:hover': { backgroundColor: '#f5f5f5' },
+            '& .MuiDataGrid-cell:focus': { outline: 'none' },
+          }}
         />
       </Box>
-    </Box>
+    </Paper>
   );
 }

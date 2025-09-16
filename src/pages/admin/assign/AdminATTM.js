@@ -1,102 +1,221 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import api from 'utils/api'; // Assuming you have a utility to handle API calls
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  CircularProgress,
+  TextField,
+  Paper,
+  
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 
-export default function DailyAttendance() {
-  const [attendanceData, setAttendanceData] = useState([]);
+export default function DailyOutletAttendance() {
   const [outlets, setOutlets] = useState([]);
-  const [selectedOutletId, setSelectedOutletId] = useState(0); // Default to 0
+  const [selectedOutletId, setSelectedOutletId] = useState("");
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [outletData, setOutletData] = useState(null);
+  const [loading, setLoading] = useState(true); // Set initial loading to true
+  const [error, setError] = useState(null);
 
-  // Fetch outlets data
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
-        const response = await api.get('http://139.59.243.2:8000/api/outlets/');
-        if (response.data && response.data.length > 0) {
-          setOutlets(response.data);
-          setSelectedOutletId(response.data[0].id); // Set default outlet to the first outlet
-        } else {
-          setSelectedOutletId(0); // If no outlets, default to 0
+        const token = localStorage.getItem("access_token");
+        const res = await fetch("http://139.59.243.2:8000/api/user/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to load outlets");
+        const data = await res.json();
+        setOutlets(data.outlets);
+        if (data.outlets.length > 0) {
+          setSelectedOutletId(data.outlets[0].id);
         }
-      } catch (error) {
-        console.error('Error fetching outlets data:', error);
+      } catch (err) {
+        setError(err.message);
       }
     };
-
-    fetchOutlets();  // Trigger the fetch when the component mounts
+    fetchOutlets();
   }, []);
 
-  // Fetch attendance data when the component mounts or when selectedOutletId changes
   useEffect(() => {
-    const fetchAttendance = async () => {
-      const params = new URLSearchParams({
-        outlet_id: selectedOutletId.toString(),  // Use selected outlet ID (default to 0)
-      });
+    if (!selectedOutletId) return;
 
+    const fetchOutletData = async () => {
+      setLoading(true);
       try {
-        const response = await api.get(`/api/attendance/all/?${params.toString()}`);
-
-        // Map the response to extract only the necessary fields
-        const formattedData = response.data.map(item => ({
-          attendance_id: item.attendance_id,
-          employee: item.employee,
-          employee_name: item.employee_name,
-          date: item.date,
-          check_in_time: item.check_in_time,
-          check_out_time: item.check_out_time,  // This can be null, and will be displayed as it is
-        }));
-
-        setAttendanceData(formattedData);  // Update the state with formatted data
-      } catch (error) {
-        console.error('Error fetching attendance data:', error);
-        alert('Failed to fetch attendance data.');
+        const token = localStorage.getItem("access_token");
+        const response = await fetch(
+          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!response.ok) throw new Error("Failed to fetch outlet data");
+        const data = await response.json();
+        setOutletData(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        setOutletData(null);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (selectedOutletId !== undefined) {
-      fetchAttendance();  // Trigger the fetch when the outlet_id is ready
-    }
-  }, [selectedOutletId]);  // Refetch attendance whenever the outlet ID changes
+    fetchOutletData();
+  }, [selectedOutletId, selectedDate]); // Refetch when date or outlet changes
+
+  const transformOutletData = (data) => {
+    const today = selectedDate;
+
+    const formatTime = (isoString) => {
+      if (!isoString) return "-";
+      const date = new Date(isoString);
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    };
+
+    return data.employees.map((emp) => {
+      const todaysAttendance = emp.attendances.find(
+        (att) => att.date === today
+      );
+      const todaysLeave = emp.leaves.find(
+        (lv) => lv.leave_date === today && lv.status === "approved"
+      );
+
+      let status = "Absent";
+      let checkIn = "-";
+      let checkOut = "-";
+
+      if (todaysAttendance) {
+        status = "Present";
+        checkIn = formatTime(todaysAttendance.check_in_time);
+        checkOut = formatTime(todaysAttendance.check_out_time);
+      } else if (todaysLeave) {
+        status = `On Leave (${todaysLeave.leave_type_name})`;
+      }
+
+      return {
+        id: emp.employee_id,
+        employee_id: emp.employee_id,
+        fullname: `${emp.first_name} `,
+        check_in_time: checkIn,
+        check_out_time: checkOut,
+        status,
+      };
+    });
+  };
+
+  const rows = outletData ? transformOutletData(outletData) : [];
 
   const columns = [
-    { field: 'employee_name', headerName: 'Employee Name', flex: 1 },
-    { field: 'date', headerName: 'Date', flex: 1 },
-    { field: 'check_in_time', headerName: 'Check-in Time', flex: 1 },
-    { field: 'check_out_time', headerName: 'Check-out Time', flex: 1 },
+    { field: "employee_id", headerName: "ID", width: 90 },
+    { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 150 },
+    {
+      field: "check_in_time",
+      headerName: "Check In",
+      flex: 1,
+      minWidth: 120,
+    },
+    {
+      field: "check_out_time",
+      headerName: "Check Out",
+      flex: 1,
+      minWidth: 120,
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        let color = "red"; // Default for Absent
+        if (params.value.startsWith("On Leave")) color = "orange";
+        if (params.value === "Present") color = "green";
+        return <span style={{ color }}>{params.value}</span>;
+      },
+    },
   ];
 
   return (
-    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Daily Attendance</Typography>
-
-      {/* Outlet Dropdown Filter */}
-      <FormControl fullWidth sx={{ mb: 3 }}>
-        <InputLabel id="outlet-select-label">Select Outlet</InputLabel>
-        <Select
-          labelId="outlet-select-label"
-          value={selectedOutletId}
-          onChange={(e) => setSelectedOutletId(e.target.value)}
-          label="Select Outlet"
+    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: "center",
+          mb: 3,
+          gap: 2,
+        }}
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: "bold",
+            borderBottom: "3px solid #1976d2",
+            display: "inline-block",
+            pb: 0.5,
+          }}
         >
-          {/* Add a default option for "All Outlets" or for any special case */}
-          <MenuItem value={0}>All Outlets</MenuItem>
-          
-          {outlets.map((outlet) => (
-            <MenuItem key={outlet.id} value={outlet.id}>
-              {outlet.name} - {outlet.address}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          OUTLETLOG
+        </Typography>
 
-      <DataGrid
-        rows={attendanceData}
-        columns={columns}
-        pageSize={5}
-        rowsPerPageOptions={[5]}
-        getRowId={(row) => row.attendance_id}
-      />
-    </Box>
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          {outlets.length > 1 && (
+            <FormControl sx={{ minWidth: 200 }}>
+              <InputLabel>Select Outlet</InputLabel>
+              <Select
+                value={selectedOutletId}
+                label="Select Outlet"
+                onChange={(e) => setSelectedOutletId(e.target.value)}
+              >
+                {outlets.map((outlet) => (
+                  <MenuItem key={outlet.id} value={outlet.id}>
+                    {outlet.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          <TextField
+            label="Select Date"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 200 }}
+          />
+        </Box>
+      </Box>
+
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Typography color="error" align="center" sx={{ mt: 4 }}>
+          {error}
+        </Typography>
+      ) : (
+        <Box sx={{ height: 500, width: "100%" }}>
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            pageSize={5}
+            rowsPerPageOptions={[5, 10, 20]}
+            disableRowSelectionOnClick
+            sx={{
+              borderRadius: 2,
+              "& .MuiDataGrid-row:hover": { backgroundColor: "#f5f5f5" },
+              "& .MuiDataGrid-cell:focus": { outline: "none" },
+            }}
+          />
+        </Box>
+      )}
+    </Paper>
   );
 }
