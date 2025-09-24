@@ -32,6 +32,9 @@ import AssignWorkShift from './pages/admin/assign/AssignWorkShift.js';
 import TEST from './pages/admin/assign/test.js';
 import DailyOutletAttadace from './pages/DailyOutletAttadace.js';
 import OutletLeaveSummary from 'pages/OutletLeaveSummary.js';
+import Attandancemodify from './pages/AttandanceModify.js';
+import Leavemodify from 'pages/LeaveModify.js';
+import DeactiveEmplooyee from 'pages/DeactiveEmployee.js';
 
 
 import SelectOutlet from 'pages/SelectOutlet';
@@ -79,6 +82,16 @@ function App() {
             <ProtectedRoute role={role} requiredRole="Admin">
               <Layout>
                 <AdminDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+                <Route
+          path="/admin/DeactiveEmployee"
+          element={
+            <ProtectedRoute role={role} requiredRole="Admin">
+              <Layout>
+                <DeactiveEmplooyee />
               </Layout>
             </ProtectedRoute>
           }
@@ -245,9 +258,19 @@ function App() {
             <Layout><OutletLeaveSummary/></Layout>
           </ProtectedRoute>
         } />
-      </Routes>
-      
-       
+        <Route path="/Attandancemodify" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><Attandancemodify/></Layout>
+          </ProtectedRoute>
+        } />
+
+          <Route path="/Leavemodify" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><Leavemodify/></Layout>
+          </ProtectedRoute>
+        } />
+
+      </Routes> 
     </BrowserRouter>
   );
 }

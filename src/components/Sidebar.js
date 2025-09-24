@@ -90,6 +90,13 @@ function Sidebar({ sidebarOpen, onClose }) {
       icon: <LockIcon />,
       group: "Settings",
     },
+        {
+      text: "Deactivate Employee",
+      path: "/admin/DeactiveEmployee",
+      roles: ["Admin"],
+      icon: <LockIcon />,
+      group: "Settings",
+    },
     {
       text: "Leave Management",
       path: "/Admin/assign/leave",
@@ -142,11 +149,18 @@ function Sidebar({ sidebarOpen, onClose }) {
       group: "Management",
     },
     {
-      text: "Reports",
-      path: "/reports",
+      text: "Attendance",
+      path: "/Attandancemodify",
       roles: ["Manager"],
       icon: <ReportIcon />,
-      group: "Reports",
+      group: "Modifications",
+    },
+ {
+      text: "Leave",
+      path: "/Leavemodify",
+      roles: ["Manager"],
+      icon: <ReportIcon />,
+      group: "Modifications",
     },
   ];
 

@@ -34,10 +34,10 @@ function Layout({ children }) {
         {/* Page Content */}
         <Box
           sx={{
-            mt: '64px', // height of AppBar
-            p: 3,
+            mt: '64px', // Push content below AppBar
+            flexGrow: 1,
             minHeight: 'calc(100vh - 64px)',
-            backgroundColor: '#f9f9f9',
+            overflow: 'auto', // prevent overlaps if content is tall
           }}
         >
           {children}
