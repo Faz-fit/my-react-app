@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  Avatar, // --- UI IMPROVEMENT: For styled icons and lists
+  Avatar,
   Box,
   Paper,
   Typography,
@@ -11,7 +11,7 @@ import {
   Grid,
   List,
   ListItem,
-  ListItemAvatar, // --- UI IMPROVEMENT: For lists with icons/avatars
+  ListItemAvatar,
   ListItemText,
   Dialog,
   DialogTitle,
@@ -37,7 +37,7 @@ import {
   YAxis,
 } from "recharts";
 
-// --- UI IMPROVEMENT: Redesigned StatCard for a more modern look ---
+// --- StatCard Component ---
 const StatCard = ({ title, value, icon, color, onViewClick }) => (
   <Paper
     sx={{
@@ -45,14 +45,19 @@ const StatCard = ({ title, value, icon, color, onViewClick }) => (
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      borderRadius: 4, // Softer corners
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)', // Softer shadow
-      height: '100%',
+      borderRadius: 4,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+      height: '160px', // Fixed height
+      transition: 'transform 0.2s ease-in-out',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
+      },
     }}
   >
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
       <Box>
-        <Typography color="text.secondary" sx={{ mb: 1 }}>
+        <Typography color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
           {title}
         </Typography>
         <Typography variant="h4" component="div" fontWeight="bold">
@@ -67,14 +72,20 @@ const StatCard = ({ title, value, icon, color, onViewClick }) => (
       <Button
         onClick={onViewClick}
         size="small"
-        sx={{ alignSelf: 'flex-start', mt: 2, fontWeight: 'bold' }}
+        sx={{
+          alignSelf: 'flex-start',
+          mt: 2,
+          fontWeight: 'bold',
+          textTransform: 'none',
+          color: 'primary.main',
+          '&:hover': { textDecoration: 'underline' },
+        }}
       >
         View Details
       </Button>
     )}
   </Paper>
 );
-// --- END UI IMPROVEMENT ---
 
 export default function AdminDashboard() {
   const [outletData, setOutletData] = useState(null);
@@ -237,17 +248,16 @@ export default function AdminDashboard() {
   if (!outletData) return <Typography>Loading...</Typography>;
 
   return (
-    // --- UI IMPROVEMENT: Add padding and a light background color to the whole page ---
-    <Box sx={{ width: "100%", p: 3, backgroundColor: '#f4f6f8' }}>
-      {/* --- UI IMPROVEMENT: Header without Paper for a cleaner look --- */}
+    <Box sx={{ width: "100%", p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
+      {/* Header */}
       <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6}>
-          <Typography variant="h4" fontWeight="bold">
+        <Grid item xs={12}>
+          <Typography variant="h4" fontWeight="bold" color="text.primary">
             {outletData.name} Dashboard
           </Typography>
         </Grid>
-        <Grid item xs={12} sm={6}>
-          <FormControl fullWidth variant="outlined">
+        <Grid item xs={12}>
+          <FormControl variant="outlined" sx={{ minWidth: 200 }}>
             <InputLabel id="outlet-select-label">Select Outlet</InputLabel>
             <Select
               labelId="outlet-select-label"
@@ -263,49 +273,150 @@ export default function AdminDashboard() {
           </FormControl>
         </Grid>
       </Grid>
-      {/* --- END UI IMPROVEMENT --- */}
 
+      {/* Stat Cards Row */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Employees" value={outletSummary.total} color="#637381"
-            icon={<GroupIcon />} onViewClick={() => handleViewDetailsClick("Total")} />
+          <StatCard
+            title="Total Employees"
+            value={outletSummary.total}
+            color="#637381"
+            icon={<GroupIcon />}
+            onViewClick={() => handleViewDetailsClick("Total")}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Present Today" value={outletSummary.present} color="#22c55e"
-            icon={<CheckCircleOutlineIcon />} onViewClick={() => handleViewDetailsClick("Present")} />
+          <StatCard
+            title="Present Today"
+            value={outletSummary.present}
+            color="#22c55e"
+            icon={<CheckCircleOutlineIcon />}
+            onViewClick={() => handleViewDetailsClick("Present")}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Absent Today" value={outletSummary.absent} color="#ef4444"
-            icon={<HighlightOffIcon />} onViewClick={() => handleViewDetailsClick("Absent")} />
+          <StatCard
+            title="Absent Today"
+            value={outletSummary.absent}
+            color="#ef4444"
+            icon={<HighlightOffIcon />}
+            onViewClick={() => handleViewDetailsClick("Absent")}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="On Approved Leave" value={outletSummary.onLeave} color="#3b82f6"
-            icon={<EventBusyIcon />} onViewClick={() => handleViewDetailsClick("On Leave")} />
+          <StatCard
+            title="On Approved Leave"
+            value={outletSummary.onLeave}
+            color="#3b82f6"
+            icon={<EventBusyIcon />}
+            onViewClick={() => handleViewDetailsClick("On Leave")}
+          />
         </Grid>
       </Grid>
 
+      {/* Charts & Leave Requests Row */}
       <Grid container spacing={3}>
-        {[
-          { title: "Today's Attendance", chart: <PieChart><Pie data={pieData} dataKey="value" nameKey="name" outerRadius={80} label onClick={handlePieClick}>{pieData.map((entry, index) => (<Cell key={index} fill={COLORS[index]} cursor="pointer" />))}</Pie><Tooltip /><Legend /></PieChart> },
-          { title: "Attendance Trend (Last 7 Days)", chart: <BarChart data={barData}><XAxis dataKey="date" /><YAxis /><Tooltip /><Legend /><Bar dataKey="present" name="Present" fill="#4caf50" stackId="a" /><Bar dataKey="onLeave" name="On Leave" fill="#2196f3" stackId="a" /><Bar dataKey="absent" name="Absent" fill="#f44336" stackId="a" /></BarChart> },
-        ].map((item, index) => (
-          <Grid item xs={12} md={index === 0 ? 4 : 8} key={item.title}>
-            <Paper sx={{ p: 2, borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', height: '100%' }}>
-              <Typography variant="h6" fontWeight="bold" gutterBottom>{item.title}</Typography>
-              <ResponsiveContainer width="100%" height={250}>{item.chart}</ResponsiveContainer>
-            </Paper>
-          </Grid>
-        ))}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>Today's Leave Requests</Typography>
-            <Typography>Approved: {outletSummary.leavesApproved}</Typography>
-            <Typography>Pending Approval: {outletSummary.leavesPending}</Typography>
-            <Typography>Rejected: {outletSummary.leavesRejected}</Typography>
+        {/* Today's Attendance Pie Chart */}
+      <Grid item xs={12} md={4}>
+        <Paper
+          sx={{
+            p: 2,
+            borderRadius: 4,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            height: 300,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Today's Attendance
+          </Typography>
+
+          <Box sx={{ flexGrow: 1, px: 2, pb: 2 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius="80%"
+                  label
+                  onClick={handlePieClick}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]} // Safe array access
+                      cursor="pointer"
+                      stroke="#fff"
+                      strokeWidth={1}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+              </PieChart>
+            </ResponsiveContainer>
+          </Box>
+        </Paper>
+      </Grid>
+        {/* Attendance Trend Bar Chart */}
+        <Grid item xs={12} md={4}>
+          <Paper
+            sx={{
+              p: 2,
+              borderRadius: 4,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              height: '300px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Attendance Trend (Last 7 Days)
+            </Typography>
+            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData}>
+                  <XAxis dataKey="date" tick={false} />
+
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="present" name="Present" fill="#4caf50" stackId="a" />
+                  <Bar dataKey="onLeave" name="On Leave" fill="#2196f3" stackId="a" />
+                  <Bar dataKey="absent" name="Absent" fill="#f44336" stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Today's Leave Requests */}
+        <Grid item xs={12} md={4}>
+          <Paper
+            sx={{
+              p: 2,
+              borderRadius: 4,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              height: '300px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Today's Leave Requests
+            </Typography>
+            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1, justifyContent: 'center' }}>
+              <Typography>✅ Approved: {outletSummary.leavesApproved}</Typography>
+              <Typography>⏳ Pending Approval: {outletSummary.leavesPending}</Typography>
+              <Typography>❌ Rejected: {outletSummary.leavesRejected}</Typography>
+            </Box>
           </Paper>
         </Grid>
       </Grid>
 
+      {/* Dialogs */}
       <Dialog open={drillDownOpen} onClose={() => setDrillDownOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>
           Employees - {drillDownCategory}
@@ -313,36 +424,49 @@ export default function AdminDashboard() {
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers><List>{drillDownEmployees.length > 0 ? drillDownEmployees.map((name, idx) => (<ListItem key={idx}><ListItemText primary={name} /></ListItem>)) : <Typography>No employees in this category.</Typography>}</List></DialogContent>
+        <DialogContent dividers>
+          <List>
+            {drillDownEmployees.length > 0 ? (
+              drillDownEmployees.map((name, idx) => (
+                <ListItem key={idx}>
+                  <ListItemText primary={name} />
+                </ListItem>
+              ))
+            ) : (
+              <Typography>No employees in this category.</Typography>
+            )}
+          </List>
+        </DialogContent>
       </Dialog>
-      
-      {/* --- UI IMPROVEMENT: Enhanced Dialog List --- */}
+
       <Dialog open={isListDialogOpen} onClose={() => setListDialogOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>
           {dialogTitle}
-          <IconButton aria-label="close" onClick={() => setListDialogOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton>
+          <IconButton aria-label="close" onClick={() => setListDialogOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
         <DialogContent dividers>
           <List>
             {dialogEmployees.length > 0 ? (
               dialogEmployees.map((emp) => (
-                <ListItem key={emp.emp_code}>
+                <ListItem key={emp.emp_code} sx={{ py: 1 }}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: '#3b82f6' }}>{emp.fullname.charAt(0)}</Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={emp.fullname}
-                    secondary={`Name: ${emp.first_name} `}
+                    primary={emp.first_name}
+                    secondary={`Employee CODE: ${emp.fullname}`}
+                    primaryTypographyProps={{ fontWeight: 'bold' }}
                   />
                 </ListItem>
               ))
             ) : (
-              <Typography sx={{ p: 2 }}>No employees to display.</Typography>
+              <Typography sx={{ p: 2, textAlign: 'center' }}>No employees to display.</Typography>
             )}
           </List>
         </DialogContent>
       </Dialog>
-       {/* --- END UI IMPROVEMENT --- */}
     </Box>
   );
 }
