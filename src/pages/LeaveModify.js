@@ -47,30 +47,31 @@ export default function LeaveManagement() {
   // Fetch employees for selected outlet
   useEffect(() => {
     if (!selectedOutletId) return;
-    const fetchOutletData = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!res.ok) throw new Error("Failed to fetch outlet data");
-        const outletData = await res.json();
-        const allEmployees = outletData.employees || [];
-        setEmployees(allEmployees);
-        if (allEmployees.length > 0)
-          setSelectedEmployeeId(allEmployees[0].employee_id);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        setEmployees([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOutletData();
   }, [selectedOutletId]);
+
+  const fetchOutletData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(
+        `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) throw new Error("Failed to fetch outlet data");
+      const outletData = await res.json();
+      const allEmployees = outletData.employees || [];
+      setEmployees(allEmployees);
+      if (allEmployees.length > 0)
+        setSelectedEmployeeId(allEmployees[0].employee_id);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch leave types
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function LeaveManagement() {
         );
         if (!res.ok) throw new Error("Failed to fetch leave types");
         const data = await res.json();
-        setLeaveTypes(data.filter((lt) => lt.active)); // only active leave types
+        setLeaveTypes(data.filter((lt) => lt.active));
       } catch (err) {
         console.error(err);
       }
@@ -95,7 +96,7 @@ export default function LeaveManagement() {
   useEffect(() => {
     const emp = employees.find((e) => e.employee_id === selectedEmployeeId);
     if (emp) {
-      const formattedLeaves = emp.leaves.map((l) => ({
+      const formattedLeaves = (emp.leaves || []).map((l) => ({
         id: l.leave_refno,
         leave_date: l.leave_date,
         leave_type_name: l.leave_type_name,
@@ -112,26 +113,55 @@ export default function LeaveManagement() {
       field: "leave_type_name",
       headerName: "Leave Type",
       width: 180,
-      editable: true,
     },
-    { field: "remarks", headerName: "Remarks", width: 200, editable: true },
+    { field: "remarks", headerName: "Remarks", width: 200 },
     { field: "status", headerName: "Status", width: 120 },
   ];
 
-  const handleAddLeave = () => {
-    if (!newLeaveDate || !newLeaveType) return;
-    const selectedType = leaveTypes.find((lt) => lt.id === newLeaveType);
-    const newLeave = {
-      id: Date.now(),
-      leave_date: newLeaveDate,
-      leave_type_name: selectedType ? selectedType.att_type_name : "",
-      remarks: newLeaveRemarks,
-      status: "Pending",
-    };
-    setLeaves((prev) => [...prev, newLeave]);
-    setNewLeaveDate("");
-    setNewLeaveType("");
-    setNewLeaveRemarks("");
+  // 🔄 Updated function to POST leave to backend
+  const handleAddLeave = async () => {
+    if (!newLeaveDate || !newLeaveType || !selectedEmployeeId) {
+      alert("Please fill all fields.");
+      return;
+    }
+
+    const token = localStorage.getItem("access_token");
+
+    try {
+      const res = await fetch("http://139.59.243.2:8000/api/addleave/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          employee: selectedEmployeeId,
+          leave_date: newLeaveDate,
+          leave_type: newLeaveType,
+          remarks: newLeaveRemarks,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || result.success === false) {
+        alert(result.error || "Failed to add leave.");
+        return;
+      }
+
+      alert("Leave added successfully.");
+
+      // Refresh employee data to get updated leave list
+      await fetchOutletData();
+
+      // Reset input fields
+      setNewLeaveDate("");
+      setNewLeaveType("");
+      setNewLeaveRemarks("");
+    } catch (error) {
+      console.error("Error adding leave:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   return (
