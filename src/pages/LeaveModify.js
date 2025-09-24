@@ -128,7 +128,7 @@ export default function LeaveManagement() {
     const token = localStorage.getItem("access_token");
 
     try {
-      const res = await fetch("http://139.59.243.2:8000/api/addleave/", {
+      const res = await fetch("http://139.59.243.2:8000/api/attendance/addleave/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
