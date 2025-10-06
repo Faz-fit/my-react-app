@@ -106,7 +106,7 @@ const confirmAction = async () => {
       const employee = employees.find(emp => emp.employee_id === request.employee); 
       return {
         ...request,
-        employeeName: employee ? employee.fullname : 'Unknown', 
+        employeeName: employee ? employee.first_name : 'Unknown', 
       };
     });
   };

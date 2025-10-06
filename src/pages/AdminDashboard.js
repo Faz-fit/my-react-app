@@ -9,20 +9,35 @@ import {
   CircularProgress,
   TextField,
   Paper,
-
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
-export default function DailyOutletAttendance() {
+// Helper function to get the start of the current month
+const getStartOfMonth = () => {
+  const date = new Date();
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+};
+
+// Helper function to get today's date
+const getToday = () => {
+  return new Date().toISOString().split("T")[0];
+};
+
+export default function OutletAttendanceReport() {
   const [outlets, setOutlets] = useState([]);
   const [selectedOutletId, setSelectedOutletId] = useState("");
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  
+  // State for date range
+  const [startDate, setStartDate] = useState(getStartOfMonth());
+  const [endDate, setEndDate] = useState(getToday());
+
   const [outletData, setOutletData] = useState(null);
-  const [loading, setLoading] = useState(true); // Set initial loading to true
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch outlets data on component mount
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
@@ -33,16 +48,17 @@ export default function DailyOutletAttendance() {
         if (!res.ok) throw new Error("Failed to load outlets");
         const data = await res.json();
         setOutlets(data.outlets);
-        if (data.outlets.length > 0) {
-          setSelectedOutletId(data.outlets[0].id);
+        if (data.outlets && data.outlets.length > 0) {
+          setSelectedOutletId(data.outlets[0].id); // Set default selected outlet
         }
       } catch (err) {
         setError(err.message);
       }
     };
     fetchOutlets();
-  }, []);
+  }, []); // Runs only once
 
+  // Fetch outlet attendance data when outletId or date range changes
   useEffect(() => {
     if (!selectedOutletId) return;
 
@@ -50,6 +66,7 @@ export default function DailyOutletAttendance() {
       setLoading(true);
       try {
         const token = localStorage.getItem("access_token");
+        // This API fetches all data for the outlet. Filtering by date is done on the client side.
         const response = await fetch(
           `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -67,75 +84,90 @@ export default function DailyOutletAttendance() {
     };
 
     fetchOutletData();
-  }, [selectedOutletId, selectedDate]); // Refetch when date or outlet changes
+  }, [selectedOutletId]); // Re-fetch only when outlet changes
 
-  const transformOutletData = (data) => {
-    const today = selectedDate;
+  // Transform data into rows for the report
+  const transformDataForReport = (data) => {
+    if (!data || !data.employees) return [];
+
+    const reportRows = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
     const formatTime = (isoString) => {
-      if (!isoString) return "-";
-      const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        if (!isoString) return "-";
+        const date = new Date(isoString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    return data.employees.map((emp) => {
-      const todaysAttendance = emp.attendances.find(
-        (att) => att.date === today
-      );
-      const todaysLeave = emp.leaves.find(
-        (lv) => lv.leave_date === today && lv.status === "approved"
-      );
+    data.employees.forEach((emp) => {
+      // Add attendance records within the date range
+      emp.attendances.forEach((att) => {
+        const attDate = new Date(att.date);
+        if (attDate >= start && attDate <= end) {
+          reportRows.push({
+            id: att.attendance_id, // Unique ID for each row
+            employee_id: emp.employee_id,
+            fullname: `${emp.first_name} ${emp.last_name}`,
+            date: att.date,
+            check_in_time: formatTime(att.check_in_time),
+            check_out_time: formatTime(att.check_out_time),
+            worked_hours: att.worked_hours ? att.worked_hours.toFixed(2) : "-",
+            ot_hours: att.ot_hours ? att.ot_hours.toFixed(2) : "-",
+            status: att.status,
+          });
+        }
+      });
 
-      let status = "Absent";
-      let checkIn = "-";
-      let checkOut = "-";
-
-      if (todaysAttendance) {
-        status = "Present";
-        checkIn = formatTime(todaysAttendance.check_in_time);
-        checkOut = formatTime(todaysAttendance.check_out_time);
-      } else if (todaysLeave) {
-        status = `On Leave (${todaysLeave.leave_type_name})`;
-      }
-
-      return {
-        id: emp.employee_id,
-        employee_id: emp.employee_id,
-        fullname: `${emp.first_name} `,
-        check_in_time: checkIn,
-        check_out_time: checkOut,
-        status,
-      };
+      // Add approved leave records within the date range
+      emp.leaves.forEach((lv) => {
+          const leaveDate = new Date(lv.leave_date);
+          // Check if leave is approved and within the date range
+          if (lv.status === 'approved' && leaveDate >= start && leaveDate <= end) {
+              // Also check if there isn't already an attendance record for this day
+              const hasAttendance = emp.attendances.some(att => att.date === lv.leave_date);
+              if (!hasAttendance) {
+                  reportRows.push({
+                      id: `leave-${lv.leave_refno}`, // Unique ID for leave row
+                      employee_id: emp.employee_id,
+                      fullname: `${emp.first_name} ${emp.last_name}`,
+                      date: lv.leave_date,
+                      check_in_time: "-",
+                      check_out_time: "-",
+                      worked_hours: "-",
+                      ot_hours: "-",
+                      status: `On Leave (${lv.leave_type_name})`,
+                  });
+              }
+          }
+      });
     });
+
+    // Sort rows by date
+    return reportRows.sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
-  const rows = outletData ? transformOutletData(outletData) : [];
+  const rows = outletData ? transformDataForReport(outletData) : [];
 
   const columns = [
-    { field: "employee_id", headerName: "ID", width: 90 },
-    { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 150 },
-    {
-      field: "check_in_time",
-      headerName: "Check In",
-      flex: 1,
-      minWidth: 120,
-    },
-    {
-      field: "check_out_time",
-      headerName: "Check Out",
-      flex: 1,
-      minWidth: 120,
-    },
+    { field: "employee_id", headerName: "Emp ID", width: 90 },
+    { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 180 },
+    { field: "date", headerName: "Date", flex: 1, minWidth: 120 },
+    { field: "check_in_time", headerName: "Check In", flex: 1, minWidth: 100 },
+    { field: "check_out_time", headerName: "Check Out", flex: 1, minWidth: 100 },
+    { field: "worked_hours", headerName: "Worked Hours", flex: 1, minWidth: 120 },
+    { field: "ot_hours", headerName: "OT Hours", flex: 1, minWidth: 100 },
     {
       field: "status",
       headerName: "Status",
-      flex: 1,
+      flex: 1.2,
       minWidth: 150,
       renderCell: (params) => {
-        let color = "red"; // Default for Absent
-        if (params.value.startsWith("On Leave")) color = "orange";
-        if (params.value === "Present") color = "green";
-        return <span style={{ color }}>{params.value}</span>;
+        let color = "black";
+        if (params.value.startsWith("On Leave")) color = "#E67E22"; // Orange
+        if (params.value === "Present") color = "#27AE60"; // Green
+        if (params.value === "Half Day") color = "#3498DB"; // Blue
+        return <strong style={{ color }}>{params.value}</strong>;
       },
     },
   ];
@@ -164,8 +196,8 @@ export default function DailyOutletAttendance() {
           OUTLETLOG
         </Typography>
 
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-          {outlets.length > 1 && (
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: 'center' }}>
+          {outlets.length > 0 && (
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Select Outlet</InputLabel>
               <Select
@@ -182,10 +214,18 @@ export default function DailyOutletAttendance() {
             </FormControl>
           )}
           <TextField
-            label="Select Date"
+            label="Start Date"
             type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            sx={{ minWidth: 200 }}
+          />
+          <TextField
+            label="End Date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             sx={{ minWidth: 200 }}
           />
@@ -201,18 +241,19 @@ export default function DailyOutletAttendance() {
           {error}
         </Typography>
       ) : (
-        <Box sx={{ height: 500, width: "100%" }}>
+        <Box sx={{ height: 600, width: "100%" }}>
           <DataGrid
             rows={rows}
             columns={columns}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10, 20]}
+            pageSize={10}
+            rowsPerPageOptions={[10, 25, 50]}
             disableRowSelectionOnClick
             sx={{
               borderRadius: 2,
               "& .MuiDataGrid-row:hover": { backgroundColor: "#f5f5f5" },
               "& .MuiDataGrid-cell:focus": { outline: "none" },
             }}
+            
           />
         </Box>
       )}

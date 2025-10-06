@@ -20,6 +20,7 @@ import CreateLeave from './pages/admin/create/CreateLeave.js';
 import CreateWorkShift from './pages/admin/create/CreateWorkShift.js';
 import CreateManager from './pages/admin/create/CreateHoliday.js';
 import AdminReport from './pages/admin/AdminReport.js';  // Import Admin Report
+import AdminReport2 from './pages/admin/AdminReportStanded';  // Import Admin Report
 import EmployeeStatus from './pages/admin/EmployeeStatus.js';
 import Outlets from './pages/admin/outlets.js';
 import DeviceMangemnt from './pages/admin/assign/DeviceMangemnt.js';
@@ -35,6 +36,7 @@ import OutletLeaveSummary from 'pages/OutletLeaveSummary.js';
 import Attandancemodify from './pages/AttandanceModify.js';
 import Leavemodify from 'pages/LeaveModify.js';
 import DeactiveEmplooyee from 'pages/DeactiveEmployee.js';
+import MANReports from 'pages/MANReports';
 
 
 import SelectOutlet from 'pages/SelectOutlet';
@@ -211,6 +213,12 @@ function App() {
             <Layout><AdminReport /></Layout>  {/* Add the AdminReport component here */}
           </ProtectedRoute>
         } />
+        {/* Admin Reports standard */}
+        <Route path="/admin/reports2" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><AdminReport2 /></Layout>  {/* Add the AdminReport component here */}
+          </ProtectedRoute>
+        } />
          {/* Role Management */}
         <Route path="/admin/create" element={
           <ProtectedRoute role={role} requiredRole="Admin">
@@ -267,6 +275,11 @@ function App() {
           <Route path="/Leavemodify" element={
           <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><Leavemodify/></Layout>
+          </ProtectedRoute>
+        } />
+          <Route path="/Manager/Reports" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><MANReports/></Layout>
           </ProtectedRoute>
         } />
 

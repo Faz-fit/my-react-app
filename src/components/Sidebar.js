@@ -39,7 +39,6 @@ function Sidebar({ sidebarOpen, onClose }) {
       icon: <DashboardIcon />,
       group: "Main",
     },
-
     // Admin Section
     {
       text: "Employee",
@@ -90,7 +89,7 @@ function Sidebar({ sidebarOpen, onClose }) {
       icon: <LockIcon />,
       group: "Settings",
     },
-        {
+    {
       text: "Deactivate Employee",
       path: "/admin/DeactiveEmployee",
       roles: ["Admin"],
@@ -112,13 +111,26 @@ function Sidebar({ sidebarOpen, onClose }) {
       group: "Assignments",
     },
     {
-      text: "Admin Reports",
+      text: "Detail Reports",
       path: "/Admin/reports",
       roles: ["Admin"],
       icon: <ReportIcon />,
       group: "Reports",
     },
-
+    {
+      text: "Standard Reports",
+      path: "/Admin/reports2",
+      roles: ["Admin"],
+      icon: <ReportIcon />,
+      group: "Reports",
+    },
+     {
+      text: "Agency",
+      path: "/Admin/create/agency",
+      roles: ["Admin"],
+      icon: <BusinessIcon />,
+      group: "Reports",
+    },
     // Manager Section
     {
       text: "Employees",
@@ -134,7 +146,7 @@ function Sidebar({ sidebarOpen, onClose }) {
       icon: <AssignmentIcon />,
       group: "Management",
     },
-        {
+    {
       text: "Outlet Log",
       path: "/manager/DAO",
       roles: ["Manager"],
@@ -155,9 +167,16 @@ function Sidebar({ sidebarOpen, onClose }) {
       icon: <ReportIcon />,
       group: "Modifications",
     },
- {
+    {
       text: "Leave",
       path: "/Leavemodify",
+      roles: ["Manager"],
+      icon: <ReportIcon />,
+      group: "Modifications",
+    },
+    {
+      text: "Leave",
+      path: "/Manager/Reports",
       roles: ["Manager"],
       icon: <ReportIcon />,
       group: "Modifications",
@@ -177,22 +196,23 @@ function Sidebar({ sidebarOpen, onClose }) {
   return (
     <Box
       sx={{
-        width: sidebarOpen ? 260 : 0,
-        overflowY: "auto",
+        width: sidebarOpen ? { xs: "100%", sm: 260 } : 0, // Make it responsive
+        overflowY: "auto", // Allow scrolling if content overflows
         pt: 8,
         height: "100vh",
         backgroundColor: "#fff",
         borderRight: sidebarOpen ? "1px solid #ddd" : "none",
-        transition: "width 0.3s ease-in-out",
         position: "fixed",
         top: 0,
         left: 0,
         zIndex: 999,
+        transition: "width 0.3s ease-in-out",
       }}
     >
       <List sx={{ px: 1 }}>
         {Object.entries(groupedItems).map(([group, items], index) => (
           <React.Fragment key={group}>
+            {/* Render List Subheader */}
             {group !== "Main" && (
               <ListSubheader
                 sx={{
@@ -207,6 +227,7 @@ function Sidebar({ sidebarOpen, onClose }) {
                 {group}
               </ListSubheader>
             )}
+            {/* Render List Items */}
             {items.map((item) => (
               <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
