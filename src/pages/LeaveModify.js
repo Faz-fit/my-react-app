@@ -9,8 +9,13 @@ import {
   CircularProgress,
   Button,
   TextField,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 export default function LeaveManagement() {
   const [outlets, setOutlets] = useState([]);
@@ -24,19 +29,22 @@ export default function LeaveManagement() {
   const [newLeaveDate, setNewLeaveDate] = useState("");
   const [newLeaveType, setNewLeaveType] = useState("");
   const [newLeaveRemarks, setNewLeaveRemarks] = useState("");
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  const [bulkSelectedEmployees, setBulkSelectedEmployees] = useState([]);
+  const [bulkLeaveDate, setBulkLeaveDate] = useState("");
+  const [bulkLeaveType, setBulkLeaveType] = useState("");
+  const [bulkLeaveRemarks, setBulkLeaveRemarks] = useState("");
 
   // Fetch outlets
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets);
-        if (data.outlets.length > 0) setSelectedOutletId(data.outlets[0].id);
+        const response = await api.get("/api/user/");
+        const userOutlets = response.data.outlets || [];
+        setOutlets(userOutlets);
+        if (userOutlets.length > 0) {
+          setSelectedOutletId(userOutlets[0].id);
+        }
       } catch (err) {
         setError(err.message);
       }
@@ -44,26 +52,21 @@ export default function LeaveManagement() {
     fetchOutlets();
   }, []);
 
-  // Fetch employees for selected outlet
   useEffect(() => {
-    if (!selectedOutletId) return;
-    fetchOutletData();
+    if (selectedOutletId)
+      fetchOutletData();
   }, [selectedOutletId]);
 
   const fetchOutletData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("access_token");
-      const res = await fetch(
-        `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) throw new Error("Failed to fetch outlet data");
-      const outletData = await res.json();
+      const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
+      const outletData = response.data;
       const allEmployees = outletData.employees || [];
       setEmployees(allEmployees);
-      if (allEmployees.length > 0)
+      if (allEmployees.length > 0) {
         setSelectedEmployeeId(allEmployees[0].employee_id);
+      }
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -73,18 +76,11 @@ export default function LeaveManagement() {
     }
   };
 
-  // Fetch leave types
   useEffect(() => {
     const fetchLeaveTypes = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch(
-          "http://139.59.243.2:8000/api/leavetypes/",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!res.ok) throw new Error("Failed to fetch leave types");
-        const data = await res.json();
-        setLeaveTypes(data.filter((lt) => lt.active));
+        const response = await api.get("/api/leavetypes/");
+        setLeaveTypes(response.data.filter((lt) => lt.active));
       } catch (err) {
         console.error(err);
       }
@@ -118,57 +114,83 @@ export default function LeaveManagement() {
     { field: "status", headerName: "Status", width: 120 },
   ];
 
-  // 🔄 Updated function to POST leave to backend
   const handleAddLeave = async () => {
     if (!newLeaveDate || !newLeaveType || !selectedEmployeeId) {
       alert("Please fill all fields.");
       return;
     }
 
-    const token = localStorage.getItem("access_token");
+    const payload = {
+      employee: selectedEmployeeId,
+      leave_date: newLeaveDate,
+      leave_type: newLeaveType,
+      remarks: newLeaveRemarks,
+    };
 
     try {
-      const res = await fetch("http://139.59.243.2:8000/api/attendance/addleave/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          employee: selectedEmployeeId,
-          leave_date: newLeaveDate,
-          leave_type: newLeaveType,
-          remarks: newLeaveRemarks,
-        }),
-      });
+      const response = await api.post("/api/attendance/addleave/", payload);
+      const result = response.data;
 
-      const result = await res.json();
-
-      if (!res.ok || result.success === false) {
+      if (result.success === false) {
         alert(result.error || "Failed to add leave.");
         return;
       }
 
       alert("Leave added successfully.");
-
-      // Refresh employee data to get updated leave list
       await fetchOutletData();
 
-      // Reset input fields
       setNewLeaveDate("");
       setNewLeaveType("");
       setNewLeaveRemarks("");
     } catch (error) {
+      const errorMessage = error.response?.data?.error || "Something went wrong. Please try again.";
       console.error("Error adding leave:", error);
-      alert("Something went wrong. Please try again.");
+      alert(errorMessage);
+    }
+  };
+
+  // --- Bulk Add Logic ---
+  const handleOpenBulkDialog = () => setIsBulkAddOpen(true);
+  const handleCloseBulkDialog = () => {
+    setIsBulkAddOpen(false);
+    setBulkSelectedEmployees([]);
+    setBulkLeaveDate("");
+    setBulkLeaveType("");
+    setBulkLeaveRemarks("");
+  };
+
+  const handleBulkSubmit = async () => {
+    if (bulkSelectedEmployees.length === 0 || !bulkLeaveDate || !bulkLeaveType) {
+      alert("Please select employees, a leave date, and a leave type.");
+      return;
+    }
+
+    const payload = {
+      employee_ids: bulkSelectedEmployees,
+      leave_date: bulkLeaveDate,
+      leave_type: bulkLeaveType,
+      remarks: bulkLeaveRemarks,
+    };
+
+    try {
+      const response = await api.post("/api/attendance/bulk-addleave/", payload);
+      alert(response.data.message);
+      handleCloseBulkDialog();
+      await fetchOutletData(); // Refresh data
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || "An error occurred during the bulk add.";
+      alert(`Error: ${errorMessage}`);
     }
   };
 
   return (
     <Box p={3}>
-      <Typography variant="h5" mb={2}>
-        Leave Management
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5">Leave Management</Typography>
+        <Button variant="contained" onClick={handleOpenBulkDialog} disabled={!selectedOutletId}>
+          Bulk Add Leave
+        </Button>
+      </Box>
 
       {/* Outlet Dropdown */}
       <FormControl sx={{ m: 1, minWidth: 200 }}>
@@ -247,6 +269,63 @@ export default function LeaveManagement() {
           <Typography p={2}>No leaves found</Typography>
         )}
       </Box>
+
+      {/* --- Bulk Add Leave Dialog --- */}
+      <Dialog open={isBulkAddOpen} onClose={handleCloseBulkDialog} fullWidth maxWidth="sm">
+        <DialogTitle>Bulk Add Leave Records</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Employees</InputLabel>
+            <Select
+              multiple
+              value={bulkSelectedEmployees}
+              onChange={(e) => setBulkSelectedEmployees(e.target.value)}
+              renderValue={(selected) =>
+                selected.map(id => employees.find(e => e.employee_id === id)?.first_name).join(', ')
+              }
+            >
+              {employees.map((emp) => (
+                <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                  {emp.first_name} {emp.last_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Leave Date"
+            type="date"
+            fullWidth
+            margin="normal"
+            value={bulkLeaveDate}
+            onChange={(e) => setBulkLeaveDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Leave Type</InputLabel>
+            <Select
+              value={bulkLeaveType}
+              onChange={(e) => setBulkLeaveType(e.target.value)}
+            >
+              {leaveTypes.map((lt) => (
+                <MenuItem key={lt.id} value={lt.id}>
+                  {lt.att_type_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Remarks (Optional)"
+            fullWidth
+            margin="normal"
+            value={bulkLeaveRemarks}
+            onChange={(e) => setBulkLeaveRemarks(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBulkDialog}>Cancel</Button>
+          <Button onClick={handleBulkSubmit} variant="contained">Submit</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

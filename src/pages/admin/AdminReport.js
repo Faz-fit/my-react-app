@@ -13,6 +13,7 @@ import {
   TextField,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 // Helper function to get the start of the current month
 const getStartOfMonth = () => {
@@ -37,19 +38,12 @@ export default function EmployeeActivityLog() {
 
   useEffect(() => {
     const fetchOutlets = async () => {
-      // Don't set loading here as the main useEffect will handle it
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets || []);
+        const response = await api.get("/api/user/");
+        setOutlets(response.data.outlets || []);
       } catch (err) {
         setError(err.message);
       }
-      // No setLoading(false) here, let the main data fetch handle it
     };
     fetchOutlets();
   }, []);
@@ -58,45 +52,33 @@ export default function EmployeeActivityLog() {
     const fetchActivityData = async () => {
       setLoading(true);
       setError(null);
-      setActivityData([]); // Clear previous data on new fetch
+      setActivityData([]);
 
-      if (!startDate || !endDate || outlets.length === 0) {
-        if (selectedOutletId !== 'all') { // For single outlet, outlets list isn't strictly needed to start
-           // proceed
-        } else {
-            setLoading(false);
-            return;
-        }
+      if ((!startDate || !endDate) || (selectedOutletId === 'all' && outlets.length === 0)) {
+        setLoading(false);
+        return;
       }
-
-      const token = localStorage.getItem("access_token");
-      const headers = { Authorization: `Bearer ${token}` };
 
       try {
         let combinedData = { employees: [] };
 
         if (selectedOutletId === "all") {
           // --- FETCH FOR ALL OUTLETS ---
-          // Create an array of fetch promises, one for each outlet
           const allOutletPromises = outlets.map(outlet => {
-            const url = `http://139.59.243.2:8000/outletsalldata/${outlet.id}/?start_date=${startDate}&end_date=${endDate}`;
-            return fetch(url, { headers }).then(res => {
-              if (!res.ok) {
-                console.error(`Failed to fetch data for outlet: ${outlet.name}`);
-                return null; // Return null for failed requests to not break Promise.all
-              }
-              return res.json();
-            });
+            const url = `/outletsalldata/${outlet.id}/`;
+            const params = { start_date: startDate, end_date: endDate };
+            return api.get(url, { params })
+              .then(res => res.data)
+              .catch(err => {
+                console.error(`Failed to fetch data for outlet: ${outlet.name}`, err);
+                return null;
+              });
           });
 
-          // Wait for all fetches to complete
           const allResults = await Promise.all(allOutletPromises);
-
-          // Filter out any failed requests and combine the employee data
           const successfulResults = allResults.filter(data => data !== null);
           const allEmployees = successfulResults.flatMap(data => data.employees || []);
-          
-          // Merge data for employees who might appear in multiple outlets
+
           const employeeMap = new Map();
           allEmployees.forEach(emp => {
             if (employeeMap.has(emp.employee_id)) {
@@ -107,17 +89,15 @@ export default function EmployeeActivityLog() {
               employeeMap.set(emp.employee_id, { ...emp });
             }
           });
-          
+
           combinedData.employees = Array.from(employeeMap.values());
 
         } else {
           // --- FETCH FOR A SINGLE OUTLET ---
-          const url = `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/?start_date=${startDate}&end_date=${endDate}`;
-          const response = await fetch(url, { headers });
-          if (!response.ok) {
-            throw new Error(`Failed to fetch data for the selected outlet`);
-          }
-          combinedData = await response.json();
+          const url = `/outletsalldata/${selectedOutletId}/`;
+          const params = { start_date: startDate, end_date: endDate };
+          const response = await api.get(url, { params });
+          combinedData = response.data;
         }
 
         const transformedData = transformDataForActivityLog(combinedData);
@@ -130,20 +110,18 @@ export default function EmployeeActivityLog() {
       }
     };
 
-    // Run fetch if a single outlet is selected, or if 'all' is selected and the outlets list has loaded
     if (selectedOutletId !== 'all' || (selectedOutletId === 'all' && outlets.length > 0)) {
-        fetchActivityData();
+      fetchActivityData();
     }
 
-  }, [selectedOutletId, startDate, endDate, outlets]); // outlets is now a dependency
-
+  }, [selectedOutletId, startDate, endDate, outlets]);
 
   const transformDataForActivityLog = (data) => {
     if (!data || !data.employees) return [];
     const activityLog = [];
     const formatTime = (isoString) => {
-        if (!isoString) return "-";
-        return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (!isoString) return "-";
+      return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
     data.employees.forEach((emp) => {
       const employeeName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
@@ -194,7 +172,7 @@ export default function EmployeeActivityLog() {
     { field: "date", headerName: "Date", type: "date", minWidth: 120 },
     {
       field: "eventType", headerName: "Event Type", minWidth: 130,
-      renderCell: (params) => (<Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small"/>),
+      renderCell: (params) => (<Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small" />),
     },
     { field: "details", headerName: "Details", flex: 1, minWidth: 120 },
     { field: "check_in_time", headerName: "Check In", flex: 1, minWidth: 100 },

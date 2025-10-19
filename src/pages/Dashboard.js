@@ -36,6 +36,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import api from 'utils/api';
 
 // --- StatCard Component ---
 const StatCard = ({ title, value, icon, color, onViewClick }) => (
@@ -104,35 +105,35 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchUserOutlets = async () => {
       try {
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setOutlets(data.outlets);
-        if (data.outlets.length > 0) setSelectedOutletId(data.outlets[0].id);
+        const response = await api.get("/api/user/");
+        const userOutlets = response.data.outlets || [];
+        setOutlets(userOutlets);
+
+        if (userOutlets.length > 0) {
+          setSelectedOutletId(userOutlets[0].id);
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load outlets:", err);
       }
     };
+
     fetchUserOutlets();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!selectedOutletId) return;
+
     const fetchOutletData = async () => {
       try {
-        const res = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const data = await res.json();
-        setOutletData(data);
+        const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
+        setOutletData(response.data);
       } catch (err) {
-        console.error(err);
+        console.error(`Failed to fetch data for outlet ${selectedOutletId}:`, err);
       }
     };
+
     fetchOutletData();
-  }, [selectedOutletId, token]);
+  }, [selectedOutletId]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -317,49 +318,49 @@ export default function AdminDashboard() {
       {/* Charts & Leave Requests Row */}
       <Grid container spacing={3}>
         {/* Today's Attendance Pie Chart */}
-      <Grid item xs={12} md={4}>
-        <Paper
-          sx={{
-            p: 2,
-            borderRadius: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            height: 300,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <Typography variant="h6" fontWeight="bold" gutterBottom>
-            Today's Attendance
-          </Typography>
+        <Grid item xs={12} md={4}>
+          <Paper
+            sx={{
+              p: 2,
+              borderRadius: 4,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+              height: 300,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              Today's Attendance
+            </Typography>
 
-          <Box sx={{ flexGrow: 1, px: 2, pb: 2 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius="80%"
-                  label
-                  onClick={handlePieClick}
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]} // Safe array access
-                      cursor="pointer"
-                      stroke="#fff"
-                      strokeWidth={1}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-              </PieChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      </Grid>
+            <Box sx={{ flexGrow: 1, px: 2, pb: 2 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius="80%"
+                    label
+                    onClick={handlePieClick}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]} // Safe array access
+                        cursor="pointer"
+                        stroke="#fff"
+                        strokeWidth={1}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Grid>
         {/* Attendance Trend Bar Chart */}
         <Grid item xs={12} md={4}>
           <Paper

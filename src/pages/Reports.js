@@ -10,6 +10,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
+import api from 'utils/api';
 
 // Define which fields should be visible by default
 const VISIBLE_FIELDS = [
@@ -31,23 +32,19 @@ export default function EmployeeDataReport() {
 
   useEffect(() => {
     const fetchUserOutlets = async () => {
-      if (!token) return;
       try {
-        const res = await fetch('http://139.59.243.2:8000/api/user/', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch user outlets');
-        const data = await res.json();
-        setUserOutlets(data.outlets);
-        if (data.outlets.length > 0) {
-          setSelectedOutletId(data.outlets[0].id);
+        const res = await api.get('/api/user/');
+        const userOutlets = res.data.outlets || [];
+        setUserOutlets(userOutlets);
+        if (userOutlets.length > 0) {
+          setSelectedOutletId(userOutlets[0].id);
         }
-      } catch (err) { // <<< FIX IS HERE
+      } catch (err) {
         setError(err.message);
       }
     };
     fetchUserOutlets();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!selectedOutletId) return;
@@ -56,12 +53,8 @@ export default function EmployeeDataReport() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch outlet data');
-        const data = await res.json();
-        setReportData(transformData(data));
+        const res = await api.get(`/outletsalldata/${selectedOutletId}/`);
+        setReportData(transformData(res.data));
       } catch (err) {
         setError(err.message);
         setReportData([]);
@@ -71,7 +64,7 @@ export default function EmployeeDataReport() {
     };
 
     fetchOutletData();
-  }, [selectedOutletId, token]);
+  }, [selectedOutletId]);
 
   const getAttendancePlaceholders = () => ({
     check_in_time: '-',

@@ -7,8 +7,15 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 export default function AttendanceHistory() {
   const [outlets, setOutlets] = useState([]);
@@ -18,122 +25,59 @@ export default function AttendanceHistory() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [rows, setRows] = useState([]);
-  const [userDetails, setUserDetails] = useState(null); // Store logged-in user details
+  const [userDetails, setUserDetails] = useState(null);
 
-  // Fetch outlets
-  useEffect(() => {
-    const fetchOutlets = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets);
-        if (data.outlets.length > 0) setSelectedOutletId(data.outlets[0].id);
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-    fetchOutlets();
-  }, []);
+  // --- State for Bulk Add Dialog ---
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  const [bulkSelectedEmployees, setBulkSelectedEmployees] = useState([]);
+  const [bulkDate, setBulkDate] = useState("");
+  const [bulkCheckIn, setBulkCheckIn] = useState("");
+  const [bulkCheckOut, setBulkCheckOut] = useState("");
 
-  // Fetch logged-in user details
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to fetch user details");
-        const data = await res.json();
-        setUserDetails(data);  // Store the user details for updated_by
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-    fetchUserDetails();
-  }, []);
-
-  // Fetch employees for selected outlet
-  useEffect(() => {
+  const fetchEmployeesForOutlet = async () => {
     if (!selectedOutletId) return;
-    const fetchOutletData = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!res.ok) throw new Error("Failed to fetch outlet data");
-        const outletData = await res.json();
-        const allEmployees = outletData.employees || [];
-        setEmployees(allEmployees);
-        if (allEmployees.length > 0)
-          setSelectedEmployeeId(allEmployees[0].employee_id);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        setEmployees([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOutletData();
-  }, [selectedOutletId]);
-
-  // Update rows when selected employee changes
-  useEffect(() => {
-    const emp = employees.find((e) => e.employee_id === selectedEmployeeId);
-    if (emp) {
-      const formattedRows = emp.attendances.map((att) => ({
-        id: att.attendance_id,
-        date: att.date,
-        check_in_time: att.check_in_time || "",
-        check_out_time: att.check_out_time || "",
-        status: att.status,
-        updated_by: userDetails ? userDetails.username : "", // Add the username for updated_by
-      }));
-      setRows(formattedRows);
-    } else setRows([]);
-  }, [selectedEmployeeId, employees, userDetails]);
-
-  // Handle attendance update
-  const handleAttendanceUpdate = async (attendanceId, updatedCheckIn, updatedCheckOut) => {
+    setLoading(true);
     try {
-      const token = localStorage.getItem("access_token");
-      const res = await fetch("http://139.59.243.2:8000/api/attendance/update/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          attendance_id: attendanceId,
-          check_in_time: updatedCheckIn,
-          check_out_time: updatedCheckOut,
-          updated_by: userDetails ? userDetails.username : "", // Use the logged-in user as updated_by
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to update attendance");
-
-      const data = await res.json();
-      console.log("Attendance updated:", data);
-      // After successful update, you can re-fetch the data or update the state
-      fetchAttendanceData();
+      const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
+      const allEmployees = response.data.employees || [];
+      setEmployees(allEmployees);
+      if (allEmployees.length > 0) {
+        setSelectedEmployeeId(allEmployees[0].employee_id);
+      }
+      setError(null);
     } catch (err) {
-      console.error("Error updating attendance:", err);
       setError(err.message);
+      setEmployees([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Fetch attendance data again after an update
-  const fetchAttendanceData = async () => {
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const response = await api.get("/api/user/");
+        const data = response.data;
+        setUserDetails(data);
+        const userOutlets = data.outlets || [];
+        setOutlets(userOutlets);
+        if (userOutlets.length > 0) {
+          setSelectedOutletId(userOutlets[0].id);
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
+    fetchEmployeesForOutlet();
+  }, [selectedOutletId]);
+
+  useEffect(() => {
     const emp = employees.find((e) => e.employee_id === selectedEmployeeId);
-    if (emp) {
+    if (emp && emp.attendances) {
       const formattedRows = emp.attendances.map((att) => ({
         id: att.attendance_id,
         date: att.date,
@@ -143,6 +87,65 @@ export default function AttendanceHistory() {
         updated_by: userDetails ? userDetails.username : "",
       }));
       setRows(formattedRows);
+    } else {
+      setRows([]);
+    }
+  }, [selectedEmployeeId, employees, userDetails]);
+
+  const handleAttendanceUpdate = async (attendanceId, updatedCheckIn, updatedCheckOut) => {
+    const payload = {
+      attendance_id: attendanceId,
+      check_in_time: updatedCheckIn,
+      check_out_time: updatedCheckOut,
+    };
+    try {
+      await api.post("/api/attendance/update/", payload);
+      // Refresh data after update
+      await fetchEmployeesForOutlet();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to update attendance");
+    }
+  };
+
+  const handleProcessRowUpdate = (newRow) => {
+    handleAttendanceUpdate(newRow.id, newRow.check_in_time, newRow.check_out_time);
+    return newRow;
+  };
+
+  // --- Bulk Add Logic ---
+  const handleOpenBulkDialog = () => setIsBulkAddOpen(true);
+
+  const handleCloseBulkDialog = () => {
+    setIsBulkAddOpen(false);
+    setBulkSelectedEmployees([]);
+    setBulkDate("");
+    setBulkCheckIn("");
+    setBulkCheckOut("");
+  };
+
+  const handleBulkSubmit = async () => {
+    if (bulkSelectedEmployees.length === 0 || !bulkDate || !bulkCheckIn || !bulkCheckOut) {
+      alert("Please select employees and fill in all date/time fields.");
+      return;
+    }
+
+    const payload = {
+      employee_ids: bulkSelectedEmployees,
+      date: bulkDate,
+      check_in_time: bulkCheckIn,
+      check_out_time: bulkCheckOut,
+      outlet_id: selectedOutletId,
+    };
+
+    try {
+      const response = await api.post("/api/attendance/bulk-add/", payload);
+      alert(response.data.message);
+      handleCloseBulkDialog();
+      // Refresh the data to show the new records
+      await fetchEmployeesForOutlet();
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || "An error occurred during the bulk add.";
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -154,23 +157,15 @@ export default function AttendanceHistory() {
     { field: "updated_by", headerName: "Updated By", width: 150 },
   ];
 
-  const handleProcessRowUpdate = (newRow) => {
-    const updatedCheckIn = newRow.check_in_time;
-    const updatedCheckOut = newRow.check_out_time;
-
-    // Call API to update attendance
-    handleAttendanceUpdate(newRow.id, updatedCheckIn, updatedCheckOut);
-
-    return newRow;
-  };
-
   return (
     <Box p={3}>
-      <Typography variant="h5" mb={2}>
-        Attendance History
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5">Attendance History</Typography>
+        <Button variant="contained" onClick={handleOpenBulkDialog} disabled={!selectedOutletId}>
+          Bulk Add Attendance
+        </Button>
+      </Box>
 
-      {/* Outlet Dropdown */}
       <FormControl sx={{ m: 1, minWidth: 200 }}>
         <InputLabel>Outlet</InputLabel>
         <Select
@@ -217,6 +212,61 @@ export default function AttendanceHistory() {
           <Typography p={2}>No attendance records found</Typography>
         )}
       </Box>
+
+      {/* --- Bulk Add Dialog --- */}
+      <Dialog open={isBulkAddOpen} onClose={handleCloseBulkDialog} fullWidth maxWidth="sm">
+        <DialogTitle>Bulk Add Attendance Records</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Employees</InputLabel>
+            <Select
+              multiple
+              value={bulkSelectedEmployees}
+              onChange={(e) => setBulkSelectedEmployees(e.target.value)}
+              renderValue={(selected) =>
+                selected.map(id => employees.find(e => e.employee_id === id)?.first_name).join(', ')
+              }
+            >
+              {employees.map((emp) => (
+                <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                  {emp.first_name} {emp.last_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Date"
+            type="date"
+            fullWidth
+            margin="normal"
+            value={bulkDate}
+            onChange={(e) => setBulkDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Check-in Time"
+            type="time"
+            fullWidth
+            margin="normal"
+            value={bulkCheckIn}
+            onChange={(e) => setBulkCheckIn(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Check-out Time"
+            type="time"
+            fullWidth
+            margin="normal"
+            value={bulkCheckOut}
+            onChange={(e) => setBulkCheckOut(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBulkDialog}>Cancel</Button>
+          <Button onClick={handleBulkSubmit} variant="contained">Submit</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

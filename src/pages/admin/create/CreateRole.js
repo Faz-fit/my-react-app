@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TextField, Button, Typography, Box, Snackbar } from '@mui/material';
 import axios from 'axios';
+import api from 'utils/api';
 
 const CreateRolePage = () => {
   const [roleName, setRoleName] = useState('');
@@ -14,7 +15,6 @@ const CreateRolePage = () => {
     setError('');
   };
 
-  // Handle form submission
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -24,31 +24,16 @@ const CreateRolePage = () => {
     }
 
     setLoading(true);
-
-    // Get the Bearer token from localStorage (or sessionStorage, or context)
-    const token = localStorage.getItem('access_token'); // Modify this based on where your token is stored
-
-    if (!token) {
-      setError('No authorization token found.');
-      setLoading(false);
-      return;
-    }
+    setError(null);
+    setSuccessMessage('');
 
     try {
-      const response = await axios.post(
-        'http://139.59.243.2:8000/api/create-role/',
-        { name: roleName },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`, // Add Bearer token to the headers
-          },
-        }
-      );
-      setSuccessMessage(response.data.message); // Show success message
-      setRoleName(''); // Clear the input field
+      const response = await api.post('/api/create-role/', { name: roleName });
+      setSuccessMessage(response.data.message);
+      setRoleName('');
     } catch (err) {
       if (err.response && err.response.data) {
-        setError(err.response.data.error); // Show error message from API
+        setError(err.response.data.error);
       } else {
         setError('Failed to create role. Please try again.');
       }
@@ -73,7 +58,7 @@ const CreateRolePage = () => {
           sx={{ mb: 2 }}
           required
         />
-        
+
         <Button
           type="submit"
           variant="contained"

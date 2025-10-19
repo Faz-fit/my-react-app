@@ -50,44 +50,44 @@ export default function EmployeeGrid() {
     },
   });
 
-const fetchEmployees = async () => {
-  try {
-    // Retrieve the outlet ID from localStorage
-    const outletId = localStorage.getItem('outlet');
+  const fetchEmployees = async () => {
+    try {
+      // Retrieve the outlet ID from localStorage
+      const outletId = localStorage.getItem('outlet');
 
-    if (!outletId) {
-      console.error('Outlet ID not found in localStorage');
-      return;
+      if (!outletId) {
+        console.error('Outlet ID not found in localStorage');
+        return;
+      }
+
+      const [employeesRes, outletsRes] = await Promise.all([
+        api.get('/api/getoutletemployees', {
+          params: {
+            outlet_id: outletId // Use the outletId from localStorage
+          }
+        }),
+        api.get('/api/outlets/')
+      ]);
+
+      const outletsMap = outletsRes.data.reduce((acc, outlet) => {
+        acc[outlet.id] = outlet.name;
+        return acc;
+      }, {});
+
+      const updatedEmployees = employeesRes.data.map((employee) => {
+        const outletNames = employee.outlets?.map((id) => outletsMap[id]) || ['Unknown'];
+        return {
+          ...employee,
+          outlets: outletNames.join(', '),
+          group: employee.groups.join(', ')
+        };
+      });
+
+      setEmployees(updatedEmployees);
+    } catch (err) {
+      console.error('Error fetching employees:', err);
     }
-
-    const [employeesRes, outletsRes] = await Promise.all([
-      api.get('/api/getoutletemployees', {
-        params: {
-          outlet_id: outletId // Use the outletId from localStorage
-        }
-      }),
-      api.get('/api/outlets/')
-    ]);
-
-    const outletsMap = outletsRes.data.reduce((acc, outlet) => {
-      acc[outlet.id] = outlet.name;
-      return acc;
-    }, {});
-
-    const updatedEmployees = employeesRes.data.map((employee) => {
-      const outletNames = employee.outlets?.map((id) => outletsMap[id]) || ['Unknown'];
-      return {
-        ...employee,
-        outlets: outletNames.join(', '),
-        group: employee.groups.join(', ')
-      };
-    });
-
-    setEmployees(updatedEmployees);
-  } catch (err) {
-    console.error('Error fetching employees:', err);
-  }
-};
+  };
 
 
   useEffect(() => {
@@ -177,7 +177,7 @@ const fetchEmployees = async () => {
         />,
       ],
     },
-    
+
 
     /*{
       field: 'profile_photo',

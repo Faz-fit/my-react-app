@@ -14,6 +14,7 @@ import {
   TextField,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 // Helper function to get the start of the current month
 const getStartOfMonth = () => {
@@ -31,7 +32,7 @@ const DetailPanelContent = ({ row }) => {
   const { subRows } = row;
   if (!subRows || subRows.length === 0) return null;
   const formatTime = (isoString) => isoString ? new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
-  
+
   return (
     <Box sx={{ p: 2, borderTop: '1px solid #e0e0e0', backgroundColor: '#fafafa' }}>
       <Typography variant="h6" gutterBottom component="div">
@@ -64,13 +65,8 @@ export default function EmployeeActivityLog() {
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets || []);
+        const response = await api.get("/api/user/");
+        setOutlets(response.data.outlets || []);
       } catch (err) {
         setError(err.message);
       }
@@ -84,31 +80,31 @@ export default function EmployeeActivityLog() {
       setError(null);
       setActivityData([]);
 
-      if (!startDate || !endDate) {
+      if ((!startDate || !endDate) || (selectedOutletId === 'all' && outlets.length === 0)) {
         setLoading(false);
         return;
       }
-
-      const token = localStorage.getItem("access_token");
-      const headers = { Authorization: `Bearer ${token}` };
 
       try {
         let combinedData = { employees: [] };
 
         if (selectedOutletId === "all") {
-          if (outlets.length === 0) {
-            setLoading(false);
-            return;
-          }
+          // --- FETCH FOR ALL OUTLETS ---
           const allOutletPromises = outlets.map(outlet => {
-            const url = `http://139.59.243.2:8000/outletsalldata/${outlet.id}/?start_date=${startDate}&end_date=${endDate}`;
-            return fetch(url, { headers }).then(res => res.ok ? res.json() : null);
+            const url = `/outletsalldata/${outlet.id}/`;
+            const params = { start_date: startDate, end_date: endDate };
+            return api.get(url, { params })
+              .then(res => res.data)
+              .catch(err => {
+                console.error(`Failed to fetch data for outlet: ${outlet.name}`, err);
+                return null;
+              });
           });
+
           const allResults = await Promise.all(allOutletPromises);
-          
           const successfulResults = allResults.filter(data => data !== null);
           const allEmployees = successfulResults.flatMap(data => data.employees || []);
-          
+
           const employeeMap = new Map();
           allEmployees.forEach(emp => {
             if (employeeMap.has(emp.employee_id)) {
@@ -119,32 +115,36 @@ export default function EmployeeActivityLog() {
               employeeMap.set(emp.employee_id, { ...emp });
             }
           });
+
           combinedData.employees = Array.from(employeeMap.values());
 
         } else {
-          const url = `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/?start_date=${startDate}&end_date=${endDate}`;
-          const response = await fetch(url, { headers });
-          if (!response.ok) throw new Error(`Failed to fetch data for the selected outlet`);
-          combinedData = await response.json();
+          // --- FETCH FOR A SINGLE OUTLET ---
+          const url = `/outletsalldata/${selectedOutletId}/`;
+          const params = { start_date: startDate, end_date: endDate };
+          const response = await api.get(url, { params });
+          combinedData = response.data;
         }
 
         const transformedData = transformDataForActivityLog(combinedData);
         setActivityData(transformedData);
       } catch (err) {
         setError(err.message);
+        setActivityData([]);
       } finally {
         setLoading(false);
       }
     };
-    
+
     if (selectedOutletId !== 'all' || (selectedOutletId === 'all' && outlets.length > 0)) {
-        fetchActivityData();
+      fetchActivityData();
     }
+
   }, [selectedOutletId, startDate, endDate, outlets]);
 
 
   const formatTime = (isoString) => isoString ? new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
-  
+
   const formatVerificationNotes = (notesObj) => {
     if (!notesObj || Object.keys(notesObj).length === 0) return "-";
     const notes = [];
@@ -155,11 +155,11 @@ export default function EmployeeActivityLog() {
 
   const transformDataForActivityLog = (data) => {
     if (!data || !data.employees) return [];
-    
+
     const activityLog = [];
     const groupedAttendance = {};
     const parseTime = (isoString) => isoString ? new Date(isoString) : null;
-    
+
     data.employees.forEach((emp) => {
       const employeeName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
 
@@ -207,8 +207,8 @@ export default function EmployeeActivityLog() {
         const totalWorkedHours = records.reduce((sum, r) => sum + (Number(r.worked_hours) || 0), 0);
         const allDetails = records.map(r => r.status).join(', ');
         const allVerificationNotes = records.map(r => formatVerificationNotes(r.verification_notes)).filter(n => n !== '-').join('; ');
-        const summaryParts = [ `Consolidated ${records.length} records.`, `Earliest Check-in: ${formatTime(earliestCheckIn)}.`, `Latest Check-out: ${formatTime(latestCheckOut)}.`, `Sum of Worked Hours: ${totalWorkedHours.toFixed(2)} hrs.` ];
-        
+        const summaryParts = [`Consolidated ${records.length} records.`, `Earliest Check-in: ${formatTime(earliestCheckIn)}.`, `Latest Check-out: ${formatTime(latestCheckOut)}.`, `Sum of Worked Hours: ${totalWorkedHours.toFixed(2)} hrs.`];
+
         activityLog.push({
           id: `group-${key}`, employee_id: group.employee_id, fullname: group.fullname,
           date: group.date, eventType: "Attendance", status: "Multiple", details: allDetails,
@@ -226,11 +226,11 @@ export default function EmployeeActivityLog() {
     { field: "employee_id", headerName: "Emp ID", width: 90 },
     { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 180 },
     { field: "date", headerName: "Date", type: "date", minWidth: 120 },
-    { 
-      field: "eventType", 
-      headerName: "Event Type", 
-      minWidth: 130, 
-      renderCell: (params) => (<Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small"/>)
+    {
+      field: "eventType",
+      headerName: "Event Type",
+      minWidth: 130,
+      renderCell: (params) => (<Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small" />)
     },
     { field: "details", headerName: "Details / Statuses", flex: 1.5, minWidth: 200 },
     { field: "check_in_time", headerName: "Time In", flex: 1, minWidth: 120 },
@@ -240,39 +240,39 @@ export default function EmployeeActivityLog() {
 
   return (
     <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", mb: 3, gap: 2, }}>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Standed Report </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 200 }} />
-              <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 200 }} />
-              <FormControl sx={{ minWidth: 250 }}>
-                <InputLabel>Select Outlet</InputLabel>
-                <Select value={selectedOutletId} label="Select Outlet" onChange={(e) => setSelectedOutletId(e.target.value)}>
-                  <MenuItem value="all">All Outlets</MenuItem>
-                  {outlets.map((outlet) => (<MenuItem key={outlet.id} value={outlet.id}>{outlet.name}</MenuItem>))}
-                </Select>
-              </FormControl>
-            </Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", mb: 3, gap: 2, }}>
+        <Typography variant="h4" sx={{ fontWeight: "bold" }}>Standed Report </Typography>
 
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 200 }} />
+          <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 200 }} />
+          <FormControl sx={{ minWidth: 250 }}>
+            <InputLabel>Select Outlet</InputLabel>
+            <Select value={selectedOutletId} label="Select Outlet" onChange={(e) => setSelectedOutletId(e.target.value)}>
+              <MenuItem value="all">All Outlets</MenuItem>
+              {outlets.map((outlet) => (<MenuItem key={outlet.id} value={outlet.id}>{outlet.name}</MenuItem>))}
+            </Select>
+          </FormControl>
         </Box>
-        {error && <Typography color="error" align="center" sx={{ my: 4 }}>{error}</Typography>}
-        <Box sx={{ height: 650, width: "100%" }}>
-            <DataGrid
-                rows={activityData}
-                columns={columns}
-                loading={loading}
-                slots={{ toolbar: GridToolbar }}
-                slotProps={{ toolbar: { showQuickFilter: true } }}
-                getDetailPanelHeight={({ row }) => row.subRows ? 'auto' : 0}
-                getDetailPanelContent={({ row }) => <DetailPanelContent row={row} />}
-                initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-                pageSizeOptions={[10, 25, 50, 100]}
-                disableRowSelectionOnClick
-                sx={{ borderRadius: 2, "& .MuiDataGrid-cell:focus": { outline: "none" } }}
-                showToolbar
-            />
-        </Box>
+
+      </Box>
+      {error && <Typography color="error" align="center" sx={{ my: 4 }}>{error}</Typography>}
+      <Box sx={{ height: 650, width: "100%" }}>
+        <DataGrid
+          rows={activityData}
+          columns={columns}
+          loading={loading}
+          slots={{ toolbar: GridToolbar }}
+          slotProps={{ toolbar: { showQuickFilter: true } }}
+          getDetailPanelHeight={({ row }) => row.subRows ? 'auto' : 0}
+          getDetailPanelContent={({ row }) => <DetailPanelContent row={row} />}
+          initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+          pageSizeOptions={[10, 25, 50, 100]}
+          disableRowSelectionOnClick
+          sx={{ borderRadius: 2, "& .MuiDataGrid-cell:focus": { outline: "none" } }}
+          showToolbar
+        />
+      </Box>
     </Paper>
   );
 }

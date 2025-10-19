@@ -6,12 +6,12 @@ import {
   Select,
   FormControl,
   InputLabel,
-  CircularProgress,
   Paper,
   Chip,
   Grid,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 // Detail Panel Component: Renders the individual records when a row is expanded.
 const DetailPanelContent = ({ row }) => {
@@ -70,16 +70,12 @@ export default function EmployeeActivityLog() {
     const fetchOutlets = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("access_token");
-        // **FIX**: Corrected the IP Address
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets || []);
-        if (data.outlets && data.outlets.length > 0) {
-          setSelectedOutletId(data.outlets[0].id);
+        const response = await api.get("/api/user/");
+        const userOutlets = response.data.outlets || [];
+        setOutlets(userOutlets);
+
+        if (userOutlets.length > 0) {
+          setSelectedOutletId(userOutlets[0].id);
         }
       } catch (err) {
         setError(err.message);
@@ -97,15 +93,8 @@ export default function EmployeeActivityLog() {
     const fetchActivityData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("access_token");
-        // **FIX**: Corrected the IP Address
-        const response = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!response.ok) throw new Error(`Failed to fetch data for outlet ${selectedOutletId}`);
-        const data = await response.json();
-        const transformedData = transformDataForActivityLog(data);
+        const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
+        const transformedData = transformDataForActivityLog(response.data);
         setActivityData(transformedData);
         setError(null);
       } catch (err) {
@@ -239,9 +228,11 @@ export default function EmployeeActivityLog() {
     { field: "employee_id", headerName: "Emp ID", width: 90 },
     { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 180 },
     { field: "date", headerName: "Date", type: "date", minWidth: 120 },
-    { field: "eventType", headerName: "Event Type", minWidth: 130, renderCell: (params) => (
-        <Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small"/>
-    )},
+    {
+      field: "eventType", headerName: "Event Type", minWidth: 130, renderCell: (params) => (
+        <Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small" />
+      )
+    },
     { field: "check_in_time", headerName: "Time In", flex: 1, minWidth: 120 },
     { field: "check_out_time", headerName: "Time Out", flex: 1, minWidth: 120 },
     { field: "worked_hours", headerName: "Total Worked Hrs", type: "number", flex: 1, minWidth: 150 },

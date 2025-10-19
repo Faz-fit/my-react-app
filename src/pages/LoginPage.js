@@ -10,6 +10,7 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
+import api from 'utils/api';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -45,7 +46,7 @@ const LoginPage = () => {
     }
   };
 
-    const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -84,15 +85,15 @@ const LoginPage = () => {
     setLoading(false);
   };
 
-const handleRoleBasedNavigation = (role) => {
-  const roleBasedRedirect = {
-    Admin: '/Admindashboard',
-    Manager: '/dashboard',  // always go to dashboard now
-  };
+  const handleRoleBasedNavigation = (role) => {
+    const roleBasedRedirect = {
+      Admin: '/Admindashboard',
+      Manager: '/dashboard',  // always go to dashboard now
+    };
 
-  const navigateToRolePage = roleBasedRedirect[role] || '/';
-  navigate(navigateToRolePage);
-};
+    const navigateToRolePage = roleBasedRedirect[role] || '/';
+    navigate(navigateToRolePage);
+  };
 
 
   return (

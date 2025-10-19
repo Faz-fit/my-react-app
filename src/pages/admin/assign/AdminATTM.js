@@ -9,9 +9,10 @@ import {
   CircularProgress,
   TextField,
   Paper,
-  
+
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 export default function DailyOutletAttendance() {
   const [outlets, setOutlets] = useState([]);
@@ -26,15 +27,11 @@ export default function DailyOutletAttendance() {
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets);
-        if (data.outlets.length > 0) {
-          setSelectedOutletId(data.outlets[0].id);
+        const response = await api.get("/api/user/");
+        const userOutlets = response.data.outlets || [];
+        setOutlets(userOutlets);
+        if (userOutlets.length > 0) {
+          setSelectedOutletId(userOutlets[0].id);
         }
       } catch (err) {
         setError(err.message);
@@ -49,14 +46,8 @@ export default function DailyOutletAttendance() {
     const fetchOutletData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("access_token");
-        const response = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!response.ok) throw new Error("Failed to fetch outlet data");
-        const data = await response.json();
-        setOutletData(data);
+        const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
+        setOutletData(response.data);
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -67,7 +58,7 @@ export default function DailyOutletAttendance() {
     };
 
     fetchOutletData();
-  }, [selectedOutletId, selectedDate]); // Refetch when date or outlet changes
+  }, [selectedOutletId, selectedDate]);
 
   const transformOutletData = (data) => {
     const today = selectedDate;

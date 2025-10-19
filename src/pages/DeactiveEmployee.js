@@ -8,7 +8,7 @@ import {
   Chip,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import axios from "axios";
+import api from 'utils/api';
 
 export default function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
@@ -18,11 +18,7 @@ export default function EmployeeManagement() {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("access_token");
-      const res = await axios.get(
-        "http://139.59.243.2:8000/api/getallemployees/",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.get("/api/getallemployees/");
       setEmployees(res.data);
       setError(null);
     } catch (err) {
@@ -34,15 +30,12 @@ export default function EmployeeManagement() {
   };
 
   const deactivateEmployee = async (employee_id) => {
-    if (!window.confirm("Are you sure you want to deactivate this employee?")) return;
+    if (!window.confirm("Are you sure you want to deactivate this employee?")) {
+      return;
+    }
 
     try {
-      const token = localStorage.getItem("access_token");
-      await axios.post(
-        `http://139.59.243.2:8000/api/deactivate-employee/${employee_id}/`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/api/deactivate-employee/${employee_id}/`, {});
       await fetchEmployees();
     } catch (err) {
       alert(err.response?.data?.error || err.message);

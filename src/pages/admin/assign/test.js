@@ -8,23 +8,25 @@ export default function DailyAttendance() {
   const [outlets, setOutlets] = useState([]);
   const [selectedOutletId, setSelectedOutletId] = useState(0); // Default to 0
 
-  // Fetch outlets data
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
-        const response = await api.get('http://139.59.243.2:8000/api/outlets/');
-        if (response.data && response.data.length > 0) {
-          setOutlets(response.data);
-          setSelectedOutletId(response.data[0].id); // Set default outlet to the first outlet
+        const response = await api.get('/api/outlets/');
+        const outletsData = response.data || [];
+
+        setOutlets(outletsData);
+
+        if (outletsData.length > 0) {
+          setSelectedOutletId(outletsData[0].id);
         } else {
-          setSelectedOutletId(0); // If no outlets, default to 0
+          setSelectedOutletId(0);
         }
       } catch (error) {
         console.error('Error fetching outlets data:', error);
       }
     };
 
-    fetchOutlets();  // Trigger the fetch when the component mounts
+    fetchOutlets();
   }, []);
 
   // Fetch attendance data when the component mounts or when selectedOutletId changes
@@ -81,7 +83,7 @@ export default function DailyAttendance() {
         >
           {/* Add a default option for "All Outlets" or for any special case */}
           <MenuItem value={0}>All Outlets</MenuItem>
-          
+
           {outlets.map((outlet) => (
             <MenuItem key={outlet.id} value={outlet.id}>
               {outlet.name} - {outlet.address}

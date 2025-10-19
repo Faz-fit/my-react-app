@@ -4,6 +4,7 @@ import { Box, Typography, MenuItem, Select, FormControl, InputLabel, Dialog, Dia
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import api from 'utils/api';
 
 export default function LeaveApproval() {
   const [requests, setRequests] = useState([]);
@@ -19,11 +20,7 @@ export default function LeaveApproval() {
   useEffect(() => {
     const fetchLeaveRequests = async () => {
       try {
-        const response = await axios.get('http://139.59.243.2:8000/api/attendance/allleaverequests', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get('/api/attendance/allleaverequests');
         setRequests(response.data);
       } catch (error) {
         console.error('Error fetching leave requests:', error);
@@ -32,68 +29,57 @@ export default function LeaveApproval() {
 
     const fetchEmployeeData = async () => {
       try {
-        const response = await axios.get('http://139.59.243.2:8000/api/getemployees/', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get('/api/getemployees/');
         setEmployees(response.data);
       } catch (error) {
         console.error('Error fetching employee data:', error);
       }
     };
 
-    if (token) {
-      fetchLeaveRequests();
-      fetchEmployeeData();
-    } else {
-      console.error('No token found for authorization');
-    }
-  }, [token]);
+    fetchLeaveRequests();
+    fetchEmployeeData();
+  }, []);
 
   const handleApprove = (id) => {
     setCurrentRequest({ id, action: 'approved' });
-    setOpenDialog(true); // Open the confirmation dialog
+    setOpenDialog(true);
   };
 
   const handleReject = (id) => {
     setCurrentRequest({ id, action: 'rejected' });
-    setOpenDialog(true); // Open the confirmation dialog
+    setOpenDialog(true);
   };
 
-const confirmAction = async () => {
-  if (currentRequest) {
+  const confirmAction = async () => {
+    if (!currentRequest) return;
+
     try {
-      const response = await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${currentRequest.id}/`,
-        { status: currentRequest.action },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await api.put(
+        `/api/attendance/updateleavestatus/${currentRequest.id}/`,
+        { status: currentRequest.action }
       );
 
       if (response.status === 200) {
-        // Directly update the state without waiting for a re-fetch
-        setRequests((prevRequests) => {
-          return prevRequests.map((req) =>
-            req.leave_refno === currentRequest.id ? { ...req, status: currentRequest.action } : req
-          );
-        });
+        setRequests((prevRequests) =>
+          prevRequests.map((req) =>
+            req.leave_refno === currentRequest.id
+              ? { ...req, status: currentRequest.action }
+              : req
+          )
+        );
 
         alert(`${currentRequest.action.charAt(0).toUpperCase() + currentRequest.action.slice(1)} Leave`);
-
-        // Close the dialog after the action
-        setOpenDialog(false);
-        setCurrentRequest(null); // Reset the current request
       } else {
         alert(`Error ${currentRequest.action} leave request!`);
       }
     } catch (error) {
       console.error('Error updating status:', error);
       alert(`Error ${currentRequest.action} leave request!`);
+    } finally {
+      setOpenDialog(false);
+      setCurrentRequest(null);
     }
-  }
-};
+  };
 
 
   const handleCloseDialog = () => {
@@ -103,10 +89,10 @@ const confirmAction = async () => {
 
   const mapEmployeeData = (requests, employees) => {
     return requests.map(request => {
-      const employee = employees.find(emp => emp.employee_id === request.employee); 
+      const employee = employees.find(emp => emp.employee_id === request.employee);
       return {
         ...request,
-        employeeName: employee ? employee.first_name : 'Unknown', 
+        employeeName: employee ? employee.first_name : 'Unknown',
       };
     });
   };
@@ -115,7 +101,7 @@ const confirmAction = async () => {
     if (requests.length > 0 && employees.length > 0) {
       const mappedRequests = mapEmployeeData(requests, employees);
       setRequests(mappedRequests);
-      setLoading(false); 
+      setLoading(false);
     }
   }, [requests, employees]);
 

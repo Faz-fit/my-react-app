@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Box,
   Typography,
@@ -13,6 +12,7 @@ import {
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import api from 'utils/api';
 
 export default function LeaveApproval() {
   const [requests, setRequests] = useState([]);
@@ -20,51 +20,40 @@ export default function LeaveApproval() {
   const [selectedOutlet, setSelectedOutlet] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const token = localStorage.getItem('access_token');
-
-  // Fetch logged-in user outlets
   const fetchUser = async () => {
     try {
-      const res = await axios.get('http://139.59.243.2:8000/api/user/', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/api/user/');
+      const userOutlets = res.data.outlets || [];
+      setUserOutlets(userOutlets);
 
-      setUserOutlets(res.data.outlets);
-
-      // Set default selected outlet immediately
-      if (res.data.outlets.length > 0) {
-        setSelectedOutlet(res.data.outlets[0].id);
+      if (userOutlets.length > 0) {
+        setSelectedOutlet(userOutlets[0].id);
       }
     } catch (err) {
       console.error('Error fetching user:', err);
     }
   };
 
-  // Fetch leave requests for selected outlet
   const fetchLeaveRequests = async (outletId) => {
     if (!outletId) return;
 
     try {
-      const [leaveRes, empRes] = await Promise.all([
-        axios.get('http://139.59.243.2:8000/api/attendance/outletleaverequests/', {
+      const [leaveRes] = await Promise.all([
+        api.get('/api/attendance/outletleaverequests/', {
           params: { outlet_id: outletId },
-          headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get('http://139.59.243.2:8000/api/getemployees/', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        api.get('/api/getemployees/'),
       ]);
 
-      // Map employee full name to leave requests
-const mapped = leaveRes.data.map((req) => ({
-  leave_refno: req.leave_refno,
-  leave_date: req.leave_date,
-  remarks: req.remarks,
-  action_date: req.action_date,
-  status: req.status,
-  employee_name: req.employee_name,
-  leave_type_name: req.leave_type_name,
-}));
+      const mapped = leaveRes.data.map((req) => ({
+        leave_refno: req.leave_refno,
+        leave_date: req.leave_date,
+        remarks: req.remarks,
+        action_date: req.action_date,
+        status: req.status,
+        employee_name: req.employee_name,
+        leave_type_name: req.leave_type_name,
+      }));
 
       setRequests(mapped);
       setLoading(false);
@@ -75,8 +64,8 @@ const mapped = leaveRes.data.map((req) => ({
   };
 
   useEffect(() => {
-    if (token) fetchUser();
-  }, [token]);
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     fetchLeaveRequests(selectedOutlet);
@@ -84,11 +73,7 @@ const mapped = leaveRes.data.map((req) => ({
 
   const handleApprove = async (id) => {
     try {
-      await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,
-        { status: 'approved' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/api/attendance/updateleavestatus/${id}/`, { status: 'approved' });
       setRequests((prev) =>
         prev.map((req) => (req.leave_refno === id ? { ...req, status: 'approved' } : req))
       );
@@ -99,11 +84,7 @@ const mapped = leaveRes.data.map((req) => ({
 
   const handleReject = async (id) => {
     try {
-      await axios.put(
-        `http://139.59.243.2:8000/api/attendance/updateleavestatus/${id}/`,
-        { status: 'rejected' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/api/attendance/updateleavestatus/${id}/`, { status: 'rejected' });
       setRequests((prev) =>
         prev.map((req) => (req.leave_refno === id ? { ...req, status: 'rejected' } : req))
       );
@@ -112,40 +93,40 @@ const mapped = leaveRes.data.map((req) => ({
     }
   };
 
-const columns = [
-  { field: 'leave_refno', headerName: 'Leave Ref No', flex: 1 },
-  { field: 'leave_date', headerName: 'Leave Date', flex: 1 },
-  { field: 'remarks', headerName: 'Remarks', flex: 1 },
-  { field: 'action_date', headerName: 'Action Date', flex: 1 },
-  { field: 'employee_name', headerName: 'Full Name', flex: 2 },
-  { field: 'leave_type_name', headerName: 'Leave Type', flex: 1 },
-  {
-    field: 'status',
-    headerName: 'Status',
-    flex: 1,
-    renderCell: (params) =>
-      params.value === 'pending' ? (
-        <>
-          <GridActionsCellItem
-            icon={<CheckCircleIcon color="success" />}
-            label="Approve"
-            onClick={() => handleApprove(params.row.leave_refno)}
+  const columns = [
+    { field: 'leave_refno', headerName: 'Leave Ref No', flex: 1 },
+    { field: 'leave_date', headerName: 'Leave Date', flex: 1 },
+    { field: 'remarks', headerName: 'Remarks', flex: 1 },
+    { field: 'action_date', headerName: 'Action Date', flex: 1 },
+    { field: 'employee_name', headerName: 'Full Name', flex: 2 },
+    { field: 'leave_type_name', headerName: 'Leave Type', flex: 1 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      flex: 1,
+      renderCell: (params) =>
+        params.value === 'pending' ? (
+          <>
+            <GridActionsCellItem
+              icon={<CheckCircleIcon color="success" />}
+              label="Approve"
+              onClick={() => handleApprove(params.row.leave_refno)}
+            />
+            <GridActionsCellItem
+              icon={<CancelIcon color="error" />}
+              label="Reject"
+              onClick={() => handleReject(params.row.leave_refno)}
+            />
+          </>
+        ) : (
+          <Chip
+            label={params.value.toUpperCase()}
+            color={params.value === 'approved' ? 'success' : 'error'}
+            size="small"
           />
-          <GridActionsCellItem
-            icon={<CancelIcon color="error" />}
-            label="Reject"
-            onClick={() => handleReject(params.row.leave_refno)}
-          />
-        </>
-      ) : (
-        <Chip
-          label={params.value.toUpperCase()}
-          color={params.value === 'approved' ? 'success' : 'error'}
-          size="small"
-        />
-      ),
-  },
-];
+        ),
+    },
+  ];
 
 
   if (loading) return <Typography>Loading...</Typography>;

@@ -13,7 +13,7 @@ import {
 import { DataGrid } from '@mui/x-data-grid';
 import api from 'utils/api';
 
-const BASE_URL = 'http://139.59.243.2:8000';
+const BASE_URL = 'http://127.0.0.1:8000';
 
 export default function EmployeeDataGrid() {
   const [userOutlets, setUserOutlets] = useState([]);
@@ -80,38 +80,38 @@ export default function EmployeeDataGrid() {
     fetchEmployees(selectedOutlet);
   }, [selectedOutlet]);
 
-const columns = [
-  {
-    field: 'photo',
-    headerName: 'Photo',
-    flex: 0.5, // proportional width
-    renderCell: (params) => (
-      <Avatar alt={params.row.fullname} src={params.value} sx={{ width: 40, height: 40 }} />
-    ),
-    sortable: false,
-    filterable: false,
-    align: 'center',
-    headerAlign: 'center',
-  },
-  { field: 'first_name', headerName: 'First Name', flex: 1.2 },
-  { field: 'fullname', headerName: 'Username', flex: 1.5 },
-  { field: 'idnumber', headerName: 'NIC No', flex: 1 },
-  { field: 'group', headerName: 'Role', flex: 1.2 },
-  {
-    field: 'is_active',
-    headerName: 'Status',
-    flex: 0.8,
-    renderCell: (params) => (
-      <Chip
-        label={params.value ? 'Active' : 'Inactive'}
-        color={params.value ? 'success' : 'default'}
-        size="small"
-      />
-    ),
-    align: 'center',
-    headerAlign: 'center',
-  },
-];
+  const columns = [
+    {
+      field: 'photo',
+      headerName: 'Photo',
+      flex: 0.5, // proportional width
+      renderCell: (params) => (
+        <Avatar alt={params.row.fullname} src={params.value} sx={{ width: 40, height: 40 }} />
+      ),
+      sortable: false,
+      filterable: false,
+      align: 'center',
+      headerAlign: 'center',
+    },
+    { field: 'first_name', headerName: 'First Name', flex: 1.2 },
+    { field: 'fullname', headerName: 'Username', flex: 1.5 },
+    { field: 'idnumber', headerName: 'NIC No', flex: 1 },
+    { field: 'group', headerName: 'Role', flex: 1.2 },
+    {
+      field: 'is_active',
+      headerName: 'Status',
+      flex: 0.8,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          color={params.value ? 'success' : 'default'}
+          size="small"
+        />
+      ),
+      align: 'center',
+      headerAlign: 'center',
+    },
+  ];
 
 
   return (
@@ -168,16 +168,16 @@ const columns = [
           rowsPerPageOptions={[10, 20, 50]}
           getRowId={(row) => row.employee_id}
           sx={{
-    '& .MuiDataGrid-columnHeaders': {
-      minHeight: 40,       // reduce header height
-      maxHeight: 40,
-    },
-    '& .MuiDataGrid-columnHeader': {
-      padding: '0 8px',    // reduce horizontal padding
-    },
-    '& .MuiDataGrid-cell': {
-      padding: '0 8px',    // optional: reduce cell padding too
-    },
+            '& .MuiDataGrid-columnHeaders': {
+              minHeight: 40,       // reduce header height
+              maxHeight: 40,
+            },
+            '& .MuiDataGrid-columnHeader': {
+              padding: '0 8px',    // reduce horizontal padding
+            },
+            '& .MuiDataGrid-cell': {
+              padding: '0 8px',    // optional: reduce cell padding too
+            },
           }}
           slots={{
             toolbar: () => (

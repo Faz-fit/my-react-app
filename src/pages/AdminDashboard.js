@@ -11,6 +11,7 @@ import {
   Paper,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import api from 'utils/api';
 
 // Helper function to get the start of the current month
 const getStartOfMonth = () => {
@@ -28,7 +29,7 @@ const getToday = () => {
 export default function OutletAttendanceReport() {
   const [outlets, setOutlets] = useState([]);
   const [selectedOutletId, setSelectedOutletId] = useState("");
-  
+
   // State for date range
   const [startDate, setStartDate] = useState(getStartOfMonth());
   const [endDate, setEndDate] = useState(getToday());
@@ -41,15 +42,10 @@ export default function OutletAttendanceReport() {
   useEffect(() => {
     const fetchOutlets = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        const res = await fetch("http://139.59.243.2:8000/api/user/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load outlets");
-        const data = await res.json();
-        setOutlets(data.outlets);
-        if (data.outlets && data.outlets.length > 0) {
-          setSelectedOutletId(data.outlets[0].id); // Set default selected outlet
+        const response = await api.get('/api/user/');
+        setOutlets(response.data.outlets);
+        if (response.data.outlets && response.data.outlets.length > 0) {
+          setSelectedOutletId(response.data.outlets[0].id); // Set default selected outlet
         }
       } catch (err) {
         setError(err.message);
@@ -58,22 +54,15 @@ export default function OutletAttendanceReport() {
     fetchOutlets();
   }, []); // Runs only once
 
-  // Fetch outlet attendance data when outletId or date range changes
+  // Fetch outlet attendance data when outletId changes
   useEffect(() => {
     if (!selectedOutletId) return;
 
     const fetchOutletData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("access_token");
-        // This API fetches all data for the outlet. Filtering by date is done on the client side.
-        const response = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!response.ok) throw new Error("Failed to fetch outlet data");
-        const data = await response.json();
-        setOutletData(data);
+        const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
+        setOutletData(response.data);
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -95,9 +84,9 @@ export default function OutletAttendanceReport() {
     const end = new Date(endDate);
 
     const formatTime = (isoString) => {
-        if (!isoString) return "-";
-        const date = new Date(isoString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (!isoString) return "-";
+      const date = new Date(isoString);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
     data.employees.forEach((emp) => {
@@ -121,25 +110,25 @@ export default function OutletAttendanceReport() {
 
       // Add approved leave records within the date range
       emp.leaves.forEach((lv) => {
-          const leaveDate = new Date(lv.leave_date);
-          // Check if leave is approved and within the date range
-          if (lv.status === 'approved' && leaveDate >= start && leaveDate <= end) {
-              // Also check if there isn't already an attendance record for this day
-              const hasAttendance = emp.attendances.some(att => att.date === lv.leave_date);
-              if (!hasAttendance) {
-                  reportRows.push({
-                      id: `leave-${lv.leave_refno}`, // Unique ID for leave row
-                      employee_id: emp.employee_id,
-                      fullname: `${emp.first_name} ${emp.last_name}`,
-                      date: lv.leave_date,
-                      check_in_time: "-",
-                      check_out_time: "-",
-                      worked_hours: "-",
-                      ot_hours: "-",
-                      status: `On Leave (${lv.leave_type_name})`,
-                  });
-              }
+        const leaveDate = new Date(lv.leave_date);
+        // Check if leave is approved and within the date range
+        if (lv.status === 'approved' && leaveDate >= start && leaveDate <= end) {
+          // Also check if there isn't already an attendance record for this day
+          const hasAttendance = emp.attendances.some(att => att.date === lv.leave_date);
+          if (!hasAttendance) {
+            reportRows.push({
+              id: `leave-${lv.leave_refno}`, // Unique ID for leave row
+              employee_id: emp.employee_id,
+              fullname: `${emp.first_name} ${emp.last_name}`,
+              date: lv.leave_date,
+              check_in_time: "-",
+              check_out_time: "-",
+              worked_hours: "-",
+              ot_hours: "-",
+              status: `On Leave (${lv.leave_type_name})`,
+            });
           }
+        }
       });
     });
 
@@ -253,7 +242,7 @@ export default function OutletAttendanceReport() {
               "& .MuiDataGrid-row:hover": { backgroundColor: "#f5f5f5" },
               "& .MuiDataGrid-cell:focus": { outline: "none" },
             }}
-            
+
           />
         </Box>
       )}

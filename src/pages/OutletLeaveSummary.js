@@ -12,6 +12,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import api from 'utils/api';
 
 export default function LeaveSummary() {
   const [leaveHistory, setLeaveHistory] = useState([]);
@@ -25,15 +26,13 @@ export default function LeaveSummary() {
   // Fetch the outlets assigned to the logged-in user
   useEffect(() => {
     const fetchUserOutlets = async () => {
-      if (!token) return;
       try {
-        const res = await axios.get('http://139.59.243.2:8000/api/user/', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUserOutlets(res.data.outlets);
-        // Automatically select the first outlet
-        if (res.data.outlets.length > 0) {
-          setSelectedOutlet(res.data.outlets[0].id);
+        const res = await api.get('/api/user/');
+        const userOutlets = res.data.outlets || [];
+        setUserOutlets(userOutlets);
+
+        if (userOutlets.length > 0) {
+          setSelectedOutlet(userOutlets[0].id);
         }
       } catch (err) {
         setError('Failed to fetch user outlets.');
@@ -41,7 +40,7 @@ export default function LeaveSummary() {
       }
     };
     fetchUserOutlets();
-  }, [token]);
+  }, []);
 
   // Fetch leave history for the selected outlet
   useEffect(() => {
@@ -51,15 +50,13 @@ export default function LeaveSummary() {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get('http://139.59.243.2:8000/api/attendance/outletleaverequests/', {
+        const response = await api.get('/api/attendance/outletleaverequests/', {
           params: { outlet_id: selectedOutlet },
-          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        // Add a unique 'id' field for the DataGrid
+
         const formattedData = response.data.map(item => ({
           ...item,
-          id: item.leave_refno, 
+          id: item.leave_refno,
         }));
         setLeaveHistory(formattedData);
       } catch (err) {
@@ -71,7 +68,7 @@ export default function LeaveSummary() {
     };
 
     fetchLeaveHistory();
-  }, [selectedOutlet, token]);
+  }, [selectedOutlet]);
 
   const columns = [
     { field: 'leave_refno', headerName: 'Reference No', flex: 1, minWidth: 120 },
@@ -89,7 +86,7 @@ export default function LeaveSummary() {
         if (params.value === 'approved') color = 'success';
         if (params.value === 'rejected') color = 'error';
         if (params.value === 'pending') color = 'warning';
-        
+
         return (
           <Chip
             label={params.value.toUpperCase()}
