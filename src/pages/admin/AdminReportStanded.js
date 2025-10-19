@@ -11,8 +11,20 @@ import {
   Chip,
   Grid,
   Tooltip,
+  TextField,
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+
+// Helper function to get the start of the current month
+const getStartOfMonth = () => {
+  const date = new Date();
+  return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split("T")[0];
+};
+
+// Helper function to get today's date
+const getToday = () => {
+  return new Date().toISOString().split("T")[0];
+};
 
 // Detail Panel Component: Renders the individual records when a row is expanded.
 const DetailPanelContent = ({ row }) => {
@@ -25,8 +37,8 @@ const DetailPanelContent = ({ row }) => {
       <Typography variant="h6" gutterBottom component="div">
         Individual Records
       </Typography>
-      {subRows.map((record) => (
-        <Paper key={`detail-${record.attendance_id}`} variant="outlined" sx={{ p: 2, mb: 1 }}>
+      {subRows.map((record, index) => (
+        <Paper key={`detail-${record.attendance_id}-${index}`} variant="outlined" sx={{ p: 2, mb: 1 }}>
           <Grid container spacing={2}>
             <Grid item xs={3}><Typography variant="body2"><strong>Status:</strong> {record.status}</Typography></Grid>
             <Grid item xs={3}><Typography variant="body2"><strong>Check In:</strong> {formatTime(record.check_in_time)}</Typography></Grid>
@@ -41,66 +53,106 @@ const DetailPanelContent = ({ row }) => {
 
 export default function EmployeeActivityLog() {
   const [outlets, setOutlets] = useState([]);
-  const [selectedOutletId, setSelectedOutletId] = useState("");
+  const [selectedOutletId, setSelectedOutletId] = useState("all");
   const [activityData, setActivityData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch the list of available outlets on component mount
+  const [startDate, setStartDate] = useState(getStartOfMonth());
+  const [endDate, setEndDate] = useState(getToday());
+
   useEffect(() => {
     const fetchOutlets = async () => {
-      setLoading(true);
       try {
         const token = localStorage.getItem("access_token");
-        // **FIX**: Corrected the IP Address
         const res = await fetch("http://139.59.243.2:8000/api/user/", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to load outlets");
         const data = await res.json();
         setOutlets(data.outlets || []);
-        if (data.outlets && data.outlets.length > 0) {
-          setSelectedOutletId(data.outlets[0].id);
-        }
       } catch (err) {
         setError(err.message);
-      } finally {
-        setLoading(false);
       }
     };
     fetchOutlets();
   }, []);
 
-  // Fetch data for the selected outlet
   useEffect(() => {
-    if (!selectedOutletId) return;
-
     const fetchActivityData = async () => {
       setLoading(true);
+      setError(null);
+      setActivityData([]);
+
+      if (!startDate || !endDate) {
+        setLoading(false);
+        return;
+      }
+
+      const token = localStorage.getItem("access_token");
+      const headers = { Authorization: `Bearer ${token}` };
+
       try {
-        const token = localStorage.getItem("access_token");
-        // **FIX**: Corrected the IP Address
-        const response = await fetch(
-          `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (!response.ok) throw new Error(`Failed to fetch data for outlet ${selectedOutletId}`);
-        const data = await response.json();
-        const transformedData = transformDataForActivityLog(data);
+        let combinedData = { employees: [] };
+
+        if (selectedOutletId === "all") {
+          if (outlets.length === 0) {
+            setLoading(false);
+            return;
+          }
+          const allOutletPromises = outlets.map(outlet => {
+            const url = `http://139.59.243.2:8000/outletsalldata/${outlet.id}/?start_date=${startDate}&end_date=${endDate}`;
+            return fetch(url, { headers }).then(res => res.ok ? res.json() : null);
+          });
+          const allResults = await Promise.all(allOutletPromises);
+          
+          const successfulResults = allResults.filter(data => data !== null);
+          const allEmployees = successfulResults.flatMap(data => data.employees || []);
+          
+          const employeeMap = new Map();
+          allEmployees.forEach(emp => {
+            if (employeeMap.has(emp.employee_id)) {
+              const existingEmp = employeeMap.get(emp.employee_id);
+              existingEmp.attendances = [...(existingEmp.attendances || []), ...(emp.attendances || [])];
+              existingEmp.leaves = [...(existingEmp.leaves || []), ...(emp.leaves || [])];
+            } else {
+              employeeMap.set(emp.employee_id, { ...emp });
+            }
+          });
+          combinedData.employees = Array.from(employeeMap.values());
+
+        } else {
+          const url = `http://139.59.243.2:8000/outletsalldata/${selectedOutletId}/?start_date=${startDate}&end_date=${endDate}`;
+          const response = await fetch(url, { headers });
+          if (!response.ok) throw new Error(`Failed to fetch data for the selected outlet`);
+          combinedData = await response.json();
+        }
+
+        const transformedData = transformDataForActivityLog(combinedData);
         setActivityData(transformedData);
-        setError(null);
       } catch (err) {
         setError(err.message);
-        setActivityData([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchActivityData();
-  }, [selectedOutletId]);
+    
+    if (selectedOutletId !== 'all' || (selectedOutletId === 'all' && outlets.length > 0)) {
+        fetchActivityData();
+    }
+  }, [selectedOutletId, startDate, endDate, outlets]);
 
 
-  // Transformer function with all features
+  const formatTime = (isoString) => isoString ? new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
+  
+  const formatVerificationNotes = (notesObj) => {
+    if (!notesObj || Object.keys(notesObj).length === 0) return "-";
+    const notes = [];
+    if (notesObj.checkin_update) notes.push(`Check-in updated by ${notesObj.checkin_update.updated_by}`);
+    if (notesObj.checkout_update) notes.push(`Check-out updated by ${notesObj.checkout_update.updated_by}`);
+    return notes.join('; ') || "-";
+  };
+
   const transformDataForActivityLog = (data) => {
     if (!data || !data.employees) return [];
     
@@ -125,16 +177,9 @@ export default function EmployeeActivityLog() {
         emp.leaves.forEach((lv) => {
           activityLog.push({
             id: `leave-${lv.leave_refno}`,
-            employee_id: emp.employee_id,
-            fullname: employeeName,
-            date: new Date(lv.leave_date),
-            eventType: "Leave",
-            status: lv.status,
-            details: lv.leave_type_name,
-            check_in_time: "-",
-            check_out_time: "-",
-            worked_hours: "-",
-            verification_notes: "-",
+            employee_id: emp.employee_id, fullname: employeeName, date: new Date(lv.leave_date),
+            eventType: "Leave", status: lv.status, details: lv.leave_type_name,
+            check_in_time: "-", check_out_time: "-", worked_hours: "-", verification_notes: "-",
             consolidation_summary: "Single Event",
           });
         });
@@ -148,18 +193,11 @@ export default function EmployeeActivityLog() {
       if (records.length === 1) {
         const att = records[0];
         activityLog.push({
-          id: `att-${att.attendance_id}`,
-          employee_id: group.employee_id,
-          fullname: group.fullname,
-          date: group.date,
-          eventType: "Attendance",
-          status: att.punchin_verification,
-          details: att.status,
-          check_in_time: formatTime(att.check_in_time),
-          check_out_time: formatTime(att.check_out_time),
+          id: `att-${att.attendance_id}`, employee_id: group.employee_id, fullname: group.fullname,
+          date: group.date, eventType: "Attendance", status: att.punchin_verification, details: att.status,
+          check_in_time: formatTime(att.check_in_time), check_out_time: formatTime(att.check_out_time),
           worked_hours: att.worked_hours ? Number(att.worked_hours).toFixed(2) : "-",
-          verification_notes: formatVerificationNotes(att.verification_notes),
-          consolidation_summary: "Single Event",
+          verification_notes: formatVerificationNotes(att.verification_notes), consolidation_summary: "Single Event",
         });
       } else {
         const checkInTimes = records.map(r => parseTime(r.check_in_time)).filter(Boolean);
@@ -169,99 +207,53 @@ export default function EmployeeActivityLog() {
         const totalWorkedHours = records.reduce((sum, r) => sum + (Number(r.worked_hours) || 0), 0);
         const allDetails = records.map(r => r.status).join(', ');
         const allVerificationNotes = records.map(r => formatVerificationNotes(r.verification_notes)).filter(n => n !== '-').join('; ');
-
-        const summaryParts = [
-          `Consolidated ${records.length} records.`,
-          `Earliest Check-in: ${formatTime(earliestCheckIn)}.`,
-          `Latest Check-out: ${formatTime(latestCheckOut)}.`,
-          `Sum of Worked Hours: ${totalWorkedHours.toFixed(2)} hrs.`
-        ];
+        const summaryParts = [ `Consolidated ${records.length} records.`, `Earliest Check-in: ${formatTime(earliestCheckIn)}.`, `Latest Check-out: ${formatTime(latestCheckOut)}.`, `Sum of Worked Hours: ${totalWorkedHours.toFixed(2)} hrs.` ];
         
         activityLog.push({
-          id: `group-${key}`,
-          employee_id: group.employee_id,
-          fullname: group.fullname,
-          date: group.date,
-          eventType: "Attendance",
-          status: "Multiple",
-          details: allDetails,
-          check_in_time: formatTime(earliestCheckIn),
-          check_out_time: formatTime(latestCheckOut),
-          worked_hours: totalWorkedHours.toFixed(2),
-          verification_notes: allVerificationNotes || "-",
-          consolidation_summary: summaryParts.join(' '),
-          subRows: records,
+          id: `group-${key}`, employee_id: group.employee_id, fullname: group.fullname,
+          date: group.date, eventType: "Attendance", status: "Multiple", details: allDetails,
+          check_in_time: formatTime(earliestCheckIn), check_out_time: formatTime(latestCheckOut),
+          worked_hours: totalWorkedHours.toFixed(2), verification_notes: allVerificationNotes || "-",
+          consolidation_summary: summaryParts.join(' '), subRows: records,
         });
       }
     }
-    
     return activityLog.sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
-  const formatTime = (isoString) => isoString ? new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "-";
-  
-  const formatVerificationNotes = (notesObj) => {
-    if (!notesObj || Object.keys(notesObj).length === 0) return "-";
-    const notes = [];
-    if (notesObj.checkin_update) notes.push(`Check-in updated by ${notesObj.checkin_update.updated_by}`);
-    if (notesObj.checkout_update) notes.push(`Check-out updated by ${notesObj.checkout_update.updated_by}`);
-    return notes.join('; ') || "-";
-  };
-
+  // *** UPDATED COLUMNS ***
   const columns = [
     { field: "employee_id", headerName: "Emp ID", width: 90 },
     { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 180 },
     { field: "date", headerName: "Date", type: "date", minWidth: 120 },
-    { field: "eventType", headerName: "Event Type", minWidth: 130, renderCell: (params) => (<Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small"/>)},
+    { 
+      field: "eventType", 
+      headerName: "Event Type", 
+      minWidth: 130, 
+      renderCell: (params) => (<Chip label={params.value} color={params.value === "Attendance" ? "primary" : "warning"} variant="outlined" size="small"/>)
+    },
     { field: "details", headerName: "Details / Statuses", flex: 1.5, minWidth: 200 },
     { field: "check_in_time", headerName: "Time In", flex: 1, minWidth: 120 },
     { field: "check_out_time", headerName: "Time Out", flex: 1, minWidth: 120 },
     { field: "worked_hours", headerName: "Total Worked Hrs", type: "number", flex: 1, minWidth: 150 },
-    {
-      field: "consolidation_summary",
-      headerName: "Consolidation Summary",
-      flex: 2.5,
-      minWidth: 300,
-      renderCell: (params) => (<Tooltip title={params.value}><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{params.value}</Box></Tooltip>),
-    },
-    {
-      field: "verification_notes",
-      headerName: "Verification Notes",
-      flex: 1.5,
-      minWidth: 200,
-      renderCell: (params) => (<Tooltip title={params.value}><Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{params.value}</Box></Tooltip>),
-    },
-    { field: "status", headerName: "Verification", minWidth: 120, renderCell: (params) => {
-        const status = params.value || "";
-        let color = "default";
-        if (["approved", "verified"].includes(status.toLowerCase())) color = "success";
-        else if (status.toLowerCase() === "pending") color = "warning";
-        else if (status.toLowerCase() === "multiple") color = "info";
-        return <Chip label={status} color={color} size="small" />;
-    }},
   ];
 
   return (
     <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", mb: 3, gap: 2, }}>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Employee Activity Log</Typography>
+            <Typography variant="h4" sx={{ fontWeight: "bold" }}>Standed Report </Typography>
             
-            {outlets.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 200 }} />
+              <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 200 }} />
               <FormControl sx={{ minWidth: 250 }}>
                 <InputLabel>Select Outlet</InputLabel>
-                <Select
-                  value={selectedOutletId}
-                  label="Select Outlet"
-                  onChange={(e) => setSelectedOutletId(e.target.value)}
-                >
-                  {outlets.map((outlet) => (
-                    <MenuItem key={outlet.id} value={outlet.id}>
-                      {outlet.name}
-                    </MenuItem>
-                  ))}
+                <Select value={selectedOutletId} label="Select Outlet" onChange={(e) => setSelectedOutletId(e.target.value)}>
+                  <MenuItem value="all">All Outlets</MenuItem>
+                  {outlets.map((outlet) => (<MenuItem key={outlet.id} value={outlet.id}>{outlet.name}</MenuItem>))}
                 </Select>
               </FormControl>
-            )}
+            </Box>
 
         </Box>
         {error && <Typography color="error" align="center" sx={{ my: 4 }}>{error}</Typography>}
