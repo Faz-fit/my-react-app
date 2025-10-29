@@ -175,7 +175,7 @@ function Sidebar({ sidebarOpen, onClose }) {
       group: "Modifications",
     },
     {
-      text: "Leave",
+      text: "Reports",
       path: "/Manager/Reports",
       roles: ["Manager"],
       icon: <ReportIcon />,
