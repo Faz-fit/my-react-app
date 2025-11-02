@@ -9,8 +9,9 @@ import {
   Typography,
   Paper,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import api from 'utils/api';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -18,20 +19,22 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const loginUser = async (username, password, deviceType) => {
     try {
       const response = await axios.post('http://139.59.243.2:8000/api/token/', {
         username,
         password,
-        device_type: deviceType,  // Added device type
+        device_type: deviceType,
       });
       return response.data;
     } catch (err) {
       throw new Error('Login failed. Please check your credentials.');
     }
   };
-
 
   const fetchUserDetails = async (token) => {
     try {
@@ -51,8 +54,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    const deviceType = "web";  // Add this line to define the device type as web
-
+    const deviceType = "web";
 
     if (!username || !password) {
       setError('Both fields are required.');
@@ -61,7 +63,7 @@ const LoginPage = () => {
     }
 
     try {
-      const { access, refresh } = await loginUser(username, password, deviceType);  // Pass deviceType
+      const { access, refresh } = await loginUser(username, password, deviceType);
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
 
@@ -74,9 +76,7 @@ const LoginPage = () => {
       localStorage.setItem('outlet_name', outlets[0].name);
 
       handleRoleBasedNavigation(role, outlets);
-
-      // After successful login, perform a hard refresh
-      window.location.reload();  // Force the page to reload
+      window.location.reload();
 
     } catch (err) {
       setError(err.message);
@@ -88,68 +88,131 @@ const LoginPage = () => {
   const handleRoleBasedNavigation = (role) => {
     const roleBasedRedirect = {
       Admin: '/Admindashboard',
-      Manager: '/dashboard',  // always go to dashboard now
+      Manager: '/dashboard',
     };
 
     const navigateToRolePage = roleBasedRedirect[role] || '/';
     navigate(navigateToRolePage);
   };
 
+  // Adjust dimensions based on screen size
+  const getPaperWidth = () => {
+    if (isMobile) return '95vw';
+    if (isTablet) return '85vw';
+    return '1000px';
+  };
+
+  const getPaperHeight = () => {
+    if (isMobile) return 'auto';
+    if (isTablet) return '550px';
+    return '600px';
+  };
+
+  const getLogoContainerSize = () => {
+    if (isMobile) return 200;
+    if (isTablet) return 250;
+    return 320;
+  };
+
+  const getLogoSize = () => {
+    if (isMobile) return '60%';
+    if (isTablet) return '65%';
+    return '70%';
+  };
+
+  const getContentPadding = () => {
+    if (isMobile) return 3;
+    if (isTablet) return 4;
+    return 6;
+  };
 
   return (
     <Box
       sx={{
-        height: '100vh',
+        minHeight: '100vh',
         backgroundImage: 'url("/bg.jpg")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        fontFamily: "'Cal Sans', sans-serif",
+        //fontFamily: "'Cal Sans', sans-serif',
+        p: isMobile ? 1 : 2,
       }}
     >
       <Paper
         elevation={10}
         sx={{
-          borderRadius: 4,
-          width: '1000px',
-          height: '600px',
+          borderRadius: isMobile ? 2 : 4,
+          width: getPaperWidth(),
+          height: getPaperHeight(),
           display: 'flex',
           overflow: 'hidden',
           boxShadow: '0px 20px 40px rgba(0,0,0,0.25)',
           backgroundColor: '#ffffff',
+          flexDirection: isMobile ? 'column' : 'row',
         }}
       >
-        <Box sx={{ width: '45%', backgroundColor: '#f8f8f8' }} >
+        {/* Logo Section */}
+        <Box 
+          sx={{ 
+            width: isMobile ? '100%' : '45%', 
+            backgroundColor: '#f8f8f8',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            pt: isMobile ? 3 : 0,
+            pb: isMobile ? 2 : 0,
+          }}
+        >
           <Box
             sx={{
-              width: 320,
-              height: 320,
+              width: getLogoContainerSize(),
+              height: getLogoContainerSize(),
               borderRadius: '50%',
               overflow: 'hidden',
               boxShadow: '0px 6px 20px rgba(0,0,0,0.2)',
               backgroundColor: 'white',
               display: 'flex',
               justifyContent: 'center',
-              marginTop: 15,
-              marginLeft: 6,
               alignItems: 'center',
+              mx: isMobile ? 0 : 'auto',
             }}
           >
             <img
               src="/logo.png"
               alt="Logo"
-              style={{ width: '70%', height: '70%', objectFit: 'fill' }}
+              style={{ 
+                width: getLogoSize(), 
+                height: getLogoSize(), 
+                objectFit: 'fill' 
+              }}
             />
           </Box>
         </Box>
 
-        <Box sx={{ width: '55%', p: 6, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Typography variant="h4" align="center" fontWeight="bold">Welcome!</Typography>
+        {/* Login Form Section */}
+        <Box 
+          sx={{ 
+            width: isMobile ? '100%' : '55%', 
+            p: getContentPadding(), 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'center',
+            minHeight: isMobile ? '300px' : 'auto',
+          }}
+        >
+          <Typography 
+            variant={isMobile ? "h5" : "h4"} 
+            align="center" 
+            fontWeight="bold"
+            sx={{ mb: 2 }}
+          >
+            Welcome!
+          </Typography>
 
           {error && (
-            <Typography color="error" align="center" sx={{ mt: 2 }}>
+            <Typography color="error" align="center" sx={{ mt: 1, mb: 2 }}>
               {error}
             </Typography>
           )}
@@ -165,6 +228,7 @@ const LoginPage = () => {
               onChange={(e) => setUsername(e.target.value)}
               required
               disabled={loading}
+              size={isMobile ? "small" : "medium"}
             />
             <TextField
               label="Password"
@@ -177,6 +241,7 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
+              size={isMobile ? "small" : "medium"}
             />
             <Button
               type="submit"
@@ -190,7 +255,7 @@ const LoginPage = () => {
                 fontWeight: 'bold',
                 '&:hover': { backgroundColor: '#d1a803' },
                 borderRadius: 2,
-                py: 1.5,
+                py: isMobile ? 1 : 1.5,
               }}
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
