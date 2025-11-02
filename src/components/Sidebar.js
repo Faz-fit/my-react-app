@@ -5,8 +5,6 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  ListSubheader,
-  Divider,
 } from "@mui/material";
 import { NavLink } from "react-router-dom";
 import { getUserRole } from "../utils/auth";
@@ -26,8 +24,6 @@ function Sidebar({ sidebarOpen, onClose }) {
   const role = getUserRole() || "";
   const normalizedRole =
     role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-
-  console.log("Sidebar user role normalized:", normalizedRole);
 
   const navItems = [
     // Common / Dashboard
@@ -124,7 +120,7 @@ function Sidebar({ sidebarOpen, onClose }) {
       icon: <ReportIcon />,
       group: "Reports",
     },
-     {
+    {
       text: "Agency",
       path: "/Admin/create/agency",
       roles: ["Admin"],
@@ -183,22 +179,12 @@ function Sidebar({ sidebarOpen, onClose }) {
     },
   ];
 
-  // Filter by role + group them
-  const groupedItems = navItems
-    .filter((item) => item.roles.includes(normalizedRole))
-    .reduce((acc, item) => {
-      const group = item.group || "Main";
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(item);
-      return acc;
-    }, {});
-
   return (
     <Box
       sx={{
-        width: sidebarOpen ? { xs: "100%", sm: 260 } : 0, // Make it responsive
+        width: sidebarOpen ? 240 : 70, // Make it responsive
         overflowY: "auto", // Allow scrolling if content overflows
-        pt: 8,
+        pt: 10,
         height: "100vh",
         backgroundColor: "#fff",
         borderRight: sidebarOpen ? "1px solid #ddd" : "none",
@@ -207,58 +193,57 @@ function Sidebar({ sidebarOpen, onClose }) {
         left: 0,
         zIndex: 999,
         transition: "width 0.3s ease-in-out",
+        overflowX: "hidden",
       }}
     >
       <List sx={{ px: 1 }}>
-        {Object.entries(groupedItems).map(([group, items], index) => (
-          <React.Fragment key={group}>
-            {/* Render List Subheader */}
-            {group !== "Main" && (
-              <ListSubheader
+        {navItems
+          .filter((item) => item.roles.includes(normalizedRole))
+          .map((item) => (
+            <ListItem
+              key={item.text}
+              disablePadding
+              sx={{
+                mb: 0, // Remove margin between items
+                padding: 0, // Ensure no padding around items
+              }}
+            >
+              <ListItemButton
+                component={NavLink}
+                to={item.path}
+                onClick={onClose}
                 sx={{
-                  backgroundColor: "inherit",
-                  pl: 2,
-                  py: 1,
-                  fontWeight: "bold",
-                  fontSize: "0.9rem",
-                  color: "#555",
+                  borderRadius: 2,
+                  px: sidebarOpen ? 2 : 1.5,
+                  justifyContent: sidebarOpen ? "flex-start" : "center",
+                  "&.active": {
+                    backgroundColor: "#e6b904",
+                    color: "#000",
+                    fontWeight: "bold",
+                  },
+                  "&:hover": {
+                    backgroundColor: "#f9e27a",
+                  },
                 }}
               >
-                {group}
-              </ListSubheader>
-            )}
-            {/* Render List Items */}
-            {items.map((item) => (
-              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  component={NavLink}
-                  to={item.path}
-                  onClick={onClose}
-                  sx={{
-                    borderRadius: 2,
-                    px: 2,
-                    "&.active": {
-                      backgroundColor: "#e6b904",
-                      color: "#000",
-                      fontWeight: "bold",
-                    },
-                    "&:hover": {
-                      backgroundColor: "#f9e27a",
-                    },
-                  }}
-                >
-                  {item.icon && (
-                    <Box sx={{ mr: 2, color: "inherit" }}>{item.icon}</Box>
-                  )}
-                  <ListItemText primary={item.text} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-            {index < Object.entries(groupedItems).length - 1 && (
-              <Divider sx={{ my: 1 }} />
-            )}
-          </React.Fragment>
-        ))}
+                {item.icon && (
+                  <Box sx={{ color: "inherit", minWidth: 0 }}>
+                    {item.icon}
+                  </Box>
+                )}
+                {sidebarOpen && (
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      ml: 2,
+                      whiteSpace: "nowrap",
+                      opacity: sidebarOpen ? 1 : 0,
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          ))}
       </List>
     </Box>
   );

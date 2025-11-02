@@ -34,6 +34,10 @@ export default function AttendanceHistory() {
   const [bulkCheckIn, setBulkCheckIn] = useState("");
   const [bulkCheckOut, setBulkCheckOut] = useState("");
 
+  // --- State for Confirmation Dialog ---
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+
   const fetchEmployeesForOutlet = async () => {
     if (!selectedOutletId) return;
     setLoading(true);
@@ -107,9 +111,33 @@ export default function AttendanceHistory() {
     }
   };
 
-  const handleProcessRowUpdate = (newRow) => {
-    handleAttendanceUpdate(newRow.id, newRow.check_in_time, newRow.check_out_time);
+  const handleProcessRowUpdate = (newRow, oldRow) => {
+    // Check if there are actual changes
+    if (newRow.check_in_time !== oldRow.check_in_time || newRow.check_out_time !== oldRow.check_out_time) {
+      // Store the pending update and open confirmation dialog
+      setPendingUpdate({ newRow, oldRow });
+      setIsConfirmOpen(true);
+      // Return the old row to prevent immediate update
+      return oldRow;
+    }
     return newRow;
+  };
+
+  const handleConfirmUpdate = async () => {
+    if (pendingUpdate) {
+      await handleAttendanceUpdate(
+        pendingUpdate.newRow.id,
+        pendingUpdate.newRow.check_in_time,
+        pendingUpdate.newRow.check_out_time
+      );
+      setIsConfirmOpen(false);
+      setPendingUpdate(null);
+    }
+  };
+
+  const handleCancelUpdate = () => {
+    setIsConfirmOpen(false);
+    setPendingUpdate(null);
   };
 
   // --- Bulk Add Logic ---
@@ -206,12 +234,39 @@ export default function AttendanceHistory() {
             rows={rows}
             columns={columns}
             pageSize={5}
-            processRowUpdate={handleProcessRowUpdate} // Trigger update on cell edit
+            processRowUpdate={handleProcessRowUpdate}
           />
         ) : (
           <Typography p={2}>No attendance records found</Typography>
         )}
       </Box>
+
+      {/* --- Confirmation Dialog --- */}
+      <Dialog open={isConfirmOpen} onClose={handleCancelUpdate}>
+        <DialogTitle>Confirm Changes</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to update this attendance record?</Typography>
+          {pendingUpdate && (
+            <Box mt={2}>
+              <Typography variant="body2">
+                <strong>Date:</strong> {pendingUpdate.newRow.date}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Check-in:</strong> {pendingUpdate.oldRow.check_in_time} → {pendingUpdate.newRow.check_in_time}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Check-out:</strong> {pendingUpdate.oldRow.check_out_time} → {pendingUpdate.newRow.check_out_time}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelUpdate}>Cancel</Button>
+          <Button onClick={handleConfirmUpdate} variant="contained" color="primary">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* --- Bulk Add Dialog --- */}
       <Dialog open={isBulkAddOpen} onClose={handleCloseBulkDialog} fullWidth maxWidth="sm">

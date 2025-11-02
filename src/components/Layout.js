@@ -1,43 +1,48 @@
-// src/components/Layout.js
-import React, { useState } from 'react';
-import { Box } from '@mui/material';
-import Header from './Header';
-import Sidebar from './Sidebar';
+import React, { useState } from "react";
+import { Box, useMediaQuery } from "@mui/material";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
 
 function Layout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isSmall = useMediaQuery("(max-width:900px)");
 
-  const toggleSidebar = () => {
-    setSidebarOpen((prev) => !prev);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   return (
-    <Box sx={{ display: 'flex', width: '100%' }}>
+    <Box sx={{ display: "flex", width: "100%" }}>
       {/* Sidebar */}
-      <Sidebar sidebarOpen={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar sidebarOpen={!isSmall && sidebarOpen} />
 
-      {/* Content Area */}
+      {/* Main Content */}
       <Box
         sx={{
           flexGrow: 1,
-          ml: sidebarOpen ? '240px' : '0px',
-          transition: 'margin-left 0.3s ease-in-out',
+          ml: !isSmall ? (sidebarOpen ? "260px" : "70px") : 0,
+          transition: "margin-left 0.3s ease-in-out",
         }}
       >
-        {/* Header */}
-        <Header onMenuClick={toggleSidebar} />
-
-        {/* Page Content */}
+        {/* Sticky Header */}
         <Box
           sx={{
-            mt: '64px', // Push content below AppBar
-            flexGrow: 1,
-            minHeight: 'calc(100vh - 64px)',
-            overflow: 'auto', // prevent overlaps if content is tall
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000, // Ensure it's on top of everything else
+            backgroundColor: "#fff", // Optional, for better visibility
+          }}
+        >
+          <Header onMenuClick={toggleSidebar} />
+        </Box>
+
+        {/* Main Content Below the Header */}
+        <Box
+          sx={{
+            mt: "72px", // Adjust based on your header height
+            minHeight: "calc(100vh - 72px)",
+            p: 3,
+            backgroundColor: "#fafafa",
           }}
         >
           {children}
