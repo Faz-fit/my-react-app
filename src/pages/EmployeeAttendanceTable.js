@@ -11,6 +11,7 @@ const formatTime = (dateTimeStr) => {
     return new Intl.DateTimeFormat('en-US', {
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
       hour12: false
     }).format(date);
 
@@ -19,20 +20,18 @@ const formatTime = (dateTimeStr) => {
   }
 };
 
-// Helper function to format ISO datetime string to a readable date/time (MM/DD HH:MM)
+// Helper function to format ISO datetime string to MM/DD/YYYY
 const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return "";
     try {
         const date = new Date(dateTimeStr);
         if (isNaN(date.getTime())) return "";
 
-        // Format: MM/DD HH:MM
+        // Format to MM/DD/YYYY
         return new Intl.DateTimeFormat('en-US', {
             month: '2-digit',
             day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false 
+            year: 'numeric',
         }).format(date);
 
     } catch (e) {
@@ -107,19 +106,20 @@ export default function EmployeeAttendanceTable({ data }) {
       const empCode = empData.employee_details?.fullname || "";
 
       const dailyRows = (empData.daily_report || []).map((day, index) => {
-        
         const checkIn = formatTime(day.check_in_time);
         const checkOut = formatTime(day.check_out_time);
-        
         const verificationNotes = processVerificationNotes(day.verification_notes);
 
         const rowId = `day-${empIndex}-${employeeId}-${index}-${day.work_date}`;
-        
-        // Check for leave marker first
-        const isLeaveDay = !!day.leave_refno || !!day.leave_date; 
-        const isAttendanceDay = !!day.check_in_time;
+
+        // Use the updated formatDateTime for workDate
+        const workDateFormatted = formatDateTime(day.work_date);
 
         let rowType = "blank";
+        // Check for leave marker first
+        const isLeaveDay = !!day.leave_refno || !!day.leave_date;
+        const isAttendanceDay = !!day.check_in_time;
+
         if (isLeaveDay) {
             rowType = "leave";
         } else if (isAttendanceDay) {
@@ -131,14 +131,12 @@ export default function EmployeeAttendanceTable({ data }) {
           employeeId,
           userFirstName,
           empCode,
-          workDate: day.work_date,
+          workDate: workDateFormatted, // Display MM/DD/YYYY
           checkInTime: checkIn, 
           checkOutTime: checkOut,
           workedHours: day.worked_hours || "",
           attendanceStatus: day.attendance_status || "",
-          
           verificationNotes: verificationNotes,
-            
           leaveDate: day.leave_date || "",
           leaveRemarks: day.leave_remarks || "",
           leaveTypeId: day.leave_type_id || "",
