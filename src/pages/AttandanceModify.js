@@ -15,7 +15,7 @@ import {
   TextField,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import api from 'utils/api';
+import api from "utils/api";
 
 export default function AttendanceHistory() {
   const [outlets, setOutlets] = useState([]);
@@ -104,7 +104,6 @@ export default function AttendanceHistory() {
     };
     try {
       await api.post("/api/attendance/update/", payload);
-      // Refresh data after update
       await fetchEmployeesForOutlet();
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to update attendance");
@@ -112,12 +111,12 @@ export default function AttendanceHistory() {
   };
 
   const handleProcessRowUpdate = (newRow, oldRow) => {
-    // Check if there are actual changes
-    if (newRow.check_in_time !== oldRow.check_in_time || newRow.check_out_time !== oldRow.check_out_time) {
-      // Store the pending update and open confirmation dialog
+    if (
+      newRow.check_in_time !== oldRow.check_in_time ||
+      newRow.check_out_time !== oldRow.check_out_time
+    ) {
       setPendingUpdate({ newRow, oldRow });
       setIsConfirmOpen(true);
-      // Return the old row to prevent immediate update
       return oldRow;
     }
     return newRow;
@@ -169,7 +168,6 @@ export default function AttendanceHistory() {
       const response = await api.post("/api/attendance/bulk-add/", payload);
       alert(response.data.message);
       handleCloseBulkDialog();
-      // Refresh the data to show the new records
       await fetchEmployeesForOutlet();
     } catch (err) {
       const errorMessage = err.response?.data?.error || "An error occurred during the bulk add.";
@@ -188,40 +186,122 @@ export default function AttendanceHistory() {
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Attendance History</Typography>
+       <Typography
+                 variant="h4"
+                 sx={{
+                   fontWeight: 'bold',
+                   textTransform:'uppercase',
+                   display: 'inline-block',
+                   pb: 0.5,
+                 }}
+               >Attendance History</Typography>
         <Button variant="contained" onClick={handleOpenBulkDialog} disabled={!selectedOutletId}>
           Bulk Add Attendance
         </Button>
       </Box>
 
-      <FormControl sx={{ m: 1, minWidth: 200 }}>
-        <InputLabel>Outlet</InputLabel>
-        <Select
-          value={selectedOutletId}
-          onChange={(e) => setSelectedOutletId(e.target.value)}
+      {/* Redesigned Outlet and Employee Selectors */}
+      <Box display="flex" flexWrap="wrap" gap={2} alignItems="center" mb={2}>
+        {/* Outlet Select */}
+        <FormControl
+          size="medium"
+          variant="outlined"
+          sx={{
+            minWidth: 220,
+            maxWidth: 300,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+            height: 48,
+            "& .MuiOutlinedInput-root": {
+              height: "100%",
+              "& fieldset": {
+                borderColor: "rgba(25, 118, 210, 0.5)",
+              },
+              "&:hover fieldset": {
+                borderColor: "primary.main",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "primary.main",
+                borderWidth: 2,
+              },
+              "& .MuiSelect-select": {
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 14px",
+                fontWeight: 600,
+                fontSize: "1rem",
+              },
+            },
+          }}
         >
-          {outlets.map((outlet) => (
-            <MenuItem key={outlet.id} value={outlet.id}>
-              {outlet.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          <InputLabel id="outlet-label">Outlet</InputLabel>
+          <Select
+            labelId="outlet-label"
+            value={selectedOutletId}
+            onChange={(e) => setSelectedOutletId(e.target.value)}
+            label="Outlet"
+            MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
+          >
+            {outlets.map((outlet) => (
+              <MenuItem key={outlet.id} value={outlet.id}>
+                {outlet.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      {/* Employee Dropdown */}
-      <FormControl sx={{ m: 1, minWidth: 200 }}>
-        <InputLabel>Employee</InputLabel>
-        <Select
-          value={selectedEmployeeId}
-          onChange={(e) => setSelectedEmployeeId(e.target.value)}
+        {/* Employee Select */}
+        <FormControl
+          size="medium"
+          variant="outlined"
+          sx={{
+            minWidth: 220,
+            maxWidth: 300,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+            height: 48,
+            "& .MuiOutlinedInput-root": {
+              height: "100%",
+              "& fieldset": {
+                borderColor: "rgba(25, 118, 210, 0.5)",
+              },
+              "&:hover fieldset": {
+                borderColor: "primary.main",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "primary.main",
+                borderWidth: 2,
+              },
+              "& .MuiSelect-select": {
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 14px",
+                fontWeight: 600,
+                fontSize: "1rem",
+              },
+            },
+          }}
         >
-          {employees.map((emp) => (
-            <MenuItem key={emp.employee_id} value={emp.employee_id}>
-              {emp.first_name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          <InputLabel id="employee-label">Employee</InputLabel>
+          <Select
+            labelId="employee-label"
+            value={selectedEmployeeId}
+            onChange={(e) => setSelectedEmployeeId(e.target.value)}
+            label="Employee"
+            MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
+          >
+            {employees.map((emp) => (
+              <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                {emp.first_name} {emp.last_name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
       {/* Attendance DataGrid */}
       <Box mt={3} style={{ height: 400, width: "100%" }}>
@@ -279,7 +359,7 @@ export default function AttendanceHistory() {
               value={bulkSelectedEmployees}
               onChange={(e) => setBulkSelectedEmployees(e.target.value)}
               renderValue={(selected) =>
-                selected.map(id => employees.find(e => e.employee_id === id)?.first_name).join(', ')
+                selected.map((id) => employees.find((e) => e.employee_id === id)?.first_name).join(", ")
               }
             >
               {employees.map((emp) => (
@@ -319,7 +399,9 @@ export default function AttendanceHistory() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseBulkDialog}>Cancel</Button>
-          <Button onClick={handleBulkSubmit} variant="contained">Submit</Button>
+          <Button onClick={handleBulkSubmit} variant="contained">
+            Submit
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

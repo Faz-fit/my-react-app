@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Box,
   Typography,
@@ -21,9 +20,6 @@ export default function LeaveSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem('access_token');
-
-  // Fetch the outlets assigned to the logged-in user
   useEffect(() => {
     const fetchUserOutlets = async () => {
       try {
@@ -42,7 +38,6 @@ export default function LeaveSummary() {
     fetchUserOutlets();
   }, []);
 
-  // Fetch leave history for the selected outlet
   useEffect(() => {
     if (!selectedOutlet) return;
 
@@ -92,6 +87,7 @@ export default function LeaveSummary() {
             label={params.value.toUpperCase()}
             color={color}
             size="small"
+            sx={{ fontWeight: 600, borderRadius: '4px' }} 
           />
         );
       },
@@ -100,7 +96,17 @@ export default function LeaveSummary() {
   ];
 
   return (
-    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, sm: 3 },
+            mt: 4,
+            maxWidth: 1200,
+            mx: 'auto',
+            bgcolor: 'transparent',
+            boxSizing: 'border-box',
+          }}
+        >
       <Box
         sx={{
           display: 'flex',
@@ -115,7 +121,7 @@ export default function LeaveSummary() {
           variant="h4"
           sx={{
             fontWeight: 'bold',
-            borderBottom: '3px solid #1976d2',
+            
             display: 'inline-block',
             pb: 0.5,
           }}
@@ -124,12 +130,50 @@ export default function LeaveSummary() {
         </Typography>
 
         {userOutlets.length > 1 && (
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Select Outlet</InputLabel>
+          <FormControl
+            size="medium"
+            variant="outlined"
+            sx={{
+              minWidth: 220,
+              maxWidth: 300,
+              bgcolor: "background.paper",
+              borderRadius: 2,
+              boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+              height: 48,  // fixed height
+              "& .MuiOutlinedInput-root": {
+                height: "100%",
+                "& fieldset": {
+                  borderColor: "rgba(25, 118, 210, 0.5)",
+                },
+                "&:hover fieldset": {
+                  borderColor: "primary.main",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "primary.main",
+                  borderWidth: 2,
+                },
+                "& .MuiSelect-select": {
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "0 14px",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                },
+              },
+            }}
+          >
+            <InputLabel id="leave-summary-outlet-label">Select Outlet</InputLabel>
             <Select
+              labelId="leave-summary-outlet-label"
               value={selectedOutlet}
-              label="Select Outlet"
               onChange={(e) => setSelectedOutlet(e.target.value)}
+              label="Select Outlet"
+              MenuProps={{
+                PaperProps: {
+                  sx: { borderRadius: 2 },
+                },
+              }}
             >
               {userOutlets.map((o) => (
                 <MenuItem key={o.id} value={o.id}>

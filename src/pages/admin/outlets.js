@@ -16,7 +16,7 @@ import {
   ToolbarButton,
   
 } from '@mui/x-data-grid';
-import { Autocomplete, TextField ,Typography} from '@mui/material';
+import { Autocomplete, TextField ,Typography,Button,Paper,DialogTitle} from '@mui/material';
 import api from 'utils/api';
 import MapDialog from 'components/MapDialog';
 import CreateOutlet from './create/CreateOutlet'
@@ -372,21 +372,64 @@ React.useEffect(() => {
     },
   ];
 
-  return (
-    <Box sx={{ position: 'relative', height: 500, width: '100%' }}>
-      <Typography variant="h4" sx={{ mb: 1 }} fontWeight="bold">
-        OUTLETS
+return (
+  <Box
+    sx={{
+      width: '95%',
+      mx: 'auto',
+      mt: 4,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      textTransform: 'uppercase',
+    }}
+  >
+    {/* Header Row */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          color: '#333',
+        }}
+      >
+        Outlets
       </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-         
-        <IconButton
-          sx={{ backgroundColor: 'primary.main', color: 'white', '&:hover': { backgroundColor: 'primary.dark' } }}
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          <AddIcon />
-        </IconButton>
-      </Box>
 
+      <Button
+        variant="contained"
+        startIcon={<AddIcon />}
+        onClick={() => setCreateDialogOpen(true)}
+        sx={{
+          backgroundColor: '#1976d2',
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: '8px',
+          '&:hover': {
+            backgroundColor: '#1565c0',
+          },
+        }}
+      >
+        Add Outlet
+      </Button>
+    </Box>
+
+    {/* Outlet Table */}
+    <Paper
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+      }}
+    >
       <DataGrid
         rows={rows}
         columns={columns}
@@ -398,29 +441,87 @@ React.useEffect(() => {
         slots={{ toolbar: EditToolbar }}
         slotProps={{ toolbar: { setRows, setRowModesModel } }}
         experimentalFeatures={{ newEditingApi: true }}
+        autoHeight
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f9fafb',
+            fontWeight: 600,
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: '#f5f5f5',
+          },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        }}
       />
+    </Paper>
 
-      <MapDialog
-        open={mapDialogOpen}
-        onClose={() => setMapDialogOpen(false)}
-        onSave={handleSaveCoordinates}
-        initialCoordinates={{
-  lat: selectedOutlet?.coordinates?.lat ?? 7.2906,
-  lng: selectedOutlet?.coordinates?.lng ?? 80.6337,
-}}
+    {/* Map Dialog */}
+    <Dialog
+      open={mapDialogOpen}
+      onClose={() => setMapDialogOpen(false)}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #eee',
+        }}
+      >
+        Select Outlet Location
+      </DialogTitle>
 
-      />
+      <DialogContent>
+        <MapDialog
+          open={mapDialogOpen}
+          onClose={() => setMapDialogOpen(false)}
+          onSave={handleSaveCoordinates}
+          initialCoordinates={{
+            lat: selectedOutlet?.coordinates?.lat ?? 7.2906,
+            lng: selectedOutlet?.coordinates?.lng ?? 80.6337,
+          }}
+        />
+      </DialogContent>
+    </Dialog>
 
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogContent>
-          <CreateOutlet
-            onSuccess={() => {
-              setCreateDialogOpen(false);
-              fetchOutlets();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    </Box>
-  );
+    {/* Create Outlet Dialog */}
+    <Dialog
+      open={createDialogOpen}
+      onClose={() => setCreateDialogOpen(false)}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #eee',
+        }}
+      >
+        Create New Outlet
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3 }}>
+        <CreateOutlet
+          onSuccess={() => {
+            setCreateDialogOpen(false);
+            fetchOutlets();
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  </Box>
+);
+
 }

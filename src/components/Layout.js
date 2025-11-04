@@ -10,7 +10,15 @@ function Layout({ children }) {
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   return (
-    <Box sx={{ display: "flex", width: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        width: "100%",
+        height: "100vh",
+        overflowX: "hidden", // 🔥 Prevent horizontal scroll globally
+        backgroundColor: "#f5f6fa",
+      }}
+    >
       {/* Sidebar */}
       <Sidebar sidebarOpen={!isSmall && sidebarOpen} />
 
@@ -20,6 +28,9 @@ function Layout({ children }) {
           flexGrow: 1,
           ml: !isSmall ? (sidebarOpen ? "260px" : "70px") : 0,
           transition: "margin-left 0.3s ease-in-out",
+          overflowX: "hidden", // ✅ double safeguard
+          width: "100%",
+          maxWidth: "100vw", // ✅ never exceed viewport width
         }}
       >
         {/* Sticky Header */}
@@ -29,20 +40,22 @@ function Layout({ children }) {
             top: 0,
             left: 0,
             right: 0,
-            zIndex: 1000, // Ensure it's on top of everything else
-            backgroundColor: "#fff", // Optional, for better visibility
+            zIndex: 1000,
+            overflow: "hidden",
           }}
         >
           <Header onMenuClick={toggleSidebar} />
         </Box>
 
-        {/* Main Content Below the Header */}
+        {/* Main Content Area */}
         <Box
           sx={{
-            mt: "72px", // Adjust based on your header height
+            mt: "72px", // header height
+            p: { xs: 2, md: 3 },
             minHeight: "calc(100vh - 72px)",
-            p: 3,
-            backgroundColor: "#fafafa",
+            overflowX: "hidden", // ✅ content-level safety
+            maxWidth: "100%",
+            boxSizing: "border-box",
           }}
         >
           {children}

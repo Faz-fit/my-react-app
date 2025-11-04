@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import api from 'utils/api';
+import api from "utils/api";
 
 export default function LeaveManagement() {
   const [outlets, setOutlets] = useState([]);
@@ -53,8 +53,7 @@ export default function LeaveManagement() {
   }, []);
 
   useEffect(() => {
-    if (selectedOutletId)
-      fetchOutletData();
+    if (selectedOutletId) fetchOutletData();
   }, [selectedOutletId]);
 
   const fetchOutletData = async () => {
@@ -143,7 +142,8 @@ export default function LeaveManagement() {
       setNewLeaveType("");
       setNewLeaveRemarks("");
     } catch (error) {
-      const errorMessage = error.response?.data?.error || "Something went wrong. Please try again.";
+      const errorMessage =
+        error.response?.data?.error || "Something went wrong. Please try again.";
       console.error("Error adding leave:", error);
       alert(errorMessage);
     }
@@ -178,65 +178,222 @@ export default function LeaveManagement() {
       handleCloseBulkDialog();
       await fetchOutletData(); // Refresh data
     } catch (err) {
-      const errorMessage = err.response?.data?.error || "An error occurred during the bulk add.";
+      const errorMessage =
+        err.response?.data?.error || "An error occurred during the bulk add.";
       alert(`Error: ${errorMessage}`);
     }
   };
 
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Leave Management</Typography>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+        flexWrap="wrap"
+      >
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 'bold',
+            textTransform:'uppercase',
+            display: 'inline-block',
+            pb: 0.5,
+          }}
+        >Leave Management</Typography>
         <Button variant="contained" onClick={handleOpenBulkDialog} disabled={!selectedOutletId}>
           Bulk Add Leave
         </Button>
       </Box>
 
-      {/* Outlet Dropdown */}
-      <FormControl sx={{ m: 1, minWidth: 200 }}>
-        <InputLabel>Outlet</InputLabel>
-        <Select
-          value={selectedOutletId}
-          onChange={(e) => setSelectedOutletId(e.target.value)}
+      {/* Redesigned Outlet and Employee Selectors */}
+      <Box display="flex" flexWrap="wrap" gap={2} alignItems="center" mb={2}>
+        {/* Outlet Select */}
+        <FormControl
+          size="medium"
+          variant="outlined"
+          sx={{
+            minWidth: 220,
+            maxWidth: 300,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+            height: 48,
+            "& .MuiOutlinedInput-root": {
+              height: "100%",
+              "& fieldset": {
+                borderColor: "rgba(25, 118, 210, 0.5)",
+              },
+              "&:hover fieldset": {
+                borderColor: "primary.main",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "primary.main",
+                borderWidth: 2,
+              },
+              "& .MuiSelect-select": {
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 14px",
+                fontWeight: 600,
+                fontSize: "1rem",
+              },
+            },
+          }}
         >
-          {outlets.map((outlet) => (
-            <MenuItem key={outlet.id} value={outlet.id}>
-              {outlet.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          <InputLabel id="outlet-label">Outlet</InputLabel>
+          <Select
+            labelId="outlet-label"
+            value={selectedOutletId}
+            onChange={(e) => setSelectedOutletId(e.target.value)}
+            label="Outlet"
+            MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
+          >
+            {outlets.map((outlet) => (
+              <MenuItem key={outlet.id} value={outlet.id}>
+                {outlet.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      {/* Employee Dropdown */}
-      <FormControl sx={{ m: 1, minWidth: 200 }}>
-        <InputLabel>Employee</InputLabel>
-        <Select
-          value={selectedEmployeeId}
-          onChange={(e) => setSelectedEmployeeId(e.target.value)}
+        {/* Employee Select */}
+        <FormControl
+          size="medium"
+          variant="outlined"
+          sx={{
+            minWidth: 220,
+            maxWidth: 300,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+            height: 48,
+            "& .MuiOutlinedInput-root": {
+              height: "100%",
+              "& fieldset": {
+                borderColor: "rgba(25, 118, 210, 0.5)",
+              },
+              "&:hover fieldset": {
+                borderColor: "primary.main",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "primary.main",
+                borderWidth: 2,
+              },
+              "& .MuiSelect-select": {
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 14px",
+                fontWeight: 600,
+                fontSize: "1rem",
+              },
+            },
+          }}
         >
-          {employees.map((emp) => (
-            <MenuItem key={emp.employee_id} value={emp.employee_id}>
-              {emp.first_name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          <InputLabel id="employee-label">Employee</InputLabel>
+          <Select
+            labelId="employee-label"
+            value={selectedEmployeeId}
+            onChange={(e) => setSelectedEmployeeId(e.target.value)}
+            label="Employee"
+            MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
+          >
+            {employees.map((emp) => (
+              <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                {emp.first_name} {emp.last_name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
       {/* Add New Leave */}
-      <Box mt={2} mb={2} display="flex" gap={2}>
-        <TextField
-          label="Leave Date"
-          type="date"
-          value={newLeaveDate}
-          onChange={(e) => setNewLeaveDate(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
+<Box
+  mt={2}
+  mb={2}
+  display="flex"
+  gap={2}
+  flexWrap="wrap"
+  alignItems="center"
+>
+  {/* Leave Date Field */}
+  <TextField
+    label="Leave Date"
+    type="date"
+    value={newLeaveDate}
+    onChange={(e) => setNewLeaveDate(e.target.value)}
+    InputLabelProps={{ shrink: true }}
+    sx={{
+      minWidth: 220,
+      maxWidth: 300,
+      bgcolor: "background.paper",
+      borderRadius: 2,
+      boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+      "& .MuiOutlinedInput-root": {
+        height: 48,
+        "& fieldset": {
+          borderColor: "rgba(25, 118, 210, 0.5)",
+        },
+        "&:hover fieldset": {
+          borderColor: "primary.main",
+        },
+        "&.Mui-focused fieldset": {
+          borderColor: "primary.main",
+          borderWidth: 2,
+        },
+      },
+      "& .MuiInputBase-input": {
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        padding: "0 14px",
+        fontWeight: 600,
+        fontSize: "1rem",
+      },
+    }}
+  />
 
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl
+          size="medium"
+          variant="outlined"
+          sx={{
+            minWidth: 220,
+            maxWidth: 300,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+            height: 48,
+            "& .MuiOutlinedInput-root": {
+              height: "100%",
+              "& fieldset": {
+                borderColor: "rgba(25, 118, 210, 0.5)",
+              },
+              "&:hover fieldset": {
+                borderColor: "primary.main",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "primary.main",
+                borderWidth: 2,
+              },
+              "& .MuiSelect-select": {
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 14px",
+                fontWeight: 600,
+                fontSize: "1rem",
+              },
+            },
+          }}
+        >
           <InputLabel>Leave Type</InputLabel>
           <Select
             value={newLeaveType}
             onChange={(e) => setNewLeaveType(e.target.value)}
+            label="Leave Type"
           >
             {leaveTypes.map((lt) => (
               <MenuItem key={lt.id} value={lt.id}>
@@ -246,13 +403,42 @@ export default function LeaveManagement() {
           </Select>
         </FormControl>
 
-        <TextField
-          label="Remarks"
-          value={newLeaveRemarks}
-          onChange={(e) => setNewLeaveRemarks(e.target.value)}
-        />
+<TextField
+    label="Remarks"
+    value={newLeaveRemarks}
+    onChange={(e) => setNewLeaveRemarks(e.target.value)}
+    sx={{
+      flexGrow: 1,
+      minWidth: 180,
+      maxWidth: 300,
+      bgcolor: "background.paper",
+      borderRadius: 2,
+      boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
+      "& .MuiOutlinedInput-root": {
+        height: 48,
+        "& fieldset": {
+          borderColor: "rgba(25, 118, 210, 0.5)",
+        },
+        "&:hover fieldset": {
+          borderColor: "primary.main",
+        },
+        "&.Mui-focused fieldset": {
+          borderColor: "primary.main",
+          borderWidth: 2,
+        },
+      },
+      "& .MuiInputBase-input": {
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        padding: "0 14px",
+        fontWeight: 600,
+        fontSize: "1rem",
+      },
+    }}
+  />
 
-        <Button variant="contained" onClick={handleAddLeave}>
+        <Button variant="contained" onClick={handleAddLeave} sx={{ height: 48 }}>
           Add Leave
         </Button>
       </Box>
@@ -274,15 +460,20 @@ export default function LeaveManagement() {
       <Dialog open={isBulkAddOpen} onClose={handleCloseBulkDialog} fullWidth maxWidth="sm">
         <DialogTitle>Bulk Add Leave Records</DialogTitle>
         <DialogContent>
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" size="medium" variant="outlined" sx={{
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)"
+          }}>
             <InputLabel>Employees</InputLabel>
             <Select
               multiple
               value={bulkSelectedEmployees}
               onChange={(e) => setBulkSelectedEmployees(e.target.value)}
+              label="Employees"
               renderValue={(selected) =>
-                selected.map(id => employees.find(e => e.employee_id === id)?.first_name).join(', ')
+                selected.map((id) => employees.find((e) => e.employee_id === id)?.first_name).join(", ")
               }
+              MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
             >
               {employees.map((emp) => (
                 <MenuItem key={emp.employee_id} value={emp.employee_id}>
@@ -299,12 +490,18 @@ export default function LeaveManagement() {
             value={bulkLeaveDate}
             onChange={(e) => setBulkLeaveDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            sx={{ borderRadius: 2 }}
           />
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" size="medium" variant="outlined" sx={{
+            borderRadius: 2,
+            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)"
+          }}>
             <InputLabel>Leave Type</InputLabel>
             <Select
               value={bulkLeaveType}
               onChange={(e) => setBulkLeaveType(e.target.value)}
+              label="Leave Type"
+              MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
             >
               {leaveTypes.map((lt) => (
                 <MenuItem key={lt.id} value={lt.id}>
@@ -323,7 +520,9 @@ export default function LeaveManagement() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseBulkDialog}>Cancel</Button>
-          <Button onClick={handleBulkSubmit} variant="contained">Submit</Button>
+          <Button onClick={handleBulkSubmit} variant="contained">
+            Submit
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

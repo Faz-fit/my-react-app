@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, Tooltip, Typography
+  TextField, MenuItem, Tooltip, Typography,Paper
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import EditIcon from '@mui/icons-material/Edit';
@@ -173,267 +173,270 @@ export default function EmployeeGrid() {
     },
   ];
 
-  return (
-    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>EMPLOYEES</Typography>
+return (
+  <Box
+    sx={{
+      width: '95%',
+      mx: 'auto',
+      mt: 4,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      textTransform: 'uppercase',
+    }}
+  >
+    {/* Header Row */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          color: '#333',
+        }}
+      >
+        Employees
+      </Typography>
 
       <Button
         variant="contained"
         startIcon={<AddIcon />}
         onClick={handleOpenAdd}
-        sx={{ mb: 2, ml: 'auto' }}
+        sx={{
+          backgroundColor: '#1976d2',
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: '8px',
+          '&:hover': {
+            backgroundColor: '#1565c0',
+          },
+        }}
       >
         Add Employee
       </Button>
+    </Box>
 
+    {/* Employee Table */}
+    <Paper
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+      }}
+    >
       <DataGrid
         rows={employees}
         columns={columns}
         pageSize={5}
-        rowsPerPageOptions={[5]}
+        rowsPerPageOptions={[5, 10]}
         getRowId={(row) => row.employee_id}
+        autoHeight
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f9fafb',
+            fontWeight: 600,
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: '#f5f5f5',
+          },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        }}
       />
+    </Paper>
 
-      <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editEmployee ? 'Edit Employee' : 'Add New Employee'}</DialogTitle>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
-          <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    {/* Dialog */}
+    <Dialog
+      open={openDialog}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #eee',
+        }}
+      >
+        {editEmployee ? 'Edit Employee' : 'Add New Employee'}
+      </DialogTitle>
 
-            {/* User Information Fields */}
-            {[
-              ['fullname', 'User Name'],
-              ['email', 'Email'],
-              ['first_name', 'First Name'],
-              ['last_name', 'Last Name'],
-              ['phone_number', 'Phone Number'],
-              ['date_of_birth', 'Date of Birth', 'date'],
-            ].map(([name, label, type = 'text']) => (
-              <Controller
-                key={name}
-                name={name}
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    label={label}
-                    type={type}
-                    fullWidth
-                    error={!!errors[name]}
-                    helperText={errors[name]?.message}
-                    {...field}
-                    autoComplete="off"  // Prevent autofill for all fields
-                  />
-                )}
-              />
-            ))}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
+        <DialogContent
+          dividers
+          sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            backgroundColor: '#fff',
+          }}
+        >
+          {/* Core Fields */}
+          {[
+            ['fullname', 'User Name'],
+            ['email', 'Email'],
+            ['first_name', 'First Name'],
+            ['last_name', 'Last Name'],
+            ['phone_number', 'Phone Number'],
+            ['date_of_birth', 'Date of Birth', 'date'],
+          ].map(([name, label, type = 'text']) => (
+            <Controller
+              key={name}
+              name={name}
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label={label}
+                  type={type}
+                  variant="outlined"
+                  fullWidth
+                  error={!!errors[name]}
+                  helperText={errors[name]?.message}
+                  autoComplete="off"
+                />
+              )}
+            />
+          ))}
 
-            {/* Conditional Password Field */}
-            {!editEmployee && (
-              <Controller
-                name="password"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    label="Password"
-                    type="password"
-                    fullWidth
-                    error={!!passwordError || !!errors.password}
-                    helperText={passwordError || errors.password?.message}
-                    {...field}
-                    autoComplete="new-password" // Prevent autofill for password field
-                  />
-                )}
-              />
+          {/* Conditional Password */}
+          {!editEmployee && (
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Password"
+                  type="password"
+                  variant="outlined"
+                  fullWidth
+                  error={!!passwordError || !!errors.password}
+                  helperText={passwordError || errors.password?.message}
+                  autoComplete="new-password"
+                />
+              )}
+            />
+          )}
+
+          {/* Role & Outlets */}
+          <Controller
+            name="group"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                select
+                label="Role"
+                fullWidth
+                variant="outlined"
+                error={!!errors.group}
+                helperText={errors.group?.message}
+              >
+                {groups.map((group) => (
+                  <MenuItem key={group.id} value={group.id}>
+                    {group.name}
+                  </MenuItem>
+                ))}
+              </TextField>
             )}
+          />
 
-            {/* Outlets Multi-Select */}
+          <Controller
+            name="outlets"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                select
+                label="Outlets"
+                fullWidth
+                variant="outlined"
+                SelectProps={{ multiple: true }}
+                error={!!errors.outlets}
+                helperText={errors.outlets?.message}
+              >
+                {outlets.map((outlet) => (
+                  <MenuItem key={outlet.id} value={outlet.id}>
+                    {outlet.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+
+          {/* EPF & Other Fields */}
+          {[
+            ['cal_epf', 'Calculate EPF', 'checkbox'],
+            ['epf_cal_date', 'EPF Calculation Date', 'date'],
+            ['epf_grade', 'EPF Grade'],
+            ['epf_number', 'EPF Number'],
+            ['employ_number', 'Employment Number'],
+            ['basic_salary', 'Basic Salary', 'number'],
+            ['epf_com_per', 'EPF Company %', 'number'],
+            ['epf_emp_per', 'EPF Employee %', 'number'],
+            ['etf_com_per', 'ETF Company %', 'number'],
+          ].map(([name, label, type = 'text']) => (
             <Controller
-              name="outlets"
+              key={name}
+              name={name}
               control={control}
               render={({ field }) => (
                 <TextField
-                  select
-                  label="Outlets"
-                  fullWidth
-                  SelectProps={{ multiple: true }}
-                  error={!!errors.outlets}
-                  helperText={errors.outlets?.message}
                   {...field}
-                  autoComplete="off"  // Prevent autofill for multi-select outlets
-                >
-                  {outlets.map((outlet) => (
-                    <MenuItem key={outlet.id} value={outlet.id}>
-                      {outlet.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
-
-            {/* Group (Role) Selection */}
-            <Controller
-              name="group"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  select
-                  label="Role"
+                  label={label}
+                  type={type}
                   fullWidth
-                  error={!!errors.group}
-                  helperText={errors.group?.message}
-                  {...field}
-                  autoComplete="off"  // Prevent autofill for the role field
-                >
-                  {groups.map((group) => (
-                    <MenuItem key={group.id} value={group.id}>
-                      {group.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
-
-            {/* New Fields */}
-            <Controller
-              name="cal_epf"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Calculate EPF"
-                  type="checkbox"
-                  fullWidth
-                  {...field}
-                  value={field.value ? true : false} // Convert value to boolean if necessary
+                  variant="outlined"
                 />
               )}
             />
+          ))}
 
+          {!editEmployee && (
             <Controller
-              name="epf_cal_date"
+              name="idnumber"
               control={control}
               render={({ field }) => (
-                <TextField
-                  label="EPF Calculation Date"
-                  type="date"
-                  fullWidth
-                  {...field}
-                />
+                <TextField {...field} label="ID Number" fullWidth />
               )}
             />
+          )}
+        </DialogContent>
 
-            <Controller
-              name="epf_grade"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="EPF Grade"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleClose} variant="outlined" sx={{ borderRadius: '8px' }}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            {editEmployee ? 'Save Changes' : 'Add Employee'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  </Box>
+);
 
-            <Controller
-              name="epf_number"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="EPF Number"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-
-            <Controller
-              name="employ_number"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Employment Number"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-
-            <Controller
-              name="basic_salary"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="Basic Salary"
-                  type="number"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-
-            <Controller
-              name="epf_com_per"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="EPF Company Percentage"
-                  type="number"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-
-            <Controller
-              name="epf_emp_per"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="EPF Employee Percentage"
-                  type="number"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-
-            <Controller
-              name="etf_com_per"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  label="ETF Company Percentage"
-                  type="number"
-                  fullWidth
-                  {...field}
-                />
-              )}
-            />
-
-            {!editEmployee && (
-                <Controller
-                  name="idnumber"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      label="ID Number"
-                      fullWidth
-                      {...field}
-                    />
-                  )}
-                />
-              )}
-
-          </DialogContent>
-
-          {/* Dialog Actions */}
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button type="submit" variant="contained">
-              {editEmployee ? 'Save' : 'Add'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-
-    </Box>
-  );
 }

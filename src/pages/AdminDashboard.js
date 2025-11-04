@@ -1,251 +1,474 @@
 import React, { useEffect, useState } from "react";
 import {
-  Box,
   Typography,
-  MenuItem,
-  Select,
+  Paper,
+  Box,
+  Grid,
+  Card,
+  CardContent,
   FormControl,
   InputLabel,
+  Select,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  LinearProgress,
+  Alert,
+  Button,
   CircularProgress,
-  TextField,
-  Paper,
+  Avatar,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
-import api from 'utils/api';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import PeopleIcon from "@mui/icons-material/People";
+import PersonIcon from "@mui/icons-material/Person";
+import StoreIcon from "@mui/icons-material/Store";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 
-// Helper function to get the start of the current month
-const getStartOfMonth = () => {
-  const date = new Date();
-  return new Date(date.getFullYear(), date.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-};
-
-// Helper function to get today's date
-const getToday = () => {
-  return new Date().toISOString().split("T")[0];
-};
-
-export default function OutletAttendanceReport() {
-  const [outlets, setOutlets] = useState([]);
-  const [selectedOutletId, setSelectedOutletId] = useState("");
-
-  // State for date range
-  const [startDate, setStartDate] = useState(getStartOfMonth());
-  const [endDate, setEndDate] = useState(getToday());
-
-  const [outletData, setOutletData] = useState(null);
-  const [loading, setLoading] = useState(true);
+function AdminDashboard() {
+  const [overviewData, setOverviewData] = useState(null);
+  const [leavePresenceData, setLeavePresenceData] = useState([]);
+  const [outletData, setOutletData] = useState([]);
+  const [employeeData, setEmployeeData] = useState([]);
+  const [selectedOutlet, setSelectedOutlet] = useState("All");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [animKey, setAnimKey] = useState(0);
 
-  // Fetch outlets data on component mount
+
   useEffect(() => {
-    const fetchOutlets = async () => {
+    async function fetchAllData() {
       try {
-        const response = await api.get('/api/user/');
-        setOutlets(response.data.outlets);
-        if (response.data.outlets && response.data.outlets.length > 0) {
-          setSelectedOutletId(response.data.outlets[0].id); // Set default selected outlet
-        }
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-    fetchOutlets();
-  }, []); // Runs only once
+        setLoading(true);
+        const accessToken = localStorage.getItem("access_token");
+        if (!accessToken) throw new Error("No access token found");
+        const headers = { Authorization: `Bearer ${accessToken}` };
 
-  // Fetch outlet attendance data when outletId changes
-  useEffect(() => {
-    if (!selectedOutletId) return;
+        const [overviewRes, leaveRes, outletRes, employeeRes] = await Promise.all([
+          fetch("http://139.59.243.2:8000/report/dashboard/overview/", { headers }),
+          fetch("http://139.59.243.2:8000/report/dashboard/leave-presence-trend/", { headers }),
+          fetch("http://139.59.243.2:8000/report/dashboard/outlet-summary/", { headers }),
+          fetch("http://139.59.243.2:8000/report/dashboard/employee-attendance-summary/", { headers }),
+        ]);
 
-    const fetchOutletData = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
-        setOutletData(response.data);
+        if (!overviewRes.ok) throw new Error("Failed to fetch overview data");
+        if (!leaveRes.ok) throw new Error("Failed to fetch leave presence data");
+        if (!outletRes.ok) throw new Error("Failed to fetch outlet data");
+        if (!employeeRes.ok) throw new Error("Failed to fetch employee attendance data");
+
+        const overviewJson = await overviewRes.json();
+        const leavePresenceJson = await leaveRes.json();
+        const outletJson = await outletRes.json();
+        const employeeJson = await employeeRes.json();
+
+        setOverviewData(overviewJson);
+        setLeavePresenceData(leavePresenceJson);
+        setOutletData(outletJson);
+        setEmployeeData(employeeJson);
         setError(null);
       } catch (err) {
-        setError(err.message);
-        setOutletData(null);
+        setError(err.message || "Something went wrong");
       } finally {
         setLoading(false);
       }
-    };
+    }
+    fetchAllData();
+  }, []);
+  
 
-    fetchOutletData();
-  }, [selectedOutletId]); // Re-fetch only when outlet changes
+  const filteredEmployees =
+    selectedOutlet === "All"
+      ? employeeData
+      : employeeData.filter((emp) => emp.outlet_name === selectedOutlet);
 
-  // Transform data into rows for the report
-  const transformDataForReport = (data) => {
-    if (!data || !data.employees) return [];
+  const statCards = overviewData
+    ? [
+        { label: "Total Employees", value: overviewData.total_emp },
+        { label: "Active Employees", value: overviewData.active_emp },
+        { label: "Inactive Employees", value: overviewData.inactive_emp },
+        { label: "Total Outlets", value: overviewData.outlets },
+        { label: "Present Today", value: overviewData.present },
+        { label: "Absent Today", value: overviewData.absentee },
+      ]
+    : [];
+  
 
-    const reportRows = [];
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+  // Conditional rendering for loading and error states
+  if (loading && !overviewData) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>Loading Dashboard Data...</Typography>
+      </Box>
+    );
+  }
 
-    const formatTime = (isoString) => {
-      if (!isoString) return "-";
-      const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
+  if (error) {
+    return (
+      <Box sx={{ maxWidth: 1400, mx: "auto", py: 3, px: 4 }}>
+        <Alert severity="error">
+          Error: {error}. Please check your network connection or access token.
+        </Alert>
+      </Box>
+    );
+  }
 
-    data.employees.forEach((emp) => {
-      // Add attendance records within the date range
-      emp.attendances.forEach((att) => {
-        const attDate = new Date(att.date);
-        if (attDate >= start && attDate <= end) {
-          reportRows.push({
-            id: att.attendance_id, // Unique ID for each row
-            employee_id: emp.employee_id,
-            fullname: `${emp.first_name} ${emp.last_name}`,
-            date: att.date,
-            check_in_time: formatTime(att.check_in_time),
-            check_out_time: formatTime(att.check_out_time),
-            worked_hours: att.worked_hours ? att.worked_hours.toFixed(2) : "-",
-            ot_hours: att.ot_hours ? att.ot_hours.toFixed(2) : "-",
-            status: att.status,
-          });
-        }
-      });
+const iconMap = {
+  "Total Employees": { icon: <PeopleIcon />, color: "#1976d2" },
+  "Active Employees": { icon: <PersonIcon />, color: "#2e7d32" },
+  "Inactive Employees": { icon: <CancelIcon />, color: "#d32f2f" },
+  "Total Outlets": { icon: <StoreIcon />, color: "#0288d1" },
+  "Present Today": { icon: <CheckCircleIcon />, color: "#43a047" },
+  "Absent Today": { icon: <CancelIcon />, color: "#f57c00" },
+};
 
-      // Add approved leave records within the date range
-      emp.leaves.forEach((lv) => {
-        const leaveDate = new Date(lv.leave_date);
-        // Check if leave is approved and within the date range
-        if (lv.status === 'approved' && leaveDate >= start && leaveDate <= end) {
-          // Also check if there isn't already an attendance record for this day
-          const hasAttendance = emp.attendances.some(att => att.date === lv.leave_date);
-          if (!hasAttendance) {
-            reportRows.push({
-              id: `leave-${lv.leave_refno}`, // Unique ID for leave row
-              employee_id: emp.employee_id,
-              fullname: `${emp.first_name} ${emp.last_name}`,
-              date: lv.leave_date,
-              check_in_time: "-",
-              check_out_time: "-",
-              worked_hours: "-",
-              ot_hours: "-",
-              status: `On Leave (${lv.leave_type_name})`,
-            });
-          }
-        }
-      });
-    });
 
-    // Sort rows by date
-    return reportRows.sort((a, b) => new Date(b.date) - new Date(a.date));
-  };
-
-  const rows = outletData ? transformDataForReport(outletData) : [];
-
-  const columns = [
-    { field: "employee_id", headerName: "Emp ID", width: 90 },
-    { field: "fullname", headerName: "Full Name", flex: 1.5, minWidth: 180 },
-    { field: "date", headerName: "Date", flex: 1, minWidth: 120 },
-    { field: "check_in_time", headerName: "Check In", flex: 1, minWidth: 100 },
-    { field: "check_out_time", headerName: "Check Out", flex: 1, minWidth: 100 },
-    { field: "worked_hours", headerName: "Worked Hours", flex: 1, minWidth: 120 },
-    { field: "ot_hours", headerName: "OT Hours", flex: 1, minWidth: 100 },
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 1.2,
-      minWidth: 150,
-      renderCell: (params) => {
-        let color = "black";
-        if (params.value.startsWith("On Leave")) color = "#E67E22"; // Orange
-        if (params.value === "Present") color = "#27AE60"; // Green
-        if (params.value === "Half Day") color = "#3498DB"; // Blue
-        return <strong style={{ color }}>{params.value}</strong>;
-      },
-    },
-  ];
 
   return (
-    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
-      <Box
+    <Box sx={{ minHeight: "100vh", py: 1}}>
+      <Box sx={{ maxWidth: 1400, mx: "auto", px: 2 }}>
+        
+        {/* === MAIN DASHBOARD GRID (KPIs & TRENDS) === */}
+        <Box sx={{  p: 2, borderRadius: 1, height: "500px", }}>
+          <Grid container spacing={3} sx={{ height: "100%" }}>
+            
+            {/* Left Side: KPI Cards */}
+<Grid
+  item
+  xs={12}
+  lg={7}
+  sx={{
+    height: "100%",
+    width: "40%",
+    overflowY: "auto",
+    /* Hide scrollbar */
+    scrollbarWidth: "none", // For Firefox
+    msOverflowStyle: "none", // For Internet Explorer and Edge
+    "&::-webkit-scrollbar": {
+      display: "none", // For Chrome, Safari, and Opera
+    },
+  }}
+>
+<Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+  {statCards.map((stat, index) => {
+    const { icon, color } = iconMap[stat.label] || {};
+    return (
+      <Card
+        key={index}
+        elevation={2}
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: "center",
-          mb: 3,
-          gap: 2,
+          borderRadius: 2,
+          transition: "transform 0.2s, box-shadow 0.2s",
+          "&:hover": {
+            transform: "translateY(-3px)",
+            boxShadow: "0px 4px 20px rgba(0,0,0,0.08)",
+          },
         }}
       >
-        <Typography
-          variant="h4"
+        <CardContent
           sx={{
-            fontWeight: "bold",
-            borderBottom: "3px solid #1976d2",
-            display: "inline-block",
-            pb: 0.5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            py: 2,
+            px: 2.5,
           }}
         >
-          OUTLETLOG
-        </Typography>
+          {/* Left side - Text */}
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{ color: "text.secondary", fontWeight: 500 }}
+            >
+              {stat.label}
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{ fontWeight: 700, color: "text.primary", mt: 0.5 }}
+            >
+              {stat.value}
+            </Typography>
+          </Box>
 
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: 'center' }}>
-          {outlets.length > 0 && (
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Select Outlet</InputLabel>
-              <Select
-                value={selectedOutletId}
-                label="Select Outlet"
-                onChange={(e) => setSelectedOutletId(e.target.value)}
-              >
-                {outlets.map((outlet) => (
-                  <MenuItem key={outlet.id} value={outlet.id}>
+          {/* Right side - Icon */}
+          {icon && (
+            <Avatar
+              sx={{
+                bgcolor: `${color}1A`, // transparent tint background
+                color: color,
+                width: 48,
+                height: 48,
+                boxShadow: `0 0 0 2px ${color}20`,
+              }}
+            >
+              {icon}
+            </Avatar>
+          )}
+        </CardContent>
+      </Card>
+    );
+  })}
+</Box>
+</Grid>
+
+
+            {/* Right Side: Attendance Trends Chart */}
+            <Grid item xs={12} lg={5} sx={{ height: "100%", width: "58%", display: "flex" }}>
+              <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", p: 2, width: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "#212121", mb: 0.5, fontSize: "1rem" }}>
+                  Attendance Trends
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#757575", mb: 1.5, fontSize: "0.75rem" }}>
+                  Employee presence, leave, and not-marked patterns over the last 7 days
+                </Typography>
+                <Box sx={{ width: "100%", flex: 1, minHeight: 0, position: "relative" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={leavePresenceData}
+                      margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
+                      <XAxis
+                        dataKey="date_label"
+                        stroke="#9e9e9e"
+                        tick={{ fontSize: 11, fill: "#757575" }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                      />
+                      <YAxis
+                        stroke="#9e9e9e"
+                        tick={{ fontSize: 11, fill: "#757575" }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                        }}
+                        cursor={{ stroke: "#e0e0e0", strokeWidth: 1 }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
+                        iconType="circle"
+                        iconSize={7}
+                      />
+                      <Line
+                        type="basis"
+                        dataKey="present"
+                        stroke="#2e7d32" // Green for Present
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                        name="Present"
+                        isAnimationActive={true}
+animationDuration={800}
+                      />
+                      <Line
+                        type="basis"
+                        dataKey="leave"
+                        stroke="#f57c00" // Orange for On Leave
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                        name="On Leave"
+                      />
+                      {/* === NEW LINE FOR NOT MARKED ATTENDANCE === */}
+                      <Line
+                        type="basis"
+                        dataKey="not_marked" // Key from the API response
+                        stroke="#ff0000ff" // Grey color
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                        name="Not Marked"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* --- */}
+
+        {/* === Outlet Table === */}
+        <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", mb: 3, overflow: "hidden" }}>
+          <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #e0e0e0" }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#212121", mb: 0.5 }}>
+              Outlet Overview
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#757575" }}>
+              Current attendance status across all locations
+            </Typography>
+          </Box>
+          <TableContainer sx={{ maxHeight: 440, overflowY: 'auto' }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#fafafa" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Outlet
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Total Staff
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Present
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Absent
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    On Leave
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Attendance Rate
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {outletData.map((outlet) => {
+                  const attendanceRate = ((outlet.presentemp / outlet.totalemp) * 100).toFixed(0);
+                  return (
+                    <TableRow key={outlet.outlet_id} sx={{ "&:hover": { bgcolor: "#fafafa" } }}>
+                      <TableCell sx={{ fontWeight: 500, color: "#212121" }}>{outlet.name}</TableCell>
+                      <TableCell sx={{ color: "#616161" }}>{outlet.totalemp}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#2e7d32", fontWeight: 600 }}>
+                          {outlet.presentemp}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 600 }}>
+                          {outlet.absentemp}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#f57c00", fontWeight: 600 }}>
+                          {outlet.onleave}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box sx={{ width: 80, mr: 1 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Number(attendanceRate)}
+                              sx={{
+                                height: 6,
+                                borderRadius: 3,
+                                bgcolor: "#e0e0e0",
+                                "& .MuiLinearProgress-bar": { bgcolor: "#2e7d32", borderRadius: 3 },
+                              }}
+                            />
+                          </Box>
+                          <Typography variant="body2" sx={{ color: "#616161" }}>
+                            {attendanceRate}%
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+
+        {/* --- */}
+        
+        {/* === Employee Table === */}
+        <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", mb: 3, overflow: "hidden" }}>
+          <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #e0e0e0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "#212121", mb: 0.5 }}>
+                Employee Attendance
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#757575" }}>
+                Monthly attendance summary by employee
+              </Typography>
+            </Box>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Filter by Outlet</InputLabel>
+              <Select value={selectedOutlet} onChange={(e) => setSelectedOutlet(e.target.value)} label="Filter by Outlet">
+                <MenuItem value="All">All Outlets</MenuItem>
+                {outletData.map((outlet) => (
+                  <MenuItem key={outlet.outlet_id} value={outlet.name}>
                     {outlet.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-          )}
-          <TextField
-            label="Start Date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-        </Box>
+          </Box>
+          <TableContainer sx={{ maxHeight: 440, overflowY: 'auto' }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#fafafa" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Employee
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Present
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Absent
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>Leave</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Total Days
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredEmployees.map((emp) => {
+                  const totalDays = emp.present_days + emp.absent_days + emp.leave_days;
+                  return (
+                    <TableRow key={emp.employee_id} sx={{ "&:hover": { bgcolor: "#fafafa" } }}>
+                      <TableCell sx={{ fontWeight: 500, color: "#212121" }}>{emp.fullname}</TableCell>
+                      <TableCell sx={{ color: "#616161" }}>{emp.empcode}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#2e7d32", fontWeight: 600 }}>
+                          {emp.present_days}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 600 }}>
+                          {emp.absent_days}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: "#f57c00", fontWeight: 600 }}>
+                          {emp.leave_days}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ color: "#616161" }}>{totalDays}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       </Box>
-
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Typography color="error" align="center" sx={{ mt: 4 }}>
-          {error}
-        </Typography>
-      ) : (
-        <Box sx={{ height: 600, width: "100%" }}>
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            pageSize={10}
-            rowsPerPageOptions={[10, 25, 50]}
-            disableRowSelectionOnClick
-            sx={{
-              borderRadius: 2,
-              "& .MuiDataGrid-row:hover": { backgroundColor: "#f5f5f5" },
-              "& .MuiDataGrid-cell:focus": { outline: "none" },
-            }}
-
-          />
-        </Box>
-      )}
-    </Paper>
+    </Box>
   );
 }
+
+export default AdminDashboard;

@@ -1,6 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Box, Typography, MenuItem, Select, FormControl, InputLabel, Dialog, DialogActions, DialogContent, DialogTitle, Button } from '@mui/material';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Box,
+  Typography,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Button,
+  Paper,
+} from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -11,34 +23,34 @@ export default function LeaveApproval() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [openDialog, setOpenDialog] = useState(false); // Dialog visibility state
-  const [currentRequest, setCurrentRequest] = useState(null); // Track the request to approve/reject
-
-  // Retrieve JWT token from localStorage or sessionStorage
-  const token = localStorage.getItem('access_token'); // or sessionStorage.getItem('token')
+  const [openDialog, setOpenDialog] = useState(false);
+  const [currentRequest, setCurrentRequest] = useState(null);
 
   useEffect(() => {
-    const fetchLeaveRequests = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/api/attendance/allleaverequests');
-        setRequests(response.data);
+        const [leaveRes, empRes] = await Promise.all([
+          api.get('/api/attendance/allleaverequests'),
+          api.get('/api/getemployees/'),
+        ]);
+        setRequests(leaveRes.data);
+        setEmployees(empRes.data);
+        setLoading(false);
       } catch (error) {
-        console.error('Error fetching leave requests:', error);
+        console.error('Error fetching data:', error);
+        setLoading(false);
       }
     };
-
-    const fetchEmployeeData = async () => {
-      try {
-        const response = await api.get('/api/getemployees/');
-        setEmployees(response.data);
-      } catch (error) {
-        console.error('Error fetching employee data:', error);
-      }
-    };
-
-    fetchLeaveRequests();
-    fetchEmployeeData();
+    fetchData();
   }, []);
+
+  const mappedRequests = useMemo(() => {
+    if (!requests.length || !employees.length) return [];
+    return requests.map((req) => {
+      const emp = employees.find((e) => e.employee_id === req.employee);
+      return { ...req, employeeName: emp ? emp.first_name : 'Unknown' };
+    });
+  }, [requests, employees]);
 
   const handleApprove = (id) => {
     setCurrentRequest({ id, action: 'approved' });
@@ -52,7 +64,6 @@ export default function LeaveApproval() {
 
   const confirmAction = async () => {
     if (!currentRequest) return;
-
     try {
       const response = await api.put(
         `/api/attendance/updateleavestatus/${currentRequest.id}/`,
@@ -60,15 +71,16 @@ export default function LeaveApproval() {
       );
 
       if (response.status === 200) {
-        setRequests((prevRequests) =>
-          prevRequests.map((req) =>
+        setRequests((prev) =>
+          prev.map((req) =>
             req.leave_refno === currentRequest.id
               ? { ...req, status: currentRequest.action }
               : req
           )
         );
-
-        alert(`${currentRequest.action.charAt(0).toUpperCase() + currentRequest.action.slice(1)} Leave`);
+        alert(
+          `${currentRequest.action.charAt(0).toUpperCase() + currentRequest.action.slice(1)} Leave`
+        );
       } else {
         alert(`Error ${currentRequest.action} leave request!`);
       }
@@ -81,50 +93,30 @@ export default function LeaveApproval() {
     }
   };
 
-
   const handleCloseDialog = () => {
-    setOpenDialog(false); // Close the dialog without action
+    setOpenDialog(false);
     setCurrentRequest(null);
   };
 
-  const mapEmployeeData = (requests, employees) => {
-    return requests.map(request => {
-      const employee = employees.find(emp => emp.employee_id === request.employee);
-      return {
-        ...request,
-        employeeName: employee ? employee.first_name : 'Unknown',
-      };
-    });
-  };
+  const filteredRequests =
+    statusFilter === 'all'
+      ? mappedRequests
+      : mappedRequests.filter((req) => req.status === statusFilter);
 
-  useEffect(() => {
-    if (requests.length > 0 && employees.length > 0) {
-      const mappedRequests = mapEmployeeData(requests, employees);
-      setRequests(mappedRequests);
-      setLoading(false);
-    }
-  }, [requests, employees]);
-
-  const filteredRequests = statusFilter === 'all'
-    ? requests
-    : requests.filter(req => req.status === statusFilter);
-
-  if (loading) {
-    return <Typography>Loading...</Typography>;
-  }
-
+  // ✅ FLEX columns for responsive fitting
   const columns = [
-    { field: 'leave_refno', headerName: 'Leave Ref No', width: 150 },
-    { field: 'leave_date', headerName: 'Leave Date', width: 150 },
-    { field: 'remarks', headerName: 'Remarks', width: 200 },
-    { field: 'add_date', headerName: 'Added On', width: 150 },
-    { field: 'employee', headerName: 'Employee ID', width: 150 },
-    { field: 'employeeName', headerName: 'Full Name', width: 200 },
-    { field: 'leave_type_name', headerName: 'Leave Type', width: 200 },
+    { field: 'leave_refno', headerName: 'Ref No', flex: 0.6, minWidth: 100 },
+    { field: 'leave_date', headerName: 'Date', flex: 0.8, minWidth: 120 },
+    { field: 'remarks', headerName: 'Remarks', flex: 1.2, minWidth: 160 },
+    { field: 'add_date', headerName: 'Added On', flex: 0.8, minWidth: 120 },
+    { field: 'employee', headerName: 'Emp ID', flex: 0.7, minWidth: 100 },
+    { field: 'employeeName', headerName: 'Name', flex: 1, minWidth: 140 },
+    { field: 'leave_type_name', headerName: 'Leave Type', flex: 1, minWidth: 140 },
     {
       field: 'actions',
-      headerName: 'Status',
-      width: 150,
+      headerName: 'Status / Action',
+      flex: 1,
+      minWidth: 160,
       renderCell: (params) => (
         <>
           {params.row.status === 'pending' ? (
@@ -141,20 +133,63 @@ export default function LeaveApproval() {
               />
             </>
           ) : (
-            <Typography>{params.row.status}</Typography>
+            <Typography
+              sx={{
+                textTransform: 'capitalize',
+                color:
+                  params.row.status === 'approved'
+                    ? 'green'
+                    : params.row.status === 'rejected'
+                    ? 'red'
+                    : 'inherit',
+                fontWeight: 600,
+              }}
+            >
+              {params.row.status}
+            </Typography>
           )}
         </>
       ),
     },
   ];
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 2 }} fontWeight="bold">
-        LEAVE MANAGEMENT
-      </Typography>
+  if (loading) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h6">Loading...</Typography>
+      </Box>
+    );
+  }
 
-      <FormControl sx={{ mb: 2 }} fullWidth>
+return (
+  <Box sx={{ p: 4 }}>
+    {/* Page Title */}
+    <Typography
+      variant="h4"
+      sx={{
+        mb: 3,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        
+        display: 'inline-block',
+        pb: 0.5,
+      }}
+    >
+      Leave Management
+    </Typography>
+
+    {/* Filter Section */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'flex-start',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        gap: 2,
+        mb: 3,
+      }}
+    >
+      <FormControl sx={{ minWidth: 200 }}>
         <InputLabel>Status</InputLabel>
         <Select
           value={statusFilter}
@@ -167,34 +202,58 @@ export default function LeaveApproval() {
           <MenuItem value="rejected">Rejected</MenuItem>
         </Select>
       </FormControl>
-
-      <Box sx={{ height: 400 }}>
-        <DataGrid
-          rows={filteredRequests}
-          columns={columns}
-          pageSize={5}
-          disableRowSelectionOnClick
-          getRowId={(row) => row.leave_refno}
-        />
-      </Box>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Confirm Action</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to {currentRequest?.action} this leave request?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={confirmAction} color="secondary">
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
-  );
+
+    {/* DataGrid */}
+    <Box sx={{ height: 460, width: '100%', overflowX: 'hidden' }}>
+      <DataGrid
+        rows={filteredRequests}
+        columns={columns.map((col) => ({
+          ...col,
+          flex: col.flex || 1,
+          minWidth: col.minWidth || 120,
+        }))}
+        pageSize={5}
+        rowsPerPageOptions={[5, 10]}
+        disableRowSelectionOnClick
+        getRowId={(row) => row.leave_refno}
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f5f7fa',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+          },
+          '& .MuiDataGrid-cell': {
+            fontSize: '0.9rem',
+          },
+          '& .MuiDataGrid-row:hover': { backgroundColor: '#f9f9f9' },
+          '& .MuiDataGrid-cell:focus': { outline: 'none' },
+          '&::-webkit-scrollbar': { display: 'none' },
+          scrollbarWidth: 'none',
+        }}
+      />
+    </Box>
+
+    {/* Confirmation Dialog */}
+    <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 'bold' }}>Confirm Action</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Are you sure you want to{' '}
+          <strong>{currentRequest?.action}</strong> this leave request?
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseDialog} color="inherit">
+          Cancel
+        </Button>
+        <Button onClick={confirmAction} variant="contained" color="primary">
+          Confirm
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </Box>
+);
+
 }

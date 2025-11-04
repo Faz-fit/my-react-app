@@ -10,7 +10,8 @@ import {
   Typography,
   Tooltip,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Paper,
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
@@ -211,187 +212,296 @@ export default function HolidayGrid() {
     setValue('att_type', attTypeName); // Automatically set `att_type` to `att_type_name`
   }, [getValues, setValue]);
 
-  return (
-    <Box sx={{ height: 500, width: '90%', mx: 'auto', mt: 5, position: 'relative' }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>
+return (
+  <Box
+    sx={{
+      width: '90%',
+      mx: 'auto',
+      mt: 5,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      position: 'relative',
+      textTransform: 'uppercase',
+    }}
+  >
+    {/* Header Row */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          color: '#333',
+        }}
+      >
         Leave Types
       </Typography>
 
       <Button
         variant="contained"
         startIcon={<AddIcon />}
-        sx={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}
         onClick={openAddDialog}
+        sx={{
+          backgroundColor: '#1976d2',
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: '8px',
+          '&:hover': {
+            backgroundColor: '#1565c0',
+          },
+        }}
       >
         Add Attendance Type
       </Button>
+    </Box>
 
+    {/* Leave Types Table */}
+    <Paper
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+      }}
+    >
       <DataGrid
         rows={leaveData}
         columns={columns}
         pageSize={7}
         rowsPerPageOptions={[5, 7, 10]}
         disableSelectionOnClick
-        sx={{ mt: 4 }}
+        autoHeight
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f9fafb',
+            fontWeight: 600,
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: '#f5f5f5',
+          },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        }}
       />
+    </Paper>
 
-      <Dialog open={openDialog} onClose={closeDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editHoliday ? 'Edit Attendance Type' : 'Add Attendance Type'}</DialogTitle>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            {/* Replace attTypeMap with custom input */}
-            <Controller
-              name="att_type"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Attendance Type"
-                  fullWidth
-                  error={!!errors.att_type}
-                  helperText={errors.att_type?.message}
-                  disabled={loading}
-                />
-              )}
-            />
+    {/* Add/Edit Leave Type Dialog */}
+    <Dialog
+      open={openDialog}
+      onClose={closeDialog}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #eee',
+        }}
+      >
+        {editHoliday ? 'Edit Attendance Type' : 'Add Attendance Type'}
+      </DialogTitle>
 
-            {/* Name field */}
-            <Controller
-              name="att_type_name"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Name"
-                  fullWidth
-                  error={!!errors.att_type_name}
-                  helperText={errors.att_type_name?.message}
-                  disabled={loading}
-                />
-              )}
-            />
-            {/* Active checkbox */}
-            <Controller
-              name="active"
-              control={control}
-              render={({ field }) => (
-                <FormControlLabel
-                  control={<Checkbox {...field} checked={field.value} />}
-                  label="Active"
-                  disabled={loading}
-                />
-              )}
-            />
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <DialogContent
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          {/* Attendance Type */}
+          <Controller
+            name="att_type"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Attendance Type"
+                fullWidth
+                error={!!errors.att_type}
+                helperText={errors.att_type?.message}
+                disabled={loading}
+              />
+            )}
+          />
 
-            {/* Other fields */}
-            <Controller
-              name="att_type_group"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Group"
-                  fullWidth
-                  error={!!errors.att_type_group}
-                  helperText={errors.att_type_group?.message}
-                  disabled={loading}
-                />
-              )}
-            />
+          {/* Name */}
+          <Controller
+            name="att_type_name"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Name"
+                fullWidth
+                error={!!errors.att_type_name}
+                helperText={errors.att_type_name?.message}
+                disabled={loading}
+              />
+            )}
+          />
 
-            <Controller
-              name="att_type_per_day_hours"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Hours per day"
-                  type="number"
-                  fullWidth
-                  error={!!errors.att_type_per_day_hours}
-                  helperText={errors.att_type_per_day_hours?.message}
-                  disabled={loading}
-                />
-              )}
-            />
+          {/* Active Switch */}
+          <Controller
+            name="active"
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={<Checkbox {...field} checked={field.value} />}
+                label="Active"
+                disabled={loading}
+              />
+            )}
+          />
 
-            <Controller
-              name="pay_percentage"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Pay Percentage"
-                  type="number"
-                  fullWidth
-                  error={!!errors.pay_percentage}
-                  helperText={errors.pay_percentage?.message}
-                  disabled={loading}
-                />
-              )}
-            />
+          {/* Group */}
+          <Controller
+            name="att_type_group"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Group"
+                fullWidth
+                error={!!errors.att_type_group}
+                helperText={errors.att_type_group?.message}
+                disabled={loading}
+              />
+            )}
+          />
 
-            <Controller
-              name="att_type_no_of_days_in_year"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Days in Year"
-                  type="number"
-                  fullWidth
-                  error={!!errors.att_type_no_of_days_in_year}
-                  helperText={errors.att_type_no_of_days_in_year?.message}
-                  disabled={loading}
-                />
-              )}
-            />
+          {/* Hours per day */}
+          <Controller
+            name="att_type_per_day_hours"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Hours per Day"
+                type="number"
+                fullWidth
+                error={!!errors.att_type_per_day_hours}
+                helperText={errors.att_type_per_day_hours?.message}
+                disabled={loading}
+              />
+            )}
+          />
 
-            <Controller
-              name="year_start_date"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Year Start Date"
-                  type="date"
-                  fullWidth
-                  error={!!errors.year_start_date}
-                  helperText={errors.year_start_date?.message}
-                  disabled={loading}
-                  InputLabelProps={{ shrink: true }}
-                />
-              )}
-            />
+          {/* Pay Percentage */}
+          <Controller
+            name="pay_percentage"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Pay Percentage"
+                type="number"
+                fullWidth
+                error={!!errors.pay_percentage}
+                helperText={errors.pay_percentage?.message}
+                disabled={loading}
+              />
+            )}
+          />
 
-            <Controller
-              name="year_end_date"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Year End Date"
-                  type="date"
-                  fullWidth
-                  error={!!errors.year_end_date}
-                  helperText={errors.year_end_date?.message}
-                  disabled={loading}
-                  InputLabelProps={{ shrink: true }}
-                />
-              )}
-            />
-          </DialogContent>
+          {/* Days per Year */}
+          <Controller
+            name="att_type_no_of_days_in_year"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Days in Year"
+                type="number"
+                fullWidth
+                error={!!errors.att_type_no_of_days_in_year}
+                helperText={errors.att_type_no_of_days_in_year?.message}
+                disabled={loading}
+              />
+            )}
+          />
 
-          <DialogActions>
-            <Button onClick={closeDialog} disabled={loading}>
-              Cancel
-            </Button>
-            <Button variant="contained" type="submit" disabled={loading}>
-              {loading ? (editHoliday ? 'Saving...' : 'Creating...') : editHoliday ? 'Save' : 'Create'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </Box>
-  );
+          {/* Year Start Date */}
+          <Controller
+            name="year_start_date"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Year Start Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                error={!!errors.year_start_date}
+                helperText={errors.year_start_date?.message}
+                disabled={loading}
+              />
+            )}
+          />
+
+          {/* Year End Date */}
+          <Controller
+            name="year_end_date"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Year End Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                error={!!errors.year_end_date}
+                helperText={errors.year_end_date?.message}
+                disabled={loading}
+              />
+            )}
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeDialog} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            type="submit"
+            disabled={loading}
+            sx={{
+              backgroundColor: '#1976d2',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: '#1565c0',
+              },
+            }}
+          >
+            {loading
+              ? editHoliday
+                ? 'Saving...'
+                : 'Creating...'
+              : editHoliday
+              ? 'Save'
+              : 'Create'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  </Box>
+);
+
 }

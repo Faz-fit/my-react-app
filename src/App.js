@@ -179,7 +179,7 @@ function App() {
             <Layout><CreateWorkShift /></Layout>
           </ProtectedRoute>
         } />
-        <Route path="/admin/create/Manager" element={
+        <Route path="/admin/create/holidays" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><CreateManager /></Layout>
           </ProtectedRoute>
@@ -232,7 +232,7 @@ function App() {
           </ProtectedRoute>
         } />
           {/* Device Management */}
-        <Route path="/admin/assign/DeviceMangemnt" element={
+        <Route path="/admin/Employee/PasswordChange" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><DeviceMangemnt/></Layout>
           </ProtectedRoute>

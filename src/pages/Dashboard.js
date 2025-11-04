@@ -1,473 +1,453 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Avatar,
-  Box,
-  Paper,
   Typography,
+  Paper,
+  Box,
+  Grid,
+  Card,
+  CardContent,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Alert,
+  CircularProgress,
+  Avatar,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import GroupIcon from "@mui/icons-material/Group";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
-import EventBusyIcon from "@mui/icons-material/EventBusy";
 import {
-  PieChart,
-  Pie,
-  Cell,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
 } from "recharts";
-import api from 'utils/api';
+import PeopleIcon from "@mui/icons-material/People";
+import PersonIcon from "@mui/icons-material/Person";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 
-// --- StatCard Component ---
-const StatCard = ({ title, value, icon, color, onViewClick }) => (
-  <Paper
-    sx={{
-      p: 2,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      borderRadius: 4,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-      height: '160px', // Fixed height
-      transition: 'transform 0.2s ease-in-out',
-      '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
-      },
-    }}
-  >
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-      <Box>
-        <Typography color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
-          {title}
-        </Typography>
-        <Typography variant="h4" component="div" fontWeight="bold">
-          {value}
-        </Typography>
-      </Box>
-      <Avatar sx={{ bgcolor: color, color: '#fff', width: 56, height: 56 }}>
-        {icon}
-      </Avatar>
-    </Box>
-    {onViewClick && (
-      <Button
-        onClick={onViewClick}
-        size="small"
-        sx={{
-          alignSelf: 'flex-start',
-          mt: 2,
-          fontWeight: 'bold',
-          textTransform: 'none',
-          color: 'primary.main',
-          '&:hover': { textDecoration: 'underline' },
-        }}
-      >
-        View Details
-      </Button>
-    )}
-  </Paper>
-);
+function ManagerDashboard() {
+  const [overviewData, setOverviewData] = useState(null);
+  const [leavePresenceData, setLeavePresenceData] = useState([]);
+  const [employeeData, setEmployeeData] = useState([]);
+  const [userOutlets, setUserOutlets] = useState([]);
+  const [selectedOutlet, setSelectedOutlet] = useState(null); // Changed to null
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-export default function AdminDashboard() {
-  const [outletData, setOutletData] = useState(null);
-  const [outlets, setOutlets] = useState([]);
-  const [selectedOutletId, setSelectedOutletId] = useState(null);
-  const [drillDownOpen, setDrillDownOpen] = useState(false);
-  const [drillDownCategory, setDrillDownCategory] = useState("");
-  const [drillDownEmployees, setDrillDownEmployees] = useState([]);
-
-  const [isListDialogOpen, setListDialogOpen] = useState(false);
-  const [dialogTitle, setDialogTitle] = useState("");
-  const [dialogEmployees, setDialogEmployees] = useState([]);
-
-  const token = localStorage.getItem("access_token");
-
+  // Fetch user outlets on mount
   useEffect(() => {
-    const fetchUserOutlets = async () => {
+    async function fetchUserOutlets() {
       try {
-        const response = await api.get("/api/user/");
-        const userOutlets = response.data.outlets || [];
-        setOutlets(userOutlets);
-
-        if (userOutlets.length > 0) {
-          setSelectedOutletId(userOutlets[0].id);
+        const accessToken = localStorage.getItem("access_token");
+        if (!accessToken) throw new Error("No access token found");
+        
+        const response = await fetch("http://139.59.243.2:8000/api/user/", {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        
+        if (!response.ok) throw new Error("Failed to fetch user data");
+        
+        const userData = await response.json();
+        setUserOutlets(userData.outlets || []);
+        
+        // Set first outlet as default if available
+        if (userData.outlets && userData.outlets.length > 0) {
+          setSelectedOutlet(userData.outlets[0].id.toString());
         }
       } catch (err) {
-        console.error("Failed to load outlets:", err);
+        setError(err.message || "Failed to fetch user outlets");
       }
-    };
-
+    }
     fetchUserOutlets();
   }, []);
 
+  // Fetch dashboard data when outlet selection changes
   useEffect(() => {
-    if (!selectedOutletId) return;
-
-    const fetchOutletData = async () => {
+    if (!selectedOutlet || selectedOutlet === null) return; // Don't fetch if no outlet selected
+    
+    async function fetchDashboardData() {
       try {
-        const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
-        setOutletData(response.data);
+        setLoading(true);
+        const accessToken = localStorage.getItem("access_token");
+        if (!accessToken) throw new Error("No access token found");
+        
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        
+        // Determine API endpoint based on selection
+        const outletParam = selectedOutlet === "all" ? "all" : selectedOutlet;
+        
+        const baseUrl = "http://139.59.243.2:8000/report/dashboard";
+        
+        // Fetch data with outlet filter
+        const [overviewRes, leaveRes, employeeRes] = await Promise.all([
+          fetch(`${baseUrl}/overview/filter/?outlet_id=${outletParam}`, { headers }),
+          fetch(`${baseUrl}/leave-presence-trend/filter/?outlet_id=${outletParam}`, { headers }),
+          fetch(`${baseUrl}/employee-attendance-summary/filter/?outlet_id=${outletParam}`, { headers }),
+        ]);
+
+        if (!overviewRes.ok) throw new Error("Failed to fetch overview data");
+        if (!leaveRes.ok) throw new Error("Failed to fetch leave presence data");
+        if (!employeeRes.ok) throw new Error("Failed to fetch employee attendance data");
+
+        const overviewJson = await overviewRes.json();
+        const leavePresenceJson = await leaveRes.json();
+        const employeeJson = await employeeRes.json();
+
+        setOverviewData(overviewJson);
+        setLeavePresenceData(leavePresenceJson);
+        setEmployeeData(employeeJson);
+        setError(null);
       } catch (err) {
-        console.error(`Failed to fetch data for outlet ${selectedOutletId}:`, err);
+        setError(err.message || "Something went wrong");
+      } finally {
+        setLoading(false);
       }
-    };
-
-    fetchOutletData();
-  }, [selectedOutletId]);
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  const outletSummary = useMemo(() => {
-    if (!outletData)
-      return {
-        total: 0,
-        present: 0,
-        onLeave: 0,
-        absent: 0,
-        leavesPending: 0,
-        leavesApproved: 0,
-        leavesRejected: 0,
-        empStatus: { present: [], onleave: [], absent: [] },
-      };
-
-    let present = 0, onLeave = 0, absent = 0, leavesPending = 0, leavesApproved = 0, leavesRejected = 0;
-    let empStatus = { present: [], onleave: [], absent: [] };
-
-    outletData.employees.forEach((emp) => {
-      const todayAttendance = emp.attendances.filter((a) => a.date === today);
-      const approvedLeaves = emp.leaves.filter((l) => l.status === "approved" && l.leave_date === today);
-
-      if (todayAttendance.length > 0) {
-        present++;
-        empStatus.present.push(emp);
-      } else if (approvedLeaves.length > 0) {
-        onLeave++;
-        empStatus.onleave.push(emp);
-      } else {
-        absent++;
-        empStatus.absent.push(emp);
-      }
-
-      leavesPending += emp.leaves.filter((l) => l.status === "pending" && l.leave_date === today).length;
-      leavesApproved += approvedLeaves.length;
-      leavesRejected += emp.leaves.filter((l) => l.status === "rejected" && l.leave_date === today).length;
-    });
-
-    return {
-      total: outletData.employees.length,
-      present,
-      onLeave,
-      absent,
-      leavesPending,
-      leavesApproved,
-      leavesRejected,
-      empStatus,
-    };
-  }, [outletData, today]);
-
-  const pieData = [
-    { name: "Present", value: outletSummary.present },
-    { name: "On Leave", value: outletSummary.onLeave },
-    { name: "Absent", value: outletSummary.absent },
-  ];
-  const COLORS = ["#4caf50", "#2196f3", "#f44336"];
-
-  const handlePieClick = (data) => {
-    const category = data.name.toLowerCase().replace(" ", "");
-    setDrillDownCategory(data.name);
-    const employeeNames = (outletSummary.empStatus[category] || []).map(emp => emp.fullname);
-    setDrillDownEmployees(employeeNames);
-    setDrillDownOpen(true);
-  };
-
-  const handleViewDetailsClick = (category) => {
-    let employees = [], title = "";
-    switch (category) {
-      case "Total":
-        title = "All Employees";
-        employees = outletData.employees;
-        break;
-      case "Present":
-        title = "Present Employees";
-        employees = outletSummary.empStatus.present;
-        break;
-      case "Absent":
-        title = "Absent Employees";
-        employees = outletSummary.empStatus.absent;
-        break;
-      case "On Leave":
-        title = "Employees On Leave";
-        employees = outletSummary.empStatus.onleave;
-        break;
-      default: return;
     }
-    setDialogTitle(title);
-    setDialogEmployees(employees);
-    setListDialogOpen(true);
+    
+    fetchDashboardData();
+  }, [selectedOutlet]);
+
+  // KPI Cards data
+  const statCards = overviewData
+    ? [
+        { label: "Total Employees", value: overviewData.total_emp, icon: "total" },
+        { label: "Active Employees", value: overviewData.active_emp, icon: "active" },
+        { label: "Inactive Employees", value: overviewData.inactive_emp, icon: "inactive" },
+        { label: "Present Today", value: overviewData.present, icon: "present" },
+        { label: "Absent Today", value: overviewData.absentee, icon: "absent" },
+      ]
+    : [];
+
+  const iconMap = {
+    "Total Employees": { icon: <PeopleIcon />, color: "#1976d2" },
+    "Active Employees": { icon: <PersonIcon />, color: "#2e7d32" },
+    "Inactive Employees": { icon: <CancelIcon />, color: "#d32f2f" },
+    "Present Today": { icon: <CheckCircleIcon />, color: "#43a047" },
+    "Absent Today": { icon: <CancelIcon />, color: "#f57c00" },
   };
 
-  const barData = useMemo(() => {
-    if (!outletData) return [];
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      return d.toISOString().slice(0, 10);
-    }).reverse();
+  const handleOutletChange = (event) => {
+    setSelectedOutlet(event.target.value);
+  };
 
-    return last7Days.map((date) => {
-      let present = 0, onLeave = 0, absent = 0;
-      outletData.employees.forEach((emp) => {
-        const hasAttendance = emp.attendances.some((a) => a.date === date);
-        const onApprovedLeave = emp.leaves.some((l) => l.status === "approved" && l.leave_date === date);
-        if (hasAttendance) present++;
-        else if (onApprovedLeave) onLeave++;
-        else absent++;
-      });
-      return { date, present, onLeave, absent };
-    });
-  }, [outletData]);
+  if (loading && !overviewData) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>Loading Dashboard Data...</Typography>
+      </Box>
+    );
+  }
 
-  if (!outletData) return <Typography>Loading...</Typography>;
+  if (error) {
+    return (
+      <Box sx={{ maxWidth: 1400, mx: "auto", py: 3, px: 4 }}>
+        <Alert severity="error">
+          Error: {error}. Please check your network connection or access token.
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ width: "100%", p: 3, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-      {/* Header */}
-      <Grid container spacing={2} alignItems="center" sx={{ mb: 3 }}>
-        <Grid item xs={12}>
-          <Typography variant="h4" fontWeight="bold" color="text.primary">
-            {outletData.name} Dashboard
-          </Typography>
-        </Grid>
-        <Grid item xs={12}>
-          <FormControl variant="outlined" sx={{ minWidth: 200 }}>
-            <InputLabel id="outlet-select-label">Select Outlet</InputLabel>
-            <Select
-              labelId="outlet-select-label"
-              value={selectedOutletId || ""}
-              onChange={(e) => setSelectedOutletId(e.target.value)}
-              label="Select Outlet"
-              sx={{ backgroundColor: '#fff' }}
+    <Box sx={{ minHeight: "100vh", py: 1 }}>
+      <Box sx={{ maxWidth: 1400, mx: "auto", px: 2 }}>
+        
+        {/* Global Outlet Filter */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, pt: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Filter Outlet</InputLabel>
+            <Select 
+              value={selectedOutlet || ""} 
+              onChange={handleOutletChange} 
+              label="Filter Outlet"
+              disabled={loading || !selectedOutlet}
             >
-              {outlets.map((o) => (
-                <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>
+              <MenuItem value="all">All Outlets</MenuItem>
+              {userOutlets.map((outlet) => (
+                <MenuItem key={outlet.id} value={outlet.id.toString()}>
+                  {outlet.name}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Grid>
-      </Grid>
+        </Box>
+        
+        {/* Main Dashboard Grid */}
+        <Box sx={{ p: 2, borderRadius: 1, height: "500px", position: 'relative' }}>
+          {loading && (
+            <Box sx={{ 
+              position: 'absolute', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              bgcolor: 'rgba(255, 255, 255, 0.7)',
+              zIndex: 10,
+              borderRadius: 1
+            }}>
+              <CircularProgress />
+            </Box>
+          )}
+          
+          <Grid container spacing={3} sx={{ height: "100%" }}>
+            
+            {/* Left Side: KPI Cards */}
+            <Grid
+              item
+              xs={12}
+              lg={7}
+              sx={{
+                height: "100%",
+                width: "40%",
+                overflowY: "auto",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                "&::-webkit-scrollbar": {
+                  display: "none",
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {statCards.map((stat, index) => {
+                  const { icon, color } = iconMap[stat.label] || {};
+                  return (
+                    <Card
+                      key={index}
+                      elevation={2}
+                      sx={{
+                        borderRadius: 2,
+                        transition: "transform 0.2s, box-shadow 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-3px)",
+                          boxShadow: "0px 4px 20px rgba(0,0,0,0.08)",
+                        },
+                      }}
+                    >
+                      <CardContent
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          py: 2,
+                          px: 2.5,
+                        }}
+                      >
+                        <Box>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "text.secondary", fontWeight: 500 }}
+                          >
+                            {stat.label}
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            sx={{ fontWeight: 700, color: "text.primary", mt: 0.5 }}
+                          >
+                            {stat.value}
+                          </Typography>
+                        </Box>
 
-      {/* Stat Cards Row */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Employees"
-            value={outletSummary.total}
-            color="#637381"
-            icon={<GroupIcon />}
-            onViewClick={() => handleViewDetailsClick("Total")}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Present Today"
-            value={outletSummary.present}
-            color="#22c55e"
-            icon={<CheckCircleOutlineIcon />}
-            onViewClick={() => handleViewDetailsClick("Present")}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Absent Today"
-            value={outletSummary.absent}
-            color="#ef4444"
-            icon={<HighlightOffIcon />}
-            onViewClick={() => handleViewDetailsClick("Absent")}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="On Approved Leave"
-            value={outletSummary.onLeave}
-            color="#3b82f6"
-            icon={<EventBusyIcon />}
-            onViewClick={() => handleViewDetailsClick("On Leave")}
-          />
-        </Grid>
-      </Grid>
+                        {icon && (
+                          <Avatar
+                            sx={{
+                              bgcolor: `${color}1A`,
+                              color: color,
+                              width: 48,
+                              height: 48,
+                              boxShadow: `0 0 0 2px ${color}20`,
+                            }}
+                          >
+                            {icon}
+                          </Avatar>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </Box>
+            </Grid>
 
-      {/* Charts & Leave Requests Row */}
-      <Grid container spacing={3}>
-        {/* Today's Attendance Pie Chart */}
-        <Grid item xs={12} md={4}>
-          <Paper
-            sx={{
-              p: 2,
-              borderRadius: 4,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              height: 300,
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Today's Attendance
-            </Typography>
-
-            <Box sx={{ flexGrow: 1, px: 2, pb: 2 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius="80%"
-                    label
-                    onClick={handlePieClick}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]} // Safe array access
-                        cursor="pointer"
-                        stroke="#fff"
-                        strokeWidth={1}
+            {/* Right Side: Attendance Trends Chart */}
+            <Grid item xs={12} lg={5} sx={{ height: "100%", width: "58%", display: "flex" }}>
+              <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", p: 2, width: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "#212121", mb: 0.5, fontSize: "1rem" }}>
+                  Attendance Trends
+                </Typography>
+                <Typography variant="body2" sx={{ color: "#757575", mb: 1.5, fontSize: "0.75rem" }}>
+                  Employee presence, leave, and not-marked patterns over the last 7 days
+                </Typography>
+                <Box sx={{ width: "100%", flex: 1, minHeight: 0, position: "relative" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={leavePresenceData}
+                      margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" vertical={false} />
+                      <XAxis
+                        dataKey="date_label"
+                        stroke="#9e9e9e"
+                        tick={{ fontSize: 11, fill: "#757575" }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e0e0e0" }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-                </PieChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
-        </Grid>
-        {/* Attendance Trend Bar Chart */}
-        <Grid item xs={12} md={4}>
-          <Paper
-            sx={{
-              p: 2,
-              borderRadius: 4,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              height: '300px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Attendance Trend (Last 7 Days)
+                      <YAxis
+                        stroke="#9e9e9e"
+                        tick={{ fontSize: 11, fill: "#757575" }}
+                        tickLine={false}
+                        axisLine={{ stroke: "#e0e0e0" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                        }}
+                        cursor={{ stroke: "#e0e0e0", strokeWidth: 1 }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
+                        iconType="circle"
+                        iconSize={7}
+                      />
+                      <Line
+                        type="basis"
+                        dataKey="present"
+                        stroke="#2e7d32"
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                        name="Present"
+                        isAnimationActive={true}
+                        animationDuration={800}
+                      />
+                      <Line
+                        type="basis"
+                        dataKey="leave"
+                        stroke="#f57c00"
+                        strokeWidth={3}
+                        dot={false}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                        name="On Leave"
+                      />
+                      <Line
+                        type="basis"
+                        dataKey="not_marked"
+                        stroke="#ff0000ff"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, strokeWidth: 0 }}
+                        name="Not Marked"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Employee Table */}
+        <Paper elevation={0} sx={{ border: "1px solid #e0e0e0", mb: 3, overflow: "hidden" }}>
+          <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #e0e0e0" }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#212121", mb: 0.5 }}>
+              Employee Attendance
             </Typography>
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData}>
-                  <XAxis dataKey="date" tick={false} />
-
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="present" name="Present" fill="#4caf50" stackId="a" />
-                  <Bar dataKey="onLeave" name="On Leave" fill="#2196f3" stackId="a" />
-                  <Bar dataKey="absent" name="Absent" fill="#f44336" stackId="a" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Today's Leave Requests */}
-        <Grid item xs={12} md={4}>
-          <Paper
-            sx={{
-              p: 2,
-              borderRadius: 4,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-              height: '300px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Today's Leave Requests
+            <Typography variant="body2" sx={{ color: "#757575" }}>
+              Monthly attendance summary by employee
             </Typography>
-            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1, justifyContent: 'center' }}>
-              <Typography>✅ Approved: {outletSummary.leavesApproved}</Typography>
-              <Typography>⏳ Pending Approval: {outletSummary.leavesPending}</Typography>
-              <Typography>❌ Rejected: {outletSummary.leavesRejected}</Typography>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Dialogs */}
-      <Dialog open={drillDownOpen} onClose={() => setDrillDownOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>
-          Employees - {drillDownCategory}
-          <IconButton aria-label="close" onClick={() => setDrillDownOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
-          <List>
-            {drillDownEmployees.length > 0 ? (
-              drillDownEmployees.map((name, idx) => (
-                <ListItem key={idx}>
-                  <ListItemText primary={name} />
-                </ListItem>
-              ))
-            ) : (
-              <Typography>No employees in this category.</Typography>
-            )}
-          </List>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isListDialogOpen} onClose={() => setListDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>
-          {dialogTitle}
-          <IconButton aria-label="close" onClick={() => setListDialogOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
-          <List>
-            {dialogEmployees.length > 0 ? (
-              dialogEmployees.map((emp) => (
-                <ListItem key={emp.emp_code} sx={{ py: 1 }}>
-                  <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: '#3b82f6' }}>{emp.fullname.charAt(0)}</Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={emp.first_name}
-                    secondary={`Employee CODE: ${emp.fullname}`}
-                    primaryTypographyProps={{ fontWeight: 'bold' }}
-                  />
-                </ListItem>
-              ))
-            ) : (
-              <Typography sx={{ p: 2, textAlign: 'center' }}>No employees to display.</Typography>
-            )}
-          </List>
-        </DialogContent>
-      </Dialog>
+          </Box>
+          <TableContainer sx={{ maxHeight: 440, overflowY: 'auto' }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: "#fafafa" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Employee
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    ID
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Outlet
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Present
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Absent
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Leave
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#757575", textTransform: "uppercase", fontSize: "0.75rem" }}>
+                    Total Days
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {employeeData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No employee data available for the selected outlet
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  employeeData.map((emp) => {
+                    const totalDays = emp.present_days + emp.absent_days + emp.leave_days;
+                    return (
+                      <TableRow key={emp.employee_id} sx={{ "&:hover": { bgcolor: "#fafafa" } }}>
+                        <TableCell sx={{ fontWeight: 500, color: "#212121" }}>
+                          {emp.fullname || 'N/A'}
+                        </TableCell>
+                        <TableCell sx={{ color: "#616161" }}>
+                          {emp.empcode || 'N/A'}
+                        </TableCell>
+                        <TableCell sx={{ color: "#616161" }}>
+                          {emp.outlet_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: "#2e7d32", fontWeight: 600 }}>
+                            {emp.present_days}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: "#d32f2f", fontWeight: 600 }}>
+                            {emp.absent_days}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ color: "#f57c00", fontWeight: 600 }}>
+                            {emp.leave_days}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ color: "#616161" }}>{totalDays}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Box>
     </Box>
   );
 }
+
+export default ManagerDashboard;

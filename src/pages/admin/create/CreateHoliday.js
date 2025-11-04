@@ -10,6 +10,7 @@ import {
   Typography,
   Switch,
   FormControlLabel,
+  Paper
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -188,114 +189,170 @@ export default function HolidayGrid() {
       ],
     },
   ];
-
-  return (
-    <Box sx={{ height: 600, width: '95%', mx: 'auto', mt: 5, position: 'relative' }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>
-        Holiday
+return (
+  <Box
+    sx={{
+      width: '95%',
+      mx: 'auto',
+      mt: 5,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      position: 'relative',
+      textTransform: 'uppercase',
+    }}
+  >
+    {/* Header Row */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          color: '#333',
+        }}
+      >
+        Holiday Management
       </Typography>
 
       <Button
         variant="contained"
         startIcon={<AddIcon />}
-        sx={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }}
         onClick={openAddDialog}
+        sx={{
+          backgroundColor: '#1976d2',
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: '8px',
+          '&:hover': {
+            backgroundColor: '#1565c0',
+          },
+        }}
       >
         Add Holiday
       </Button>
+    </Box>
 
+    {/* Holiday Table */}
+    <Paper
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+      }}
+    >
       <DataGrid
         rows={holidayData}
         columns={columns}
         pageSize={7}
         rowsPerPageOptions={[5, 7, 10]}
         disableSelectionOnClick
-        sx={{ mt: 4 }}
+        autoHeight
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f9fafb',
+            fontWeight: 600,
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: '#f5f5f5',
+          },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        }}
       />
+    </Paper>
 
-      <Dialog open={openDialog} onClose={closeDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{editHoliday ? 'Edit Holiday' : 'Add Holiday'}</DialogTitle>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
-          <DialogContent sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
-            {/* Change dropdowns to text fields */}
+    {/* Add/Edit Holiday Dialog */}
+    <Dialog
+      open={openDialog}
+      onClose={closeDialog}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #eee',
+        }}
+      >
+        {editHoliday ? 'Edit Holiday' : 'Add Holiday'}
+      </DialogTitle>
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <DialogContent
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mt: 1,
+          }}
+        >
+          {/* Fields */}
+          {[
+            ['hcode', 'Hcode'],
+            ['holiday_type', 'Holiday Type'],
+            ['holiday_type_name', 'Holiday Type Name'],
+            ['holiday_name', 'Holiday Name'],
+          ].map(([name, label]) => (
             <Controller
-              name="hcode"
+              key={name}
+              name={name}
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Hcode"
-                  sx={{ minWidth: 150, flexGrow: 1 }}
-                  error={!!errors.hcode}
-                  helperText={errors.hcode?.message}
+                  label={label}
+                  fullWidth
+                  sx={{ flex: '1 1 45%' }}
+                  error={!!errors[name]}
+                  helperText={errors[name]?.message}
                   disabled={loading}
                 />
               )}
             />
-            <Controller
-              name="holiday_type"
-              control={control}
-              render={({ field }) => (
-                <TextField
+          ))}
+
+          {/* Date Picker */}
+          <Controller
+            name="hdate"
+            control={control}
+            render={({ field }) => (
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Holiday Date"
                   {...field}
-                  label="Holiday Type"
-                  sx={{ minWidth: 150, flexGrow: 1 }}
-                  error={!!errors.holiday_type}
-                  helperText={errors.holiday_type?.message}
-                  disabled={loading}
+                  onChange={(date) => field.onChange(date)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      fullWidth
+                      sx={{ flex: '1 1 45%' }}
+                      error={!!errors.hdate}
+                      helperText={errors.hdate?.message}
+                      disabled={loading}
+                    />
+                  )}
                 />
-              )}
-            />
-            <Controller
-              name="holiday_type_name"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Holiday Type Name"
-                  sx={{ minWidth: 200, flexGrow: 2 }}
-                  error={!!errors.holiday_type_name}
-                  helperText={errors.holiday_type_name?.message}
-                  disabled={loading}
-                />
-              )}
-            />
-            <Controller
-              name="holiday_name"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Holiday Name"
-                  sx={{ minWidth: 300, flexGrow: 3 }}
-                  error={!!errors.holiday_name}
-                  helperText={errors.holiday_name?.message}
-                  disabled={loading}
-                />
-              )}
-            />
-            <Controller
-              name="hdate"
-              control={control}
-              render={({ field }) => (
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DatePicker
-                    label="Holiday Date"
-                    {...field}
-                    onChange={(date) => field.onChange(date)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        sx={{ minWidth: 200 }}
-                        error={!!errors.hdate}
-                        helperText={errors.hdate?.message}
-                        disabled={loading}
-                      />
-                    )}
-                  />
-                </LocalizationProvider>
-              )}
-            />
+              </LocalizationProvider>
+            )}
+          />
+
+          {/* Switch & Pay Fields */}
+          <Box sx={{ flex: '1 1 100%', display: 'flex', alignItems: 'center', gap: 2 }}>
             <Controller
               name="active"
               control={control}
@@ -306,47 +363,70 @@ export default function HolidayGrid() {
                 />
               )}
             />
+
             <Controller
               name="holiday_ot_pay_percentage"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Holiday OT"
-                  type="text"
-                  sx={{ minWidth: 150 }}
+                  label="Holiday OT (%)"
+                  type="number"
+                  sx={{ flex: 1 }}
                   error={!!errors.holiday_ot_pay_percentage}
                   helperText={errors.holiday_ot_pay_percentage?.message}
                   disabled={loading}
                 />
               )}
             />
+
             <Controller
               name="holiday_regular_pay_percentage"
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Pay Percentage"
-                  type="text"
-                  sx={{ minWidth: 150 }}
+                  label="Regular Pay (%)"
+                  type="number"
+                  sx={{ flex: 1 }}
                   error={!!errors.holiday_regular_pay_percentage}
                   helperText={errors.holiday_regular_pay_percentage?.message}
                   disabled={loading}
                 />
               )}
             />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={closeDialog} disabled={loading}>
-              Cancel
-            </Button>
-            <Button variant="contained" type="submit" disabled={loading}>
-              {loading ? (editHoliday ? 'Saving...' : 'Creating...') : editHoliday ? 'Save' : 'Create'}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </Box>
-  );
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeDialog} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            type="submit"
+            disabled={loading}
+            sx={{
+              backgroundColor: '#1976d2',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: '#1565c0',
+              },
+            }}
+          >
+            {loading
+              ? editHoliday
+                ? 'Saving...'
+                : 'Creating...'
+              : editHoliday
+              ? 'Save'
+              : 'Create'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  </Box>
+);
+
 }

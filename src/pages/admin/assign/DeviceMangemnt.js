@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Tooltip, Typography
+  TextField, Tooltip, Typography, Paper
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import LockResetIcon from '@mui/icons-material/LockReset';
@@ -86,58 +86,160 @@ export default function EmployeeGrid() {
     },
   ];
 
-  return (
-    <Box sx={{ height: 600, width: '90%', mx: 'auto', mt: 5 }}>
-      <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold' }}>Change Password</Typography>
+return (
+  <Box
+    sx={{
+      width: '90%',
+      mx: 'auto',
+      mt: 5,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+      textTransform: 'uppercase',
+    }}
+  >
+    {/* Header Row */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          color: '#333',
+        }}
+      >
+        Change Password
+      </Typography>
+    </Box>
 
+    {/* Employee Table */}
+    <Paper
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: 'hidden',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+      }}
+    >
       <DataGrid
         rows={employees}
         columns={columns}
         pageSize={5}
         rowsPerPageOptions={[5]}
         getRowId={(row) => row.employee_id}
+        autoHeight
+        sx={{
+          border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#f9fafb',
+            fontWeight: 600,
+          },
+          '& .MuiDataGrid-row:hover': {
+            backgroundColor: '#f5f5f5',
+          },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+        }}
       />
+    </Paper>
 
-      <Dialog open={openPasswordDialog} onClose={handleClosePasswordDialog} maxWidth="xs" fullWidth>
-        <DialogTitle>Change Password for {selectedEmployee?.fullname}</DialogTitle>
-        <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} noValidate>
-          <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Controller
-              name="password"
-              control={passwordControl}
-              render={({ field }) => (
-                <TextField
-                  label="New Password"
-                  type="password"
-                  fullWidth
-                  autoFocus
-                  error={!!passwordErrors.password}
-                  helperText={passwordErrors.password?.message}
-                  {...field}
-                />
-              )}
-            />
-            <Controller
-              name="confirmPassword"
-              control={passwordControl}
-              render={({ field }) => (
-                <TextField
-                  label="Confirm New Password"
-                  type="password"
-                  fullWidth
-                  error={!!passwordErrors.confirmPassword}
-                  helperText={passwordErrors.confirmPassword?.message}
-                  {...field}
-                />
-              )}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClosePasswordDialog}>Cancel</Button>
-            <Button type="submit" variant="contained">Save</Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </Box>
-  );
+    {/* Password Change Dialog */}
+    <Dialog
+      open={openPasswordDialog}
+      onClose={handleClosePasswordDialog}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          backgroundColor: '#f9fafb',
+          borderBottom: '1px solid #eee',
+        }}
+      >
+        Change Password for {selectedEmployee?.fullname}
+      </DialogTitle>
+
+      <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} noValidate>
+        <DialogContent
+          dividers
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            py: 3,
+          }}
+        >
+          <Controller
+            name="password"
+            control={passwordControl}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="New Password"
+                type="password"
+                fullWidth
+                autoFocus
+                error={!!passwordErrors.password}
+                helperText={passwordErrors.password?.message}
+              />
+            )}
+          />
+          <Controller
+            name="confirmPassword"
+            control={passwordControl}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Confirm New Password"
+                type="password"
+                fullWidth
+                error={!!passwordErrors.confirmPassword}
+                helperText={passwordErrors.confirmPassword?.message}
+              />
+            )}
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={handleClosePasswordDialog}
+            sx={{
+              textTransform: 'none',
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              backgroundColor: '#1976d2',
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: '8px',
+              '&:hover': {
+                backgroundColor: '#1565c0',
+              },
+            }}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  </Box>
+);
+
 }

@@ -131,82 +131,136 @@ export default function DailyOutletAttendance() {
     },
   ];
 
-  return (
-    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
+return (
+  <Box sx={{ p: 4 }}>
+    {/* Page Title */}
+    <Typography
+      variant="h4"
+      sx={{
+        mb: 3,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        display: 'inline-block',
+        pb: 0.5,
+      }}
+    >
+      Outlet Log
+    </Typography>
+
+    {/* Filter Section */}
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: 'center',
+        mb: 3,
+        gap: 2,
+      }}
+    >
       <Box
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: "center",
-          mb: 3,
+          display: 'flex',
           gap: 2,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          width: '100%',
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: "bold",
-            borderBottom: "3px solid #1976d2",
-            display: "inline-block",
-            pb: 0.5,
-          }}
-        >
-          OUTLETLOG
-        </Typography>
-
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-          {outlets.length > 1 && (
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Select Outlet</InputLabel>
-              <Select
-                value={selectedOutletId}
-                label="Select Outlet"
-                onChange={(e) => setSelectedOutletId(e.target.value)}
-              >
-                {outlets.map((outlet) => (
-                  <MenuItem key={outlet.id} value={outlet.id}>
-                    {outlet.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-          <TextField
-            label="Select Date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 200 }}
-          />
-        </Box>
-      </Box>
-
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Typography color="error" align="center" sx={{ mt: 4 }}>
-          {error}
-        </Typography>
-      ) : (
-        <Box sx={{ height: 500, width: "100%" }}>
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10, 20]}
-            disableRowSelectionOnClick
+        {outlets.length > 1 && (
+          <FormControl
+            variant="outlined"
             sx={{
-              borderRadius: 2,
-              "& .MuiDataGrid-row:hover": { backgroundColor: "#f5f5f5" },
-              "& .MuiDataGrid-cell:focus": { outline: "none" },
+              minWidth: 220,
+              '& .MuiInputLabel-root': { fontWeight: 600, color: '#444' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                backgroundColor: '#fafafa',
+                '& fieldset': { borderColor: '#ccc' },
+                '&:hover fieldset': { borderColor: '#1976d2' },
+                '&.Mui-focused fieldset': { borderColor: '#1976d2', borderWidth: 2 },
+              },
             }}
-          />
-        </Box>
-      )}
-    </Paper>
-  );
+          >
+            <InputLabel>Select Outlet</InputLabel>
+            <Select
+              value={selectedOutletId}
+              label="Select Outlet"
+              onChange={(e) => setSelectedOutletId(e.target.value)}
+            >
+              {outlets.map((outlet) => (
+                <MenuItem key={outlet.id} value={outlet.id}>
+                  {outlet.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
+        <TextField
+          label="Select Date"
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{
+            minWidth: 220,
+            '& .MuiInputBase-root': {
+              borderRadius: 2,
+              backgroundColor: '#fafafa',
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#ccc',
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#1976d2',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#1976d2',
+              borderWidth: 2,
+            },
+          }}
+        />
+      </Box>
+    </Box>
+
+    {/* Data / Loader / Error Section */}
+    {loading ? (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    ) : error ? (
+      <Typography color="error" align="center" sx={{ mt: 4 }}>
+        {error}
+      </Typography>
+    ) : (
+      <Box sx={{ height: 500, width: '100%', overflowX: 'hidden' }}>
+        <DataGrid
+          rows={rows}
+          columns={columns.map((col) => ({
+            ...col,
+            flex: col.flex || 1,
+            minWidth: col.minWidth || 120,
+          }))}
+          pageSize={5}
+          rowsPerPageOptions={[5, 10, 20]}
+          disableRowSelectionOnClick
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: '#f5f7fa',
+              fontWeight: 'bold',
+            },
+            '& .MuiDataGrid-row:hover': { backgroundColor: '#f9f9f9' },
+            '& .MuiDataGrid-cell:focus': { outline: 'none' },
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none',
+          }}
+        />
+      </Box>
+    )}
+  </Box>
+);
+
+
 }

@@ -12,7 +12,7 @@ import {
   TextField,
 } from "@mui/material";
 import axios from "axios";
-import EmployeeAttendanceTable from "./EmployeeAttendanceTable.js";
+import EmployeeAttendanceTable from "./EmployeeAttendanceTable";
 
 export default function MANReports() {
   // Default date range: last month to today
@@ -166,105 +166,192 @@ export default function MANReports() {
     }
   };
 
-  return (
-    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
-        Employee Reports
+return (
+  <Box sx={{ p: 4 }}>
+    {/* Page Title */}
+    <Typography
+      variant="h4"
+      sx={{
+        fontWeight: "bold",
+        mb: 3,
+        textTransform: "uppercase",
+        borderBottom: "3px solid #1976d2",
+        display: "inline-block",
+        pb: 0.5,
+        color: "#0d0d0dff",
+      }}
+    >
+      Employee Reports
+    </Typography>
+
+    {/* Error Message */}
+    {error && (
+      <Typography color="error" sx={{ mb: 2 }}>
+        {error}
       </Typography>
+    )}
 
-      {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
-          {error}
-        </Typography>
-      )}
-
-      {userReport && (
-        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-          {/* Outlet Dropdown */}
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Outlet</InputLabel>
-            <Select
-              value={selectedOutlet}
-              onChange={handleOutletChange}
-              label="Outlet"
-            >
-              <MenuItem value="all">All Outlets</MenuItem>
-              {Object.entries(userReport.employees_by_outlet).map(
-                ([outletId, outletData]) => (
-                  <MenuItem key={outletId} value={outletId}>
-                    {outletData.outlet_name}
-                  </MenuItem>
-                )
-              )}
-            </Select>
-          </FormControl>
-
-          {/* Employee Dropdown */}
-          <FormControl sx={{ minWidth: 250 }} disabled={!selectedOutlet}>
-            <InputLabel>Employee</InputLabel>
-            <Select
-              value={selectedEmployee}
-              onChange={(e) => {
-                setSelectedEmployee(e.target.value);
-                setEmployeeReport(null); // Clear previous report
-                setError(null); // Clear previous error
-              }}
-              label="Employee"
-            >
-              <MenuItem value="all">All Employees</MenuItem>
-              {employeeList.map((emp) => (
-                <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                  {emp.user_first_name} ({emp.fullname})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Date Range Inputs */}
-          <TextField
-            label="Start Date"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            sx={{ minWidth: 160 }}
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            sx={{ minWidth: 160 }}
-          />
-
-          {/* Fetch Button */}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleFetchEmployee}
-            disabled={loading}
+    {/* Filters Section */}
+    {userReport && (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-start",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
+          backgroundColor: "#f9fafc",
+          p: 2.5,
+          borderRadius: 2,
+          border: "1px solid #e0e0e0",
+        }}
+      >
+        {/* Outlet Dropdown */}
+        <FormControl
+          sx={{
+            minWidth: 200,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              height: 42,
+              backgroundColor: "#fff",
+              "&:hover fieldset": { borderColor: "#1976d2" },
+            },
+          }}
+        >
+          <InputLabel>Outlet</InputLabel>
+          <Select
+            value={selectedOutlet}
+            onChange={handleOutletChange}
+            label="Outlet"
           >
-            {loading ? <CircularProgress size={20} /> : "Fetch Data"}
-          </Button>
-        </Box>
-      )}
+            <MenuItem value="all">All Outlets</MenuItem>
+            {Object.entries(userReport.employees_by_outlet).map(
+              ([outletId, outletData]) => (
+                <MenuItem key={outletId} value={outletId}>
+                  {outletData.outlet_name}
+                </MenuItem>
+              )
+            )}
+          </Select>
+        </FormControl>
 
-      {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", my: 3 }}>
-          <CircularProgress />
-        </Box>
-      )}
+        {/* Employee Dropdown */}
+        <FormControl
+          sx={{
+            minWidth: 250,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              height: 42,
+              backgroundColor: "#fff",
+              "&:hover fieldset": { borderColor: "#1976d2" },
+            },
+          }}
+          disabled={!selectedOutlet}
+        >
+          <InputLabel>Employee</InputLabel>
+          <Select
+            value={selectedEmployee}
+            onChange={(e) => {
+              setSelectedEmployee(e.target.value);
+              setEmployeeReport(null);
+              setError(null);
+            }}
+            label="Employee"
+          >
+            <MenuItem value="all">All Employees</MenuItem>
+            {employeeList.map((emp) => (
+              <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                {emp.user_first_name} ({emp.fullname})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-      {employeeReport && !loading && (
-        <>
-          <Typography variant="h6" sx={{ mt: 3 }}>
-            Employee Report
-            {startDate && endDate ? ` | ${startDate} → ${endDate}` : ""}
-          </Typography>
-          <EmployeeAttendanceTable data={employeeReport} />
-        </>
-      )}
-    </Paper>
-  );
+        {/* Date Range Inputs */}
+        <TextField
+          label="Start Date"
+          type="date"
+          InputLabelProps={{ shrink: true }}
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          sx={{
+            minWidth: 180,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              height: 42,
+              backgroundColor: "#fff",
+              "&:hover fieldset": { borderColor: "#1976d2" },
+            },
+          }}
+        />
+        <TextField
+          label="End Date"
+          type="date"
+          InputLabelProps={{ shrink: true }}
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          sx={{
+            minWidth: 180,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              height: 42,
+              backgroundColor: "#fff",
+              "&:hover fieldset": { borderColor: "#1976d2" },
+            },
+          }}
+        />
+
+        {/* Fetch Button */}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleFetchEmployee}
+          disabled={loading}
+          sx={{
+            height: 42,
+            borderRadius: 2,
+            px: 3,
+            textTransform: "none",
+            fontWeight: "bold",
+            boxShadow: "none",
+            "&:hover": { boxShadow: "0 2px 8px rgba(25, 118, 210, 0.2)" },
+          }}
+        >
+          {loading ? <CircularProgress size={20} /> : "Fetch Data"}
+        </Button>
+      </Box>
+    )}
+
+    {/* Loading Spinner */}
+    {loading && (
+      <Box sx={{ display: "flex", justifyContent: "center", my: 3 }}>
+        <CircularProgress />
+      </Box>
+    )}
+
+    {/* Employee Report */}
+    {employeeReport && !loading && (
+      <>
+        <Typography
+          variant="h6"
+          sx={{
+            mt: 3,
+            mb: 2,
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            color: "#37474f",
+          }}
+        >
+          Employee Report
+          {startDate && endDate ? ` | ${startDate} → ${endDate}` : ""}
+        </Typography>
+        <EmployeeAttendanceTable data={employeeReport} />
+      </>
+    )}
+  </Box>
+);
+
+
 }

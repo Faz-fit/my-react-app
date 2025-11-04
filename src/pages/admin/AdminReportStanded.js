@@ -26,14 +26,11 @@ export default function MANReports() {
   const [selectedEmployee, setSelectedEmployee] = useState("all");
   const [employeeList, setEmployeeList] = useState([]);
   const [employeeReport, setEmployeeReport] = useState(null);
-  const [startDate, setStartDate] = useState(
-    priorMonth.toISOString().split("T")[0]
-  );
+  const [startDate, setStartDate] = useState(priorMonth.toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch logged-in user info first
   useEffect(() => {
     fetchUserInfo();
   }, []);
@@ -80,13 +77,12 @@ export default function MANReports() {
     }
   };
 
-  // When outlet changes, load employees of that outlet
   const handleOutletChange = (event) => {
     const outletId = event.target.value;
     setSelectedOutlet(outletId);
     setSelectedEmployee("all");
-    setEmployeeReport(null); // Clear previous report
-    setError(null); // Clear previous error
+    setEmployeeReport(null);
+    setError(null);
 
     if (outletId === "all") {
       setEmployeeList(
@@ -99,7 +95,6 @@ export default function MANReports() {
     }
   };
 
-  // Fetch employee report(s)
   const handleFetchEmployee = async () => {
     setLoading(true);
     setError(null);
@@ -146,17 +141,14 @@ export default function MANReports() {
           allReports.push(response.data);
         } catch (err) {
           console.error(`Error fetching report for employee ${empId}:`, err);
-          // Continue fetching other employees even if one fails
         }
       }
-
-      console.log("Fetched Reports:", allReports); // Debug log
 
       if (allReports.length === 0) {
         setError("No report data found for selected employee(s).");
       } else {
         setEmployeeReport(allReports.length === 1 ? allReports[0] : allReports);
-        setError(null); // Clear error if data is found
+        setError(null);
       }
     } catch (err) {
       console.error("Error fetching employee report:", err);
@@ -167,27 +159,40 @@ export default function MANReports() {
   };
 
   return (
-    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
-        Employee Reports
+    <Paper
+      sx={{
+        p: 3,
+        mt: 3,
+        borderRadius: 3,
+        boxShadow: 4,
+        backgroundColor: "#fafafa",
+        textTransform: 'uppercase',
+      }}
+    >
+      <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3, color: "#1976d2" }}>
+        Employee Attendance Reports
       </Typography>
 
       {error && (
-        <Typography color="error" sx={{ mb: 2 }}>
+        <Typography color="error" sx={{ mb: 2, fontWeight: 500 }}>
           {error}
         </Typography>
       )}
 
       {userReport && (
-        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-          {/* Outlet Dropdown */}
-          <FormControl sx={{ minWidth: 200 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 2,
+            alignItems: "center",
+            mb: 3,
+          }}
+        >
+          {/* Outlet Selector */}
+          <FormControl sx={{ minWidth: 200 }} size="small">
             <InputLabel>Outlet</InputLabel>
-            <Select
-              value={selectedOutlet}
-              onChange={handleOutletChange}
-              label="Outlet"
-            >
+            <Select value={selectedOutlet} onChange={handleOutletChange} label="Outlet">
               <MenuItem value="all">All Outlets</MenuItem>
               {Object.entries(userReport.employees_by_outlet).map(
                 ([outletId, outletData]) => (
@@ -199,15 +204,15 @@ export default function MANReports() {
             </Select>
           </FormControl>
 
-          {/* Employee Dropdown */}
-          <FormControl sx={{ minWidth: 250 }} disabled={!selectedOutlet}>
+          {/* Employee Selector */}
+          <FormControl sx={{ minWidth: 250 }} size="small" disabled={!selectedOutlet}>
             <InputLabel>Employee</InputLabel>
             <Select
               value={selectedEmployee}
               onChange={(e) => {
                 setSelectedEmployee(e.target.value);
-                setEmployeeReport(null); // Clear previous report
-                setError(null); // Clear previous error
+                setEmployeeReport(null);
+                setError(null);
               }}
               label="Employee"
             >
@@ -227,6 +232,7 @@ export default function MANReports() {
             InputLabelProps={{ shrink: true }}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            size="small"
             sx={{ minWidth: 160 }}
           />
           <TextField
@@ -235,6 +241,7 @@ export default function MANReports() {
             InputLabelProps={{ shrink: true }}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            size="small"
             sx={{ minWidth: 160 }}
           />
 
@@ -244,24 +251,36 @@ export default function MANReports() {
             color="primary"
             onClick={handleFetchEmployee}
             disabled={loading}
+            sx={{ height: 40, px: 3 }}
           >
-            {loading ? <CircularProgress size={20} /> : "Fetch Data"}
+            {loading ? <CircularProgress size={20} color="inherit" /> : "Fetch Data"}
           </Button>
         </Box>
       )}
 
+      {/* Loader */}
       {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", my: 3 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
           <CircularProgress />
         </Box>
       )}
 
+      {/* Employee Report Table */}
       {employeeReport && !loading && (
         <>
-          <Typography variant="h6" sx={{ mt: 3 }}>
-            Employee Report
+          <Typography
+            variant="h6"
+            sx={{
+              mt: 4,
+              mb: 1,
+              color: "#333",
+              fontWeight: 600,
+            }}
+          >
+            Attendance Summary
             {startDate && endDate ? ` | ${startDate} → ${endDate}` : ""}
           </Typography>
+
           <EmployeeAttendanceTable data={employeeReport} />
         </>
       )}

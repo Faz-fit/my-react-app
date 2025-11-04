@@ -93,54 +93,98 @@ export default function EmployeeManagement() {
     },
   ];
 
-  return (
-    <Paper sx={{ p: 3, mt: 3, borderRadius: 3, boxShadow: 3 }}>
-      <Box
+return (
+  <Box
+    sx={{
+      p: 4,
+      mt: 4,
+      
+    
+      boxShadow: "none",       // 🧱 remove floating/shadow
+      
+    }}
+  >
+    {/* Header Section */}
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        mb: 3,
+        textTransform: 'uppercase',
+      }}
+    >
+      <Typography
+        variant="h4"
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
+          fontWeight: 700,
+          color: "#333",
+          letterSpacing: 0.5,
+          
+          display: "inline-block",
+          pb: 0.5,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: "bold",
-            borderBottom: "3px solid #1976d2",
-            display: "inline-block",
-            pb: 0.5,
-          }}
-        >
-          EMPLOYEE DEACTIVATION
-        </Typography>
-      </Box>
+        Employee Deactivation
+      </Typography>
+    </Box>
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Typography color="error" align="center" sx={{ mt: 4 }}>
-          {error}
-        </Typography>
-      ) : (
-        <Box sx={{ height: 500, width: "100%" }}>
-          <DataGrid
-            rows={employees}
-            columns={columns}
-            pageSize={10}
-            rowsPerPageOptions={[10, 20, 50]}
-            disableRowSelectionOnClick
-            getRowId={(row) => row.employee_id}
-            sx={{
-              borderRadius: 2,
-              "& .MuiDataGrid-row:hover": { backgroundColor: "#f5f5f5" },
-              "& .MuiDataGrid-cell:focus": { outline: "none" },
-            }}
-          />
-        </Box>
-      )}
-    </Paper>
-  );
+    {/* Loading, Error, or DataGrid */}
+    {loading ? (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress sx={{ color: "#e6b904" }} />
+      </Box>
+    ) : error ? (
+      <Typography color="error" align="center" sx={{ mt: 4 }}>
+        {error}
+      </Typography>
+    ) : (
+<Box
+  sx={{
+    height: 500,
+    width: "100%",
+    borderRadius: 2,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+  }}
+>
+  <DataGrid
+    rows={employees}
+    columns={columns}
+    pageSize={10}
+    rowsPerPageOptions={[10, 20, 50]}
+    disableRowSelectionOnClick
+    getRowId={(row) => row.employee_id}
+    // ❌ Remove autoHeight to restore scrolling
+    sx={{
+      border: "none",
+      "& .MuiDataGrid-columnHeaders": {
+        backgroundColor: "#f9fafb",
+        fontWeight: 600,
+        color: "#333",
+        fontSize: "0.95rem",
+      },
+      "& .MuiDataGrid-row:hover": {
+        backgroundColor: "#fffbe6",
+      },
+      "& .MuiDataGrid-cell:focus": {
+        outline: "none",
+      },
+      "&::-webkit-scrollbar": {
+        width: "8px",
+        height: "8px",
+      },
+      "&::-webkit-scrollbar-thumb": {
+        backgroundColor: "#ccc",
+        borderRadius: "4px",
+      },
+    }}
+  />
+</Box>
+
+    )}
+  </Box>
+);
+
+
 }
