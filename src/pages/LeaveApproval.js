@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
+  MenuItem,
+  Select,
   FormControl,
   InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  Chip,
-  Tooltip,
-  IconButton,
-  useTheme,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Button,
+  TextField,
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -18,256 +19,270 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import api from 'utils/api';
 
 export default function LeaveApproval() {
-  const theme = useTheme();
-
   const [requests, setRequests] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [userOutlets, setUserOutlets] = useState([]);
-  const [selectedOutlet, setSelectedOutlet] = useState(null);
+  const [selectedOutlet, setSelectedOutlet] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [searchEmployeeName, setSearchEmployeeName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  // Fetch user outlets
+  const [openDialog, setOpenDialog] = useState(false);
+  const [currentRequest, setCurrentRequest] = useState(null);
+
+  // Fetch initial data
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await api.get('/api/user/');
-        const outlets = res.data.outlets || [];
-        setUserOutlets(outlets);
-        if (outlets.length > 0) setSelectedOutlet(outlets[0].id);
-      } catch (err) {
-        console.error('Error fetching user:', err);
+        const resUser = await api.get('/api/user/');
+        const resEmp = await api.get('/api/getemployees/');
+
+        setUserOutlets(resUser.data.outlets || []);
+        if (resUser.data.outlets?.length > 0)
+          setSelectedOutlet(resUser.data.outlets[0].id);
+
+        setEmployees(resEmp.data);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchUser();
+    fetchInitialData();
   }, []);
 
-  // Fetch leave requests when outlet changes
+  // Fetch leave requests whenever filters change
   useEffect(() => {
     if (!selectedOutlet) return;
 
-    const fetchLeaveRequests = async () => {
+    const fetchRequests = async () => {
       setLoading(true);
       try {
-        const [leaveRes] = await Promise.all([
-          api.get('/api/attendance/outletleaverequests/', {
-            params: { outlet_id: selectedOutlet },
-          }),
-          api.get('/api/getemployees/'),
-        ]);
-        const mapped = leaveRes.data.map((req) => ({
-          leave_refno: req.leave_refno,
-          leave_date: req.leave_date,
-          remarks: req.remarks,
-          action_date: req.action_date,
-          status: req.status,
-          employee_name: req.employee_name,
-          leave_type_name: req.leave_type_name,
-        }));
-        setRequests(mapped);
+        const res = await api.get('/api/simple-leave-requests/', {
+          params: {
+            outlet_id: selectedOutlet,
+            employee_id: selectedEmployee,
+            employee_name: searchEmployeeName,
+            start_date: startDate,
+            end_date: endDate,
+            status: statusFilter !== 'all' ? statusFilter : '',
+          },
+        });
+        setRequests(res.data);
       } catch (err) {
         console.error('Error fetching leave requests:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchLeaveRequests();
-  }, [selectedOutlet]);
+    fetchRequests();
+  }, [
+    selectedOutlet,
+    selectedEmployee,
+    searchEmployeeName,
+    startDate,
+    endDate,
+    statusFilter,
+  ]);
 
-  // Approve / Reject handlers
-  const handleApprove = async (id) => {
+  // FIXED MAPPING
+  const mappedRequests = useMemo(() => {
+    if (!requests.length || !employees.length) return [];
+
+    return requests.map((req) => {
+      const emp = employees.find(
+        (e) => e.employee_id === parseInt(req.employee_name)
+      );
+
+      return {
+        ...req,
+        employeeName: emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown',
+      };
+    });
+  }, [requests, employees]);
+
+  // Handle approve and reject actions
+  const handleApprove = (id) => {
+    setCurrentRequest({ id, action: 'approved' });
+    setOpenDialog(true);
+  };
+
+  const handleReject = (id) => {
+    setCurrentRequest({ id, action: 'rejected' });
+    setOpenDialog(true);
+  };
+
+  const confirmAction = async () => {
+    if (!currentRequest) return;
+
     try {
-      await api.put(`/api/attendance/updateleavestatus/${id}/`, { status: 'approved' });
+      await api.put(
+        `/api/attendance/updateleavestatus/${currentRequest.id}/`,
+        { status: currentRequest.action }
+      );
+
       setRequests((prev) =>
-        prev.map((req) => (req.leave_refno === id ? { ...req, status: 'approved' } : req))
+        prev.map((req) =>
+          req.leave_refno === currentRequest.id
+            ? { ...req, status: currentRequest.action }
+            : req
+        )
       );
     } catch (err) {
-      console.error('Error approving leave:', err);
+      console.error('Error updating leave status:', err);
+    } finally {
+      setOpenDialog(false);
+      setCurrentRequest(null);
     }
   };
 
-  const handleReject = async (id) => {
-    try {
-      await api.put(`/api/attendance/updateleavestatus/${id}/`, { status: 'rejected' });
-      setRequests((prev) =>
-        prev.map((req) => (req.leave_refno === id ? { ...req, status: 'rejected' } : req))
-      );
-    } catch (err) {
-      console.error('Error rejecting leave:', err);
-    }
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setCurrentRequest(null);
   };
 
-  // Columns for DataGrid
+  const filteredRequests = mappedRequests;
+
+  // Datagrid columns
   const columns = [
-    { field: 'leave_refno', headerName: 'Leave Ref No', flex: 1, minWidth: 120 },
-    { field: 'leave_date', headerName: 'Leave Date', flex: 1, minWidth: 120 },
-    { field: 'remarks', headerName: 'Remarks', flex: 1.5, minWidth: 180 },
-    { field: 'action_date', headerName: 'Action Date', flex: 1, minWidth: 130 },
-    { field: 'employee_name', headerName: 'Full Name', flex: 2, minWidth: 200 },
+    { field: 'leave_refno', headerName: 'Ref No', flex: 0.6, minWidth: 100 },
+    { field: 'leave_date', headerName: 'Leave Date', flex: 0.8, minWidth: 120 },
+    { field: 'remarks', headerName: 'Remarks', flex: 1.2, minWidth: 160 },
+    { field: 'add_date', headerName: 'Added On', flex: 0.8, minWidth: 120 },
+    { field: 'employee', headerName: 'Emp ID', flex: 0.7, minWidth: 100 },
+    { field: 'employeeName', headerName: 'Name', flex: 1, minWidth: 140 },
     { field: 'leave_type_name', headerName: 'Leave Type', flex: 1, minWidth: 140 },
     {
-      field: 'status',
-      headerName: 'Status',
+      field: 'actions',
+      headerName: 'Status / Action',
       flex: 1,
-      minWidth: 140,
-      sortable: false,
-      filterable: false,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params) => {
-        const status = params.value?.toLowerCase();
-        if (status === 'pending') {
-          return (
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-              <Tooltip title="Approve">
-                <IconButton
-                  aria-label="approve"
-                  color="success"
-                  size="small"
-                  onClick={() => handleApprove(params.row.leave_refno)}
-                >
-                  <CheckCircleIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Reject">
-                <IconButton
-                  aria-label="reject"
-                  color="error"
-                  size="small"
-                  onClick={() => handleReject(params.row.leave_refno)}
-                >
-                  <CancelIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          );
-        }
-        return (
-          <Chip
-            label={status.toUpperCase()}
-            color={status === 'approved' ? 'success' : 'error'}
-            size="small"
-            sx={{ fontWeight: 600, borderRadius: '4px' }} 
-          />
-        );
-      },
+      minWidth: 160,
+      renderCell: (params) =>
+        params.row.status === 'pending' ? (
+          <>
+            <GridActionsCellItem
+              icon={<CheckCircleIcon color="success" />}
+              label="Approve"
+              onClick={() => handleApprove(params.row.leave_refno)}
+            />
+            <GridActionsCellItem
+              icon={<CancelIcon color="error" />}
+              label="Reject"
+              onClick={() => handleReject(params.row.leave_refno)}
+            />
+          </>
+        ) : (
+          <Typography
+            sx={{
+              textTransform: 'capitalize',
+              color: params.row.status === 'approved' ? 'green' : 'red',
+              fontWeight: 600,
+            }}
+          >
+            {params.row.status}
+          </Typography>
+        ),
     },
   ];
 
-  if (loading) {
+  if (loading)
     return (
-      <Box
-        sx={{
-          width: '100%',
-          height: 300,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 18,
-          color: theme.palette.text.secondary,
-        }}
-      >
-        Loading leave requests...
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography>Loading...</Typography>
       </Box>
     );
-  }
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: 2, sm: 3 },
-        mt: 4,
-        maxWidth: 1200,
-        mx: 'auto',
-        bgcolor: 'transparent',
-        boxSizing: 'border-box',
-      }}
-    >
-      {/* Header & Outlet Selector */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          mb: 3,
-          gap: 2,
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            
-            pb: 0.5,
-            userSelect: 'none',
-            textTransform:'uppercase',
-          }}
-        >
-          Leave Requests
-        </Typography>
+    <Box sx={{ p: 4 }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', textTransform: 'uppercase' }}>
+        Leave Management
+      </Typography>
 
-        {userOutlets.length > 1 && (
-          <FormControl
-            variant="standard"
-            size="small"
-            sx={{ minWidth: 220 }}
-          >
-            <InputLabel id="outlet-select-label" sx={{ color: '#555' }}>
-              Select Outlet
-            </InputLabel>
-            <Select
-              labelId="outlet-select-label"
-              value={selectedOutlet || ''}
-              onChange={(e) => setSelectedOutlet(e.target.value)}
-              sx={{
-                color: '#222',
-              }}
-            >
-              {userOutlets.map((outlet) => (
-                <MenuItem key={outlet.id} value={outlet.id}>
-                  {outlet.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
+      {/* Filters */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+        <FormControl sx={{ minWidth: 180 }}>
+          <InputLabel>Outlet</InputLabel>
+          <Select value={selectedOutlet} onChange={(e) => setSelectedOutlet(e.target.value)}>
+            {userOutlets.map((o) => (
+              <MenuItem key={o.id} value={o.id}>
+                {o.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ minWidth: 180 }}>
+          <InputLabel>Employee</InputLabel>
+          <Select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}>
+            <MenuItem value="">All</MenuItem>
+            {employees.map((emp) => (
+              <MenuItem key={emp.employee_id} value={emp.employee_id}>
+                {emp.first_name} {emp.last_name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <TextField
+          label="Employee Name"
+          value={searchEmployeeName}
+          onChange={(e) => setSearchEmployeeName(e.target.value)}
+        />
+
+        <TextField
+          label="Start Date"
+          type="date"
+          value={startDate}
+          InputLabelProps={{ shrink: true }}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+
+        <TextField
+          label="End Date"
+          type="date"
+          value={endDate}
+          InputLabelProps={{ shrink: true }}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
+
+        <FormControl sx={{ minWidth: 140 }}>
+          <InputLabel>Status</InputLabel>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <MenuItem value="all">All</MenuItem>
+            <MenuItem value="pending">Pending</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="rejected">Rejected</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
 
-      {/* Leave Requests Table */}
-      <Box sx={{ height: 520, width: '100%' }}>
+      {/* DataGrid */}
+      <Box sx={{ height: 460, width: '100%' }}>
         <DataGrid
-          rows={requests}
+          rows={filteredRequests}
           columns={columns}
           pageSize={7}
-          rowsPerPageOptions={[5, 7, 10, 20]}
+          disableRowSelectionOnClick
           getRowId={(row) => row.leave_refno}
-          disableSelectionOnClick
-          sx={{
-            borderRadius: 1,
-            border: '1px solid #e0e0e0',
-            fontSize: 14,
-            '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: '#f0f0f0',
-              fontWeight: 600,
-              color: '#333',
-              minHeight: 40,
-              maxHeight: 40,
-              userSelect: 'none',
-            },
-            '& .MuiDataGrid-cell': {
-              py: 1,
-              borderBottom: '1px solid #eee',
-            },
-            '& .MuiDataGrid-row:hover': {
-              backgroundColor: '#fafafa',
-            },
-            '& .MuiDataGrid-footerContainer': {
-              borderTop: '1px solid #e0e0e0',
-              backgroundColor: '#fafafa',
-            },
-          }}
         />
       </Box>
-    </Paper>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Confirm Action</DialogTitle>
+        <DialogContent>
+          Are you sure you want to <strong>{currentRequest?.action}</strong> this leave request?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button variant="contained" onClick={confirmAction}>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

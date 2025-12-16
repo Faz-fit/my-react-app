@@ -58,10 +58,10 @@ function AdminDashboard() {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         const [overviewRes, leaveRes, outletRes, employeeRes] = await Promise.all([
-          fetch("http://139.59.243.2:8000/report/dashboard/overview/", { headers }),
-          fetch("http://139.59.243.2:8000/report/dashboard/leave-presence-trend/", { headers }),
-          fetch("http://139.59.243.2:8000/report/dashboard/outlet-summary/", { headers }),
-          fetch("http://139.59.243.2:8000/report/dashboard/employee-attendance-summary/", { headers }),
+          fetch("http://64.227.183.23:8000/report/dashboard/overview/", { headers }),
+          fetch("http://64.227.183.23:8000/report/dashboard/leave-presence-trend/", { headers }),
+          fetch("http://64.227.183.23:8000/report/dashboard/outlet-summary/", { headers }),
+          fetch("http://64.227.183.23:8000/report/dashboard/employee-attendance-summary/", { headers }),
         ]);
 
         if (!overviewRes.ok) throw new Error("Failed to fetch overview data");

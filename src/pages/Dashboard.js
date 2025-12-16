@@ -51,7 +51,7 @@ function ManagerDashboard() {
         const accessToken = localStorage.getItem("access_token");
         if (!accessToken) throw new Error("No access token found");
         
-        const response = await fetch("http://139.59.243.2:8000/api/user/", {
+        const response = await fetch("http://64.227.183.23:8000/api/user/", {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         
@@ -86,7 +86,7 @@ function ManagerDashboard() {
         // Determine API endpoint based on selection
         const outletParam = selectedOutlet === "all" ? "all" : selectedOutlet;
         
-        const baseUrl = "http://139.59.243.2:8000/report/dashboard";
+        const baseUrl = "http://64.227.183.23:8000/report/dashboard";
         
         // Fetch data with outlet filter
         const [overviewRes, leaveRes, employeeRes] = await Promise.all([

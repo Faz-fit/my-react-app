@@ -46,7 +46,7 @@ export default function MANReports() {
         return;
       }
 
-      const response = await axios.get(`http://139.59.243.2:8000/api/user/`, {
+      const response = await axios.get(`http://64.227.183.23:8000/api/user/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -63,7 +63,7 @@ export default function MANReports() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://139.59.243.2:8000/report/employees/user/${userId}`,
+        `http://64.227.183.23:8000/report/employees/user/${userId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -128,7 +128,7 @@ export default function MANReports() {
       const allReports = [];
 
       for (const empId of employeesToFetch) {
-        let url = `http://139.59.243.2:8000/report/employee/${empId}`;
+        let url = `http://64.227.183.23:8000/report/employee/${empId}`;
         const params = [];
         if (startDate) params.push(`start_date=${startDate}`);
         if (endDate) params.push(`end_date=${endDate}`);

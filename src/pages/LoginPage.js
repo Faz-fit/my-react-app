@@ -25,7 +25,7 @@ const LoginPage = () => {
 
   const loginUser = async (username, password, deviceType) => {
     try {
-      const response = await axios.post('http://139.59.243.2:8000/api/token/', {
+      const response = await axios.post('http://64.227.183.23:8000/api/token/', {
         username,
         password,
         device_type: deviceType,
@@ -38,7 +38,7 @@ const LoginPage = () => {
 
   const fetchUserDetails = async (token) => {
     try {
-      const response = await axios.get('http://139.59.243.2:8000/api/user/', {
+      const response = await axios.get('http://64.227.183.23:8000/api/user/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
