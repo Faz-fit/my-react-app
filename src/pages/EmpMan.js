@@ -15,7 +15,7 @@ import {
 import { DataGrid, GridToolbarContainer } from '@mui/x-data-grid';
 import api from 'utils/api';
 
-const BASE_URL = 'http://64.227.183.23';
+const BASE_URL = 'http://64.227.183.23:8000';
 
 function CustomToolbar({ searchText, setSearchText }) {
   return (
