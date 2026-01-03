@@ -1,530 +1,348 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
   Button,
   TextField,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
+  MenuItem,
+  Typography,
+  Paper,
+  Autocomplete,
+  Grid,
+  CircularProgress,
+  Alert,
+  Chip,
+  Divider,
+  Stack,
+  LinearProgress,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import PeopleIcon from "@mui/icons-material/People";
 import api from "utils/api";
 
-export default function LeaveManagement() {
-  const [outlets, setOutlets] = useState([]);
-  const [selectedOutletId, setSelectedOutletId] = useState("");
-  const [employees, setEmployees] = useState([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+export default function BulkLeaveAddPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [leaves, setLeaves] = useState([]);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  // API Data
+  const [outlets, setOutlets] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
   const [leaveTypes, setLeaveTypes] = useState([]);
-  const [newLeaveDate, setNewLeaveDate] = useState("");
-  const [newLeaveType, setNewLeaveType] = useState("");
-  const [newLeaveRemarks, setNewLeaveRemarks] = useState("");
-  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
-  const [bulkSelectedEmployees, setBulkSelectedEmployees] = useState([]);
-  const [bulkLeaveDate, setBulkLeaveDate] = useState("");
-  const [bulkLeaveType, setBulkLeaveType] = useState("");
-  const [bulkLeaveRemarks, setBulkLeaveRemarks] = useState("");
 
-  // Fetch outlets
+  // Form State
+  const [selectedOutlet, setSelectedOutlet] = useState("");
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [currentDateInput, setCurrentDateInput] = useState(null);
+  const [selectedLeaveType, setSelectedLeaveType] = useState("");
+  const [remarks, setRemarks] = useState("");
+
+  /* ---------------- FETCH INITIAL DATA ---------------- */
   useEffect(() => {
-    const fetchOutlets = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await api.get("/api/user/");
-        const userOutlets = response.data.outlets || [];
-        setOutlets(userOutlets);
-        if (userOutlets.length > 0) {
-          setSelectedOutletId(userOutlets[0].id);
-        }
+        const res = await api.get("report/leaves/outlet-data/");
+        setOutlets(res.data.outlets);
+        setAllEmployees(res.data.employees);
+        setLeaveTypes(res.data.leave_types);
       } catch (err) {
-        setError(err.message);
+        setMessage({ type: "error", text: "Failed to load initial data." });
       }
-    };
-    fetchOutlets();
-  }, []);
-
-  useEffect(() => {
-    if (selectedOutletId) fetchOutletData();
-  }, [selectedOutletId]);
-
-  const fetchOutletData = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
-      const outletData = response.data;
-      const allEmployees = outletData.employees || [];
-      setEmployees(allEmployees);
-      if (allEmployees.length > 0) {
-        setSelectedEmployeeId(allEmployees[0].employee_id);
-      }
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      setEmployees([]);
-    } finally {
       setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const fetchLeaveTypes = async () => {
-      try {
-        const response = await api.get("/api/leavetypes/");
-        setLeaveTypes(response.data.filter((lt) => lt.active));
-      } catch (err) {
-        console.error(err);
-      }
     };
-    fetchLeaveTypes();
+    fetchData();
   }, []);
 
-  // Update leaves when selected employee changes
+  /* ---------------- FILTER EMPLOYEES BY OUTLET ---------------- */
   useEffect(() => {
-    const emp = employees.find((e) => e.employee_id === selectedEmployeeId);
-    if (emp) {
-      const formattedLeaves = (emp.leaves || []).map((l) => ({
-        id: l.leave_refno,
-        leave_date: l.leave_date,
-        leave_type_name: l.leave_type_name,
-        remarks: l.remarks,
-        status: l.status,
-      }));
-      setLeaves(formattedLeaves);
-    } else setLeaves([]);
-  }, [selectedEmployeeId, employees]);
-
-  const columns = [
-    { field: "leave_date", headerName: "Leave Date", width: 150 },
-    {
-      field: "leave_type_name",
-      headerName: "Leave Type",
-      width: 180,
-    },
-    { field: "remarks", headerName: "Remarks", width: 200 },
-    { field: "status", headerName: "Status", width: 120 },
-  ];
-
-  const handleAddLeave = async () => {
-    if (!newLeaveDate || !newLeaveType || !selectedEmployeeId) {
-      alert("Please fill all fields.");
-      return;
+    if (selectedOutlet) {
+      const filtered = allEmployees.filter((emp) =>
+        emp.outlet_ids.includes(selectedOutlet)
+      );
+      setFilteredEmployees(filtered);
+      setSelectedEmployees([]);
+    } else {
+      setFilteredEmployees([]);
     }
+  }, [selectedOutlet, allEmployees]);
 
+  /* ---------------- DATE HANDLING ---------------- */
+  const addDate = () => {
+    if (!currentDateInput) return;
+    const dateStr = currentDateInput.toISOString().split("T")[0];
+    if (!selectedDates.includes(dateStr)) {
+      setSelectedDates((prev) => [...prev, dateStr]);
+    }
+    setCurrentDateInput(null);
+  };
+
+  const removeDate = (date) => {
+    setSelectedDates((prev) => prev.filter((d) => d !== date));
+  };
+
+  /* ---------------- SUBMIT ---------------- */
+  const isFormValid =
+    selectedOutlet &&
+    selectedEmployees.length > 0 &&
+    selectedDates.length > 0 &&
+    selectedLeaveType;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!isFormValid) return;
+
+    setSubmitLoading(true);
     const payload = {
-      employee: selectedEmployeeId,
-      leave_date: newLeaveDate,
-      leave_type: newLeaveType,
-      remarks: newLeaveRemarks,
+      outlet_id: selectedOutlet,
+      employee_ids: selectedEmployees.map((e) => e.employee_id),
+      leave_dates: selectedDates,
+      leave_type_id: selectedLeaveType,
+      remarks,
     };
 
     try {
-      const response = await api.post("/api/attendance/addleave/", payload);
-      const result = response.data;
-
-      if (result.success === false) {
-        alert(result.error || "Failed to add leave.");
-        return;
-      }
-
-      alert("Leave added successfully.");
-      await fetchOutletData();
-
-      setNewLeaveDate("");
-      setNewLeaveType("");
-      setNewLeaveRemarks("");
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.error || "Something went wrong. Please try again.";
-      console.error("Error adding leave:", error);
-      alert(errorMessage);
-    }
-  };
-
-  // --- Bulk Add Logic ---
-  const handleOpenBulkDialog = () => setIsBulkAddOpen(true);
-  const handleCloseBulkDialog = () => {
-    setIsBulkAddOpen(false);
-    setBulkSelectedEmployees([]);
-    setBulkLeaveDate("");
-    setBulkLeaveType("");
-    setBulkLeaveRemarks("");
-  };
-
-  const handleBulkSubmit = async () => {
-    if (bulkSelectedEmployees.length === 0 || !bulkLeaveDate || !bulkLeaveType) {
-      alert("Please select employees, a leave date, and a leave type.");
-      return;
-    }
-
-    const payload = {
-      employee_ids: bulkSelectedEmployees,
-      leave_date: bulkLeaveDate,
-      leave_type: bulkLeaveType,
-      remarks: bulkLeaveRemarks,
-    };
-
-    try {
-      const response = await api.post("/api/attendance/bulk-addleave/", payload);
-      alert(response.data.message);
-      handleCloseBulkDialog();
-      await fetchOutletData(); // Refresh data
+      await api.post("report/leaves/bulk_create/", payload);
+      setMessage({ type: "success", text: "Bulk leaves created successfully!" });
+      setSelectedEmployees([]);
+      setSelectedDates([]);
+      setRemarks("");
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.error || "An error occurred during the bulk add.";
-      alert(`Error: ${errorMessage}`);
+      setMessage({
+        type: "error",
+        text: err.response?.data?.detail || "Error creating bulk leaves.",
+      });
     }
+    setSubmitLoading(false);
   };
 
+  if (loading) {
+    return (
+      <Box p={5} textAlign="center">
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+
+  /* ======================== UI ======================== */
   return (
-    <Box p={3}>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={2}
-        flexWrap="wrap"
-      >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 'bold',
-            textTransform:'uppercase',
-            display: 'inline-block',
-            pb: 0.5,
-          }}
-        >Leave Management</Typography>
-        <Button variant="contained" onClick={handleOpenBulkDialog} disabled={!selectedOutletId}>
-          Bulk Add Leave
-        </Button>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box p={{ xs: 2, md: 5 }} maxWidth={900} mx="auto">
+        <Paper elevation={4} sx={{ borderRadius: 3, overflow: "hidden" }}>
+          {submitLoading && <LinearProgress />}
+
+          <Box p={4}>
+            <Typography variant="h4" fontWeight={800} gutterBottom color="primary">
+              Bulk Leave Application
+            </Typography>
+            <Typography color="text.secondary" mb={4}>
+              Manage multiple leave requests easily.
+            </Typography>
+
+            {message.text && (
+              <Alert
+                severity={message.type}
+                sx={{ mb: 4 }}
+                onClose={() => setMessage({ type: "", text: "" })}
+              >
+                {message.text}
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={4}>
+
+                {/* STEP 1: EMPLOYEES */}
+                <Grid item xs={12}>
+                  <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
+                    <PeopleIcon color="primary" />
+                    <Typography variant="h6" fontWeight={700}>
+                      Step 1: Select Employees
+                    </Typography>
+                  </Stack>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={5}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="Select Outlet"
+                        value={selectedOutlet}
+                        onChange={(e) => setSelectedOutlet(e.target.value)}
+                        required
+                        helperText="Choose the outlet"
+                      >
+                        {outlets.map((o) => (
+                          <MenuItem key={o.id} value={o.id}>
+                            {o.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} md={7}>
+                      <Autocomplete
+                        multiple
+                        options={filteredEmployees}
+                        value={selectedEmployees}
+                        disabled={!selectedOutlet}
+                        isOptionEqualToValue={(opt, val) =>
+                          opt.employee_id === val.employee_id
+                        }
+                        getOptionLabel={(option) =>
+                          `${option.username} | ${option.first_name}`
+                        }
+                        onChange={(e, val) => setSelectedEmployees(val)}
+                        renderOption={(props, option) => (
+                          <li {...props}>
+                            <Box>
+                              <Typography fontWeight={600}>
+                                {option.username}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {option.first_name}
+                              </Typography>
+                            </Box>
+                          </li>
+                        )}
+                        renderTags={(value, getTagProps) =>
+                          value.map((option, index) => (
+                            <Chip
+                              {...getTagProps({ index })}
+                              label={option.username}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          ))
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Select Employees"
+                            placeholder="Search username..."
+                            helperText={
+                              !selectedOutlet
+                                ? "Select an outlet to load employees"
+                                : "You can select multiple employees"
+                            }
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                </Grid>
+
+                <Grid item xs={12}><Divider /></Grid>
+
+                {/* STEP 2: DATES */}
+                <Grid item xs={12}>
+                  <Stack direction="row" spacing={1.5} alignItems="center" mb={2}>
+                    <CalendarMonthIcon color="primary" />
+                    <Typography variant="h6" fontWeight={700}>
+                      Step 2: Select Dates
+                    </Typography>
+                  </Stack>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={8}>
+                      <DatePicker
+                        label="Leave Date"
+                        value={currentDateInput}
+                        onChange={setCurrentDateInput}
+                        renderInput={(params) => (
+                          <TextField {...params} fullWidth />
+                        )}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        sx={{ height: 56 }}
+                        onClick={addDate}
+                        disabled={!currentDateInput}
+                      >
+                        Add Date
+                      </Button>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        {[...selectedDates].sort().map((date) => (
+                          <Chip
+                            key={date}
+                            label={date}
+                            onDelete={() => removeDate(date)}
+                            color="info"
+                          />
+                        ))}
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Grid>
+
+                <Grid item xs={12}><Divider /></Grid>
+
+                {/* STEP 3: DETAILS */}
+                <Grid item xs={12}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="Leave Type"
+                        value={selectedLeaveType}
+                        onChange={(e) => setSelectedLeaveType(e.target.value)}
+                        required
+                      >
+                        {leaveTypes.map((lt) => (
+                          <MenuItem key={lt.id} value={lt.id}>
+                            {lt.att_type_name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Remarks (Optional)"
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                      />
+                    </Grid>
+                  </Grid>
+                </Grid>
+
+                <Grid item xs={12} mt={2}>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    size="large"
+                    variant="contained"
+                    disabled={!isFormValid || submitLoading}
+                    sx={{ py: 2, fontWeight: "bold" }}
+                  >
+                    {submitLoading
+                      ? "Submitting..."
+                      : "Confirm Bulk Leave Request"}
+                  </Button>
+                </Grid>
+
+              </Grid>
+            </form>
+          </Box>
+        </Paper>
       </Box>
-
-      {/* Redesigned Outlet and Employee Selectors */}
-      <Box display="flex" flexWrap="wrap" gap={2} alignItems="center" mb={2}>
-        {/* Outlet Select */}
-        <FormControl
-          size="medium"
-          variant="outlined"
-          sx={{
-            minWidth: 220,
-            maxWidth: 300,
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
-            height: 48,
-            "& .MuiOutlinedInput-root": {
-              height: "100%",
-              "& fieldset": {
-                borderColor: "rgba(25, 118, 210, 0.5)",
-              },
-              "&:hover fieldset": {
-                borderColor: "primary.main",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "primary.main",
-                borderWidth: 2,
-              },
-              "& .MuiSelect-select": {
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                padding: "0 14px",
-                fontWeight: 600,
-                fontSize: "1rem",
-              },
-            },
-          }}
-        >
-          <InputLabel id="outlet-label">Outlet</InputLabel>
-          <Select
-            labelId="outlet-label"
-            value={selectedOutletId}
-            onChange={(e) => setSelectedOutletId(e.target.value)}
-            label="Outlet"
-            MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
-          >
-            {outlets.map((outlet) => (
-              <MenuItem key={outlet.id} value={outlet.id}>
-                {outlet.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Employee Select */}
-        <FormControl
-          size="medium"
-          variant="outlined"
-          sx={{
-            minWidth: 220,
-            maxWidth: 300,
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
-            height: 48,
-            "& .MuiOutlinedInput-root": {
-              height: "100%",
-              "& fieldset": {
-                borderColor: "rgba(25, 118, 210, 0.5)",
-              },
-              "&:hover fieldset": {
-                borderColor: "primary.main",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "primary.main",
-                borderWidth: 2,
-              },
-              "& .MuiSelect-select": {
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                padding: "0 14px",
-                fontWeight: 600,
-                fontSize: "1rem",
-              },
-            },
-          }}
-        >
-          <InputLabel id="employee-label">Employee</InputLabel>
-          <Select
-            labelId="employee-label"
-            value={selectedEmployeeId}
-            onChange={(e) => setSelectedEmployeeId(e.target.value)}
-            label="Employee"
-            MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
-          >
-            {employees.map((emp) => (
-              <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                {emp.first_name} {emp.last_name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Add New Leave */}
-<Box
-  mt={2}
-  mb={2}
-  display="flex"
-  gap={2}
-  flexWrap="wrap"
-  alignItems="center"
->
-  {/* Leave Date Field */}
-  <TextField
-    label="Leave Date"
-    type="date"
-    value={newLeaveDate}
-    onChange={(e) => setNewLeaveDate(e.target.value)}
-    InputLabelProps={{ shrink: true }}
-    sx={{
-      minWidth: 220,
-      maxWidth: 300,
-      bgcolor: "background.paper",
-      borderRadius: 2,
-      boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
-      "& .MuiOutlinedInput-root": {
-        height: 48,
-        "& fieldset": {
-          borderColor: "rgba(25, 118, 210, 0.5)",
-        },
-        "&:hover fieldset": {
-          borderColor: "primary.main",
-        },
-        "&.Mui-focused fieldset": {
-          borderColor: "primary.main",
-          borderWidth: 2,
-        },
-      },
-      "& .MuiInputBase-input": {
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 14px",
-        fontWeight: 600,
-        fontSize: "1rem",
-      },
-    }}
-  />
-
-        <FormControl
-          size="medium"
-          variant="outlined"
-          sx={{
-            minWidth: 220,
-            maxWidth: 300,
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
-            height: 48,
-            "& .MuiOutlinedInput-root": {
-              height: "100%",
-              "& fieldset": {
-                borderColor: "rgba(25, 118, 210, 0.5)",
-              },
-              "&:hover fieldset": {
-                borderColor: "primary.main",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "primary.main",
-                borderWidth: 2,
-              },
-              "& .MuiSelect-select": {
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                padding: "0 14px",
-                fontWeight: 600,
-                fontSize: "1rem",
-              },
-            },
-          }}
-        >
-          <InputLabel>Leave Type</InputLabel>
-          <Select
-            value={newLeaveType}
-            onChange={(e) => setNewLeaveType(e.target.value)}
-            label="Leave Type"
-          >
-            {leaveTypes.map((lt) => (
-              <MenuItem key={lt.id} value={lt.id}>
-                {lt.att_type_name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-<TextField
-    label="Remarks"
-    value={newLeaveRemarks}
-    onChange={(e) => setNewLeaveRemarks(e.target.value)}
-    sx={{
-      flexGrow: 1,
-      minWidth: 180,
-      maxWidth: 300,
-      bgcolor: "background.paper",
-      borderRadius: 2,
-      boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)",
-      "& .MuiOutlinedInput-root": {
-        height: 48,
-        "& fieldset": {
-          borderColor: "rgba(25, 118, 210, 0.5)",
-        },
-        "&:hover fieldset": {
-          borderColor: "primary.main",
-        },
-        "&.Mui-focused fieldset": {
-          borderColor: "primary.main",
-          borderWidth: 2,
-        },
-      },
-      "& .MuiInputBase-input": {
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 14px",
-        fontWeight: 600,
-        fontSize: "1rem",
-      },
-    }}
-  />
-
-        <Button variant="contained" onClick={handleAddLeave} sx={{ height: 48 }}>
-          Add Leave
-        </Button>
-      </Box>
-
-      {/* Leave DataGrid */}
-      <Box style={{ height: 400, width: "100%" }}>
-        {loading ? (
-          <CircularProgress />
-        ) : error ? (
-          <Typography color="error">{error}</Typography>
-        ) : leaves.length > 0 ? (
-          <DataGrid rows={leaves} columns={columns} pageSize={5} />
-        ) : (
-          <Typography p={2}>No leaves found</Typography>
-        )}
-      </Box>
-
-      {/* --- Bulk Add Leave Dialog --- */}
-      <Dialog open={isBulkAddOpen} onClose={handleCloseBulkDialog} fullWidth maxWidth="sm">
-        <DialogTitle>Bulk Add Leave Records</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth margin="normal" size="medium" variant="outlined" sx={{
-            borderRadius: 2,
-            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)"
-          }}>
-            <InputLabel>Employees</InputLabel>
-            <Select
-              multiple
-              value={bulkSelectedEmployees}
-              onChange={(e) => setBulkSelectedEmployees(e.target.value)}
-              label="Employees"
-              renderValue={(selected) =>
-                selected.map((id) => employees.find((e) => e.employee_id === id)?.first_name).join(", ")
-              }
-              MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
-            >
-              {employees.map((emp) => (
-                <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                  {emp.first_name} {emp.last_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Leave Date"
-            type="date"
-            fullWidth
-            margin="normal"
-            value={bulkLeaveDate}
-            onChange={(e) => setBulkLeaveDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ borderRadius: 2 }}
-          />
-          <FormControl fullWidth margin="normal" size="medium" variant="outlined" sx={{
-            borderRadius: 2,
-            boxShadow: "0 2px 6px rgb(0 0 0 / 0.1)"
-          }}>
-            <InputLabel>Leave Type</InputLabel>
-            <Select
-              value={bulkLeaveType}
-              onChange={(e) => setBulkLeaveType(e.target.value)}
-              label="Leave Type"
-              MenuProps={{ PaperProps: { sx: { borderRadius: 2 } } }}
-            >
-              {leaveTypes.map((lt) => (
-                <MenuItem key={lt.id} value={lt.id}>
-                  {lt.att_type_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Remarks (Optional)"
-            fullWidth
-            margin="normal"
-            value={bulkLeaveRemarks}
-            onChange={(e) => setBulkLeaveRemarks(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseBulkDialog}>Cancel</Button>
-          <Button onClick={handleBulkSubmit} variant="contained">
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+    </LocalizationProvider>
   );
 }

@@ -10,7 +10,6 @@ import {
   Chip,
   Paper,
   TextField,
-  useTheme,
 } from '@mui/material';
 import { DataGrid, GridToolbarContainer } from '@mui/x-data-grid';
 import api from 'utils/api';

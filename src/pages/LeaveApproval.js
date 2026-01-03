@@ -1,288 +1,206 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from "react";
+import api from "utils/api";
 import {
   Box,
-  Typography,
+  Button,
   MenuItem,
   Select,
-  FormControl,
-  InputLabel,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
   TextField,
-} from '@mui/material';
-import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import api from 'utils/api';
+  Typography,
+  Chip,
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import useManagerProfile from "../hooks/useManagerProfile.js";
 
-export default function LeaveApproval() {
-  const [requests, setRequests] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [userOutlets, setUserOutlets] = useState([]);
-  const [selectedOutlet, setSelectedOutlet] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [searchEmployeeName, setSearchEmployeeName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [loading, setLoading] = useState(true);
+export default function OutletLeavePage() {
+  const { user, loading: userLoading } = useManagerProfile();
+  const outlets = user?.outlets || [];
 
-  const [openDialog, setOpenDialog] = useState(false);
-  const [currentRequest, setCurrentRequest] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [outletId, setOutletId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  // Fetch initial data
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const resUser = await api.get('/api/user/');
-        const resEmp = await api.get('/api/getemployees/');
-
-        setUserOutlets(resUser.data.outlets || []);
-        if (resUser.data.outlets?.length > 0)
-          setSelectedOutlet(resUser.data.outlets[0].id);
-
-        setEmployees(resEmp.data);
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInitialData();
-  }, []);
-
-  // Fetch leave requests whenever filters change
-  useEffect(() => {
-    if (!selectedOutlet) return;
-
-    const fetchRequests = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/api/simple-leave-requests/', {
-          params: {
-            outlet_id: selectedOutlet,
-            employee_id: selectedEmployee,
-            employee_name: searchEmployeeName,
-            start_date: startDate,
-            end_date: endDate,
-            status: statusFilter !== 'all' ? statusFilter : '',
-          },
-        });
-        setRequests(res.data);
-      } catch (err) {
-        console.error('Error fetching leave requests:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRequests();
-  }, [
-    selectedOutlet,
-    selectedEmployee,
-    searchEmployeeName,
-    startDate,
-    endDate,
-    statusFilter,
-  ]);
-
-  // FIXED MAPPING
-  const mappedRequests = useMemo(() => {
-    if (!requests.length || !employees.length) return [];
-
-    return requests.map((req) => {
-      const emp = employees.find(
-        (e) => e.employee_id === parseInt(req.employee_name)
-      );
-
-      return {
-        ...req,
-        employeeName: emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown',
-      };
-    });
-  }, [requests, employees]);
-
-  // Handle approve and reject actions
-  const handleApprove = (id) => {
-    setCurrentRequest({ id, action: 'approved' });
-    setOpenDialog(true);
-  };
-
-  const handleReject = (id) => {
-    setCurrentRequest({ id, action: 'rejected' });
-    setOpenDialog(true);
-  };
-
-  const confirmAction = async () => {
-    if (!currentRequest) return;
-
+  const fetchLeaves = async () => {
+    if (!outletId) return;
+    setLoading(true);
     try {
-      await api.put(
-        `/api/attendance/updateleavestatus/${currentRequest.id}/`,
-        { status: currentRequest.action }
-      );
+      const res = await api.get("report/leaves/outlet/", {
+        params: {
+          outlet_id: outletId,
+          start_date: startDate,
+          end_date: endDate,
+        },
+      });
 
-      setRequests((prev) =>
-        prev.map((req) =>
-          req.leave_refno === currentRequest.id
-            ? { ...req, status: currentRequest.action }
-            : req
-        )
+      setRows(
+        res.data.results.map((r) => ({
+          id: r.leave_refno, 
+          ...r,
+        }))
       );
     } catch (err) {
-      console.error('Error updating leave status:', err);
-    } finally {
-      setOpenDialog(false);
-      setCurrentRequest(null);
+      console.error("Error fetching leaves:", err);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (outletId) {
+      fetchLeaves();
+    }
+  }, [outletId]);
+
+  const updateStatus = async (leaveRefno, status) => {
+    try {
+      await api.patch(`/report/leaves/${leaveRefno}/status/`, { status });
+      fetchLeaves();
+    } catch (err) {
+      console.error("Error updating status:", err);
     }
   };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setCurrentRequest(null);
+  const getStatusChip = (status) => {
+    const colors = {
+      pending: "warning",
+      approved: "success",
+      rejected: "error",
+      cancelled: "default",
+    };
+    return (
+      <Chip
+        label={status?.toUpperCase() || "UNKNOWN"}
+        color={colors[status] || "default"}
+        size="small"
+        variant="outlined"
+      />
+    );
   };
 
-  const filteredRequests = mappedRequests;
-
-  // Datagrid columns
-  const columns = [
-    { field: 'leave_refno', headerName: 'Ref No', flex: 0.6, minWidth: 100 },
-    { field: 'leave_date', headerName: 'Leave Date', flex: 0.8, minWidth: 120 },
-    { field: 'remarks', headerName: 'Remarks', flex: 1.2, minWidth: 160 },
-    { field: 'add_date', headerName: 'Added On', flex: 0.8, minWidth: 120 },
-    { field: 'employee', headerName: 'Emp ID', flex: 0.7, minWidth: 100 },
-    { field: 'employeeName', headerName: 'Name', flex: 1, minWidth: 140 },
-    { field: 'leave_type_name', headerName: 'Leave Type', flex: 1, minWidth: 140 },
-    {
-      field: 'actions',
-      headerName: 'Status / Action',
-      flex: 1,
-      minWidth: 160,
-      renderCell: (params) =>
-        params.row.status === 'pending' ? (
-          <>
-            <GridActionsCellItem
-              icon={<CheckCircleIcon color="success" />}
-              label="Approve"
-              onClick={() => handleApprove(params.row.leave_refno)}
-            />
-            <GridActionsCellItem
-              icon={<CancelIcon color="error" />}
-              label="Reject"
-              onClick={() => handleReject(params.row.leave_refno)}
-            />
-          </>
-        ) : (
-          <Typography
-            sx={{
-              textTransform: 'capitalize',
-              color: params.row.status === 'approved' ? 'green' : 'red',
-              fontWeight: 600,
-            }}
-          >
-            {params.row.status}
-          </Typography>
-        ),
-    },
-  ];
-
-  if (loading)
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography>Loading...</Typography>
-      </Box>
-    );
+  if (userLoading) return <Typography p={3}>Loading profile...</Typography>;
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', textTransform: 'uppercase' }}>
-        Leave Management
+    <Box p={3}>
+      <Typography variant="h5" mb={3} fontWeight="bold">
+        Outlet Leave Management
       </Typography>
 
-      {/* Filters */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-        <FormControl sx={{ minWidth: 180 }}>
-          <InputLabel>Outlet</InputLabel>
-          <Select value={selectedOutlet} onChange={(e) => setSelectedOutlet(e.target.value)}>
-            {userOutlets.map((o) => (
-              <MenuItem key={o.id} value={o.id}>
-                {o.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl sx={{ minWidth: 180 }}>
-          <InputLabel>Employee</InputLabel>
-          <Select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            {employees.map((emp) => (
-              <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                {emp.first_name} {emp.last_name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Box display="flex" gap={2} mb={3} flexWrap="wrap">
+        <Select
+          value={outletId}
+          onChange={(e) => setOutletId(e.target.value)}
+          size="small"
+          displayEmpty
+          sx={{ width: 200 }}
+        >
+          <MenuItem value="">Select Outlet</MenuItem>
+          {outlets.map((o) => (
+            <MenuItem key={o.id} value={o.id}>
+              {o.name}
+            </MenuItem>
+          ))}
+        </Select>
 
         <TextField
-          label="Employee Name"
-          value={searchEmployeeName}
-          onChange={(e) => setSearchEmployeeName(e.target.value)}
-        />
-
-        <TextField
-          label="Start Date"
           type="date"
-          value={startDate}
+          size="small"
+          label="Start Date"
           InputLabelProps={{ shrink: true }}
+          value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
         />
 
         <TextField
-          label="End Date"
           type="date"
-          value={endDate}
+          size="small"
+          label="End Date"
           InputLabelProps={{ shrink: true }}
+          value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
 
-        <FormControl sx={{ minWidth: 140 }}>
-          <InputLabel>Status</InputLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="approved">Approved</MenuItem>
-            <MenuItem value="rejected">Rejected</MenuItem>
-          </Select>
-        </FormControl>
+        <Button variant="contained" onClick={fetchLeaves} disabled={!outletId}>
+          Search
+        </Button>
       </Box>
 
-      {/* DataGrid */}
-      <Box sx={{ height: 460, width: '100%' }}>
+      <Box sx={{ height: 700, width: "100%" }}>
         <DataGrid
-          rows={filteredRequests}
-          columns={columns}
-          pageSize={7}
-          disableRowSelectionOnClick
-          getRowId={(row) => row.leave_refno}
+          showToolbar
+          rows={rows}
+          columns={[
+            { field: "leave_refno", headerName: "Ref No", width: 90 },
+            { field: "employee_id", headerName: "Emp ID", width: 90 },
+            { field: "username", headerName: "Emp Code", width: 100 },
+            { 
+              field: "first_name", 
+              headerName: "Name", 
+              width: 200,
+              renderCell: (params) => params.value?.trim() || ""
+            },
+            { field: "att_type_name", headerName: "Leave Type", width: 130 },
+            { field: "leave_date", headerName: "Leave Date", width: 110 },
+            { field: "att_type", headerName: "Leave Type Code", width: 110 },
+            { 
+              field: "action_date", 
+              headerName: "Action Date", 
+              width: 110,
+              // Fixed: Removed .value access that was causing the crash
+              renderCell: (params) => params.value ? params.value : "-"
+            },
+            { 
+              field: "remarks", 
+              headerName: "Remarks", 
+              width: 150,
+              renderCell: (params) => params.value || "-"
+            },
+            { 
+              field: "status", 
+              headerName: "Status", 
+              width: 120,
+              renderCell: (params) => getStatusChip(params.value)
+            },
+            {
+              field: "actions",
+              headerName: "Actions",
+              width: 180,
+              sortable: false,
+              renderCell: (params) => {
+                if (params.row?.status === "pending") {
+                  return (
+                    <Box display="flex" gap={1} alignItems="center" height="100%">
+                      <Button
+                        variant="contained"
+                        size="small"
+                        color="success"
+                        onClick={() => updateStatus(params.row.id, "approved")}
+                        sx={{ fontSize: '0.7rem' }}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        color="error"
+                        onClick={() => updateStatus(params.row.id, "rejected")}
+                        sx={{ fontSize: '0.7rem' }}
+                      >
+                        Reject
+                      </Button>
+                    </Box>
+                  );
+                }
+                return null;
+              },
+            },
+          ]}
+          loading={loading}
+          pageSize={10}
+          rowsPerPageOptions={[10, 25, 50]}
+          disableSelectionOnClick
         />
       </Box>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>Confirm Action</DialogTitle>
-        <DialogContent>
-          Are you sure you want to <strong>{currentRequest?.action}</strong> this leave request?
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button variant="contained" onClick={confirmAction}>
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
