@@ -37,7 +37,7 @@ import Attandancemodify from './pages/AttandanceModify.js';
 import Leavemodify from 'pages/LeaveModify.js';
 import DeactiveEmplooyee from 'pages/DeactiveEmployee.js';
 import MANReports from 'pages/MANReports';
-
+import ReffaranceImage from 'pages/ReffranceImage';
 
 import SelectOutlet from 'pages/SelectOutlet';
 
@@ -280,6 +280,11 @@ function App() {
           <Route path="/Manager/Reports" element={
           <ProtectedRoute role={role} requiredRole="Manager">
             <Layout><MANReports/></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/employees/modify-reference-image" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><ReffaranceImage/></Layout>
           </ProtectedRoute>
         } />
 

@@ -8,6 +8,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { useForm, Controller } from 'react-hook-form';
 import api from 'utils/api';
+import { useNavigate } from 'react-router-dom';
+
 
 const initialEmployees = [];
 
@@ -18,6 +20,7 @@ export default function EmployeeGrid() {
   const [outlets, setOutlets] = useState([]);
   const [groups, setGroups] = useState([]);
   const [passwordError, setPasswordError] = useState('');
+  const navigate = useNavigate();
 
   const fetchEmployees = async () => {
     try {
@@ -187,40 +190,57 @@ return (
   >
     {/* Header Row */}
     <Box
+  sx={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  }}
+>
+  <Typography
+    variant="h4"
+    sx={{
+      fontWeight: 700,
+      letterSpacing: 0.5,
+      color: '#333',
+    }}
+  >
+    Employees
+  </Typography>
+
+  {/* Buttons */}
+  <Box sx={{ display: 'flex', gap: 2 }}>
+    <Button
+  variant="outlined"
+  onClick={() => navigate('/employees/modify-reference-image')}
+  sx={{
+    textTransform: 'none',
+    fontWeight: 600,
+    borderRadius: '8px',
+  }}
+>
+  Modify
+</Button>
+
+
+    <Button
+      variant="contained"
+      startIcon={<AddIcon />}
+      onClick={handleOpenAdd}
       sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        backgroundColor: '#1976d2',
+        textTransform: 'none',
+        fontWeight: 600,
+        borderRadius: '8px',
+        '&:hover': {
+          backgroundColor: '#1565c0',
+        },
       }}
     >
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 700,
-          letterSpacing: 0.5,
-          color: '#333',
-        }}
-      >
-        Employees
-      </Typography>
+      Add Employee
+    </Button>
+  </Box>
+</Box>
 
-      <Button
-        variant="contained"
-        startIcon={<AddIcon />}
-        onClick={handleOpenAdd}
-        sx={{
-          backgroundColor: '#1976d2',
-          textTransform: 'none',
-          fontWeight: 600,
-          borderRadius: '8px',
-          '&:hover': {
-            backgroundColor: '#1565c0',
-          },
-        }}
-      >
-        Add Employee
-      </Button>
-    </Box>
 
     {/* Employee Table */}
     <Paper
