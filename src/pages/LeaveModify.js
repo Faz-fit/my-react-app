@@ -74,7 +74,8 @@ export default function BulkLeaveAddPage() {
   /* ---------------- DATE HANDLING ---------------- */
   const addDate = () => {
     if (!currentDateInput) return;
-    const dateStr = currentDateInput.toISOString().split("T")[0];
+    // const dateStr = currentDateInput.toISOString().split("T")[0];
+    const dateStr = `${currentDateInput.getFullYear()}-${String(currentDateInput.getMonth() + 1).padStart(2, "0")}-${String(currentDateInput.getDate()).padStart(2, "0")}`;
     if (!selectedDates.includes(dateStr)) {
       setSelectedDates((prev) => [...prev, dateStr]);
     }
