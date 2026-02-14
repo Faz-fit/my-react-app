@@ -38,6 +38,7 @@ import Leavemodify from 'pages/LeaveModify.js';
 import DeactiveEmplooyee from 'pages/DeactiveEmployee.js';
 import MANReports from 'pages/MANReports';
 import ReffaranceImage from 'pages/ReffranceImage';
+import OutletSummary from 'pages/admin/OutletSummary.js';
 
 import SelectOutlet from 'pages/SelectOutlet';
 
@@ -217,6 +218,11 @@ function App() {
         <Route path="/admin/reports2" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><AdminReport2 /></Layout>  {/* Add the AdminReport component here */}
+          </ProtectedRoute>
+        } />
+        <Route path="/OutletSummary" element={
+          <ProtectedRoute role={role} requiredRole="Admin">
+            <Layout><OutletSummary /></Layout>  {/* Use OutletSummary component instead of AdminReport */}
           </ProtectedRoute>
         } />
          {/* Role Management */}
