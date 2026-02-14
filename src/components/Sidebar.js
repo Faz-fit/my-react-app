@@ -12,12 +12,10 @@ import {
 import { NavLink } from "react-router-dom";
 import { getUserRole } from "../utils/auth";
 
-// Updated Icons (unique, modern)
+// Icons
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupIcon from "@mui/icons-material/Group";
-import SettingsApplicationsIcon from "@mui/icons-material/SettingsApplications";
 import StoreIcon from "@mui/icons-material/Store";
-import ApartmentIcon from "@mui/icons-material/Apartment";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import LockResetIcon from "@mui/icons-material/LockReset";
@@ -34,46 +32,148 @@ function Sidebar({ sidebarOpen, onClose }) {
   const role = getUserRole() || "";
   const normalizedRole =
     role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-const navItems = [
-  // Common
-  {
-    text: "DASHBOARD",
-    path: normalizedRole === "Admin" ? "/AdminDashboard" : "/Dashboard",
-    roles: ["Admin", "Manager"],
-    icon: <DashboardIcon />,
-    group: "MAIN",
-  },
 
-  // Admin Section
-  { text: "EMPLOYEE", path: "/Admin/employee-status", roles: ["Admin"], icon: <GroupIcon />, group: "MANAGEMENT" },
-  { text: "OUTLETS", path: "/Admin/outlets", roles: ["Admin"], icon: <StoreIcon />, group: "MANAGEMENT" },
-  { text: "HOLIDAYS", path: "/Admin/create/holidays", roles: ["Admin"], icon: <CalendarMonthIcon />, group: "MANAGEMENT" },
-  { text: "LEAVE", path: "/Admin/create/leave", roles: ["Admin"], icon: <EditCalendarIcon />, group: "MANAGEMENT" },
+  const navItems = [
+    // MAIN
+    {
+      text: "DASHBOARD",
+      path: normalizedRole === "Admin" ? "/AdminDashboard" : "/Dashboard",
+      roles: ["Admin", "Manager"],
+      icon: <AnalyticsIcon />,
+      group: "MAIN",
+    },
+    {
+      text: "OUTLET SUMMARY",
+      path: "/OutletSummary",
+      roles: ["Admin"], // ✅ Admin only
+      icon: <DashboardIcon />,
+      group: "MAIN",
+    },
 
-  // Admin - Settings
-  { text: "CHANGE PASSWORD", path: "/admin/Employee/PasswordChange", roles: ["Admin"], icon: <LockResetIcon />, group: "SETTINGS" },
-  { text: "DEACTIVATE EMPLOYEE", path: "/admin/DeactiveEmployee", roles: ["Admin"], icon: <PersonOffIcon />, group: "SETTINGS" },
+    // ADMIN - MANAGEMENT
+    {
+      text: "EMPLOYEE",
+      path: "/Admin/employee-status",
+      roles: ["Admin"],
+      icon: <GroupIcon />,
+      group: "MANAGEMENT",
+    },
+    {
+      text: "OUTLETS",
+      path: "/Admin/outlets",
+      roles: ["Admin"],
+      icon: <StoreIcon />,
+      group: "MANAGEMENT",
+    },
+    {
+      text: "HOLIDAYS",
+      path: "/Admin/create/holidays",
+      roles: ["Admin"],
+      icon: <CalendarMonthIcon />,
+      group: "MANAGEMENT",
+    },
+    {
+      text: "LEAVE",
+      path: "/Admin/create/leave",
+      roles: ["Admin"],
+      icon: <EditCalendarIcon />,
+      group: "MANAGEMENT",
+    },
 
-  // Admin - Assignments
-  { text: "LEAVE MANAGEMENT", path: "/Admin/assign/leave", roles: ["Admin"], icon: <WorkHistoryIcon />, group: "ASSIGNMENTS" },
-  { text: "DAILY ATTENDANCE", path: "/admin/assign/AdminATTM", roles: ["Admin"], icon: <TaskIcon />, group: "ASSIGNMENTS" },
+    // ADMIN - SETTINGS
+    {
+      text: "CHANGE PASSWORD",
+      path: "/admin/Employee/PasswordChange",
+      roles: ["Admin"],
+      icon: <LockResetIcon />,
+      group: "SETTINGS",
+    },
+    {
+      text: "DEACTIVATE EMPLOYEE",
+      path: "/admin/DeactiveEmployee",
+      roles: ["Admin"],
+      icon: <PersonOffIcon />,
+      group: "SETTINGS",
+    },
 
-  // Admin - Reports
-  { text: "DETAIL REPORTS", path: "/Admin/reports", roles: ["Admin"], icon: <QueryStatsIcon />, group: "REPORTS" },
- // { text: "STANDARD REPORTS", path: "/Admin/reports2", roles: ["Admin"], icon: <AnalyticsIcon />, group: "REPORTS" },
+    // ADMIN - ASSIGNMENTS
+    {
+      text: "LEAVE MANAGEMENT",
+      path: "/Admin/assign/leave",
+      roles: ["Admin"],
+      icon: <WorkHistoryIcon />,
+      group: "ASSIGNMENTS",
+    },
+    {
+      text: "DAILY ATTENDANCE",
+      path: "/admin/assign/AdminATTM",
+      roles: ["Admin"],
+      icon: <TaskIcon />,
+      group: "ASSIGNMENTS",
+    },
 
-  // Manager Section
-  { text: "EMPLOYEES", path: "/empman", roles: ["Manager"], icon: <ManageAccountsIcon />, group: "MANAGEMENT" },
-  { text: "LEAVE APPROVAL", path: "/leave-approval", roles: ["Manager"], icon: <FactCheckIcon />, group: "MANAGEMENT" },
-  { text: "OUTLET LOG", path: "/manager/DAO", roles: ["Manager"], icon: <StoreIcon />, group: "MANAGEMENT" },
-  { text: "OUTLET LEAVE SUMMARY", path: "/manager/OLS", roles: ["Manager"], icon: <SummarizeIcon />, group: "MANAGEMENT" },
+    // ADMIN - REPORTS
+    {
+      text: "DETAIL REPORTS",
+      path: "/Admin/reports",
+      roles: ["Admin"],
+      icon: <QueryStatsIcon />,
+      group: "REPORTS",
+    },
 
-  // Manager - Modifications
-  { text: "ATTENDANCE", path: "/Attandancemodify", roles: ["Manager"], icon: <TaskIcon />, group: "MODIFICATIONS" },
-  { text: "LEAVE", path: "/Leavemodify", roles: ["Manager"], icon: <EditCalendarIcon />, group: "MODIFICATIONS" },
-  { text: "REPORTS", path: "/Manager/Reports", roles: ["Manager"], icon: <QueryStatsIcon />, group: "MODIFICATIONS" },
-];
+    // MANAGER - MANAGEMENT
+    {
+      text: "EMPLOYEES",
+      path: "/empman",
+      roles: ["Manager"],
+      icon: <ManageAccountsIcon />,
+      group: "MANAGEMENT",
+    },
+    {
+      text: "LEAVE APPROVAL",
+      path: "/leave-approval",
+      roles: ["Manager"],
+      icon: <FactCheckIcon />,
+      group: "MANAGEMENT",
+    },
+    {
+      text: "OUTLET LOG",
+      path: "/manager/DAO",
+      roles: ["Manager"],
+      icon: <StoreIcon />,
+      group: "MANAGEMENT",
+    },
+    {
+      text: "OUTLET LEAVE SUMMARY",
+      path: "/manager/OLS",
+      roles: ["Manager"],
+      icon: <SummarizeIcon />,
+      group: "MANAGEMENT",
+    },
 
+    // MANAGER - MODIFICATIONS
+    {
+      text: "ATTENDANCE",
+      path: "/Attandancemodify",
+      roles: ["Manager"],
+      icon: <TaskIcon />,
+      group: "MODIFICATIONS",
+    },
+    {
+      text: "LEAVE",
+      path: "/Leavemodify",
+      roles: ["Manager"],
+      icon: <EditCalendarIcon />,
+      group: "MODIFICATIONS",
+    },
+    {
+      text: "REPORTS",
+      path: "/manager/reports", // ✅ use lowercase to avoid route mismatch
+      roles: ["Manager"],
+      icon: <QueryStatsIcon />,
+      group: "MODIFICATIONS",
+    },
+  ];
 
   // Group items by category
   const groupedNav = navItems.reduce((acc, item) => {
@@ -99,7 +199,7 @@ const navItems = [
         transition: "width 0.3s ease-in-out",
         overflowY: "auto",
         scrollbarWidth: "none",
-        "&::-webkit-scrollbar": { display: "none" }, // Hide scrollbar
+        "&::-webkit-scrollbar": { display: "none" },
       }}
     >
       {Object.entries(groupedNav).map(([group, items]) => (
@@ -123,11 +223,7 @@ const navItems = [
           <List sx={{ px: 1 }}>
             {items.map((item) => (
               <ListItem key={item.text} disablePadding>
-                <Tooltip
-                  title={!sidebarOpen ? item.text : ""}
-                  placement="right"
-                  arrow
-                >
+                <Tooltip title={!sidebarOpen ? item.text : ""} placement="right" arrow>
                   <ListItemButton
                     component={NavLink}
                     to={item.path}
@@ -146,14 +242,10 @@ const navItems = [
                       },
                     }}
                   >
-                    <Box sx={{ color: "inherit", minWidth: 0 }}>
-                      {item.icon}
-                    </Box>
+                    <Box sx={{ color: "inherit", minWidth: 0 }}>{item.icon}</Box>
+
                     {sidebarOpen && (
-                      <ListItemText
-                        primary={item.text}
-                        sx={{ ml: 2, whiteSpace: "nowrap" }}
-                      />
+                      <ListItemText primary={item.text} sx={{ ml: 2, whiteSpace: "nowrap" }} />
                     )}
                   </ListItemButton>
                 </Tooltip>

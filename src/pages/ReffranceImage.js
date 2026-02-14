@@ -14,7 +14,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from 'utils/api';
 
-const BASE_URL = 'http://64.227.183.23:8000';
+const BASE_URL = 'http://123.231.60.24:1605';
 
 export default function ModifyReferenceImage() {
   const [employees, setEmployees] = useState([]);
