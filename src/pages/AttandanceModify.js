@@ -27,17 +27,14 @@ import api from "utils/api";
 
 const API_TZ_OFFSET = "+05:30"; // Sri Lanka
 
-// ✅ date string "2026-02-14" -> "2/14/2026"
 const formatDate = (yyyyMmDd) => {
   if (!yyyyMmDd) return "-";
   const s = String(yyyyMmDd);
-  // safest: parse yyyy-mm-dd manually
   const [y, m, d] = s.split("-").map(Number);
   if (!y || !m || !d) return s;
   return new Date(y, m - 1, d).toLocaleDateString();
 };
 
-// ✅ "2026-02-13T21:19:18.818155+05:30" -> "21:19"
 const isoToHHMM = (iso) => {
   if (!iso) return "-";
   const s = String(iso);
@@ -48,13 +45,11 @@ const isoToHHMM = (iso) => {
   return s;
 };
 
-// ✅ build "YYYY-MM-DDTHH:MM:00+05:30"
 const buildLocalIsoWithOffset = (dateStr, hhmm, offset = API_TZ_OFFSET) => {
   if (!dateStr || !hhmm) return null;
   return `${dateStr}T${hhmm}:00${offset}`;
 };
 
-// Compare yyyy-mm-dd safely
 const ymdToNumber = (ymd) => {
   if (!ymd) return 0;
   const [y, m, d] = String(ymd).split("-").map(Number);
@@ -75,7 +70,6 @@ export default function AttendanceHistory() {
   const [rows, setRows] = useState([]);
   const [userDetails, setUserDetails] = useState(null);
 
-  // ✅ Date range state (default: last 7 days)
   const today = new Date();
   const prior = new Date();
   prior.setDate(today.getDate() - 7);
@@ -90,14 +84,14 @@ export default function AttendanceHistory() {
   const [bulkCheckIn, setBulkCheckIn] = useState("");
   const [bulkCheckOut, setBulkCheckOut] = useState("");
 
-  // Edit dialog
+  // Edit dialog — added editDate
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
+  const [editDate, setEditDate] = useState("");        // ← NEW
   const [editCheckIn, setEditCheckIn] = useState("");
   const [editCheckOut, setEditCheckOut] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Toast
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
   const openToast = (msg, severity = "success") => setToast({ open: true, msg, severity });
   const closeToast = () => setToast((t) => ({ ...t, open: false }));
@@ -150,10 +144,8 @@ export default function AttendanceHistory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOutletId]);
 
-  // ✅ Build grid rows for selected employee AND apply date range filter
   useEffect(() => {
     const emp = employees.find((e) => e.employee_id === selectedEmployeeId);
-
     const sNum = ymdToNumber(startDate);
     const eNum = ymdToNumber(endDate);
 
@@ -169,9 +161,9 @@ export default function AttendanceHistory() {
       const formattedRows = filteredAttendances.map((att) => ({
         id: att.attendance_id,
         attendance_id: att.attendance_id,
-        date: att.date, // ✅ must be "YYYY-MM-DD"
-        check_in_time: att.check_in_time, // ISO
-        check_out_time: att.check_out_time, // ISO or null
+        date: att.date,
+        check_in_time: att.check_in_time,
+        check_out_time: att.check_out_time,
         status: att.status,
         updated_by: userDetails?.username || "",
       }));
@@ -182,9 +174,11 @@ export default function AttendanceHistory() {
     }
   }, [selectedEmployeeId, employees, userDetails, startDate, endDate]);
 
+  // ← Updated: accepts editDate instead of using row.date
   const handleAttendanceUpdate = async (attendanceId, dateStr, checkInHHMM, checkOutHHMM) => {
     const payload = {
       attendance_id: attendanceId,
+      date: dateStr,                                                        // ← NEW: send updated date
       check_in_time: buildLocalIsoWithOffset(dateStr, checkInHHMM),
       check_out_time: buildLocalIsoWithOffset(dateStr, checkOutHHMM),
     };
@@ -193,9 +187,10 @@ export default function AttendanceHistory() {
     await fetchEmployeesForOutlet();
   };
 
-  // Edit dialog
+  // ← Pre-populate editDate when opening
   const handleOpenEdit = (row) => {
     setEditRow(row);
+    setEditDate(row?.date || "");                                           // ← NEW
     setEditCheckIn(row?.check_in_time ? isoToHHMM(row.check_in_time) : "");
     setEditCheckOut(row?.check_out_time ? isoToHHMM(row.check_out_time) : "");
     setIsEditOpen(true);
@@ -204,6 +199,7 @@ export default function AttendanceHistory() {
   const handleCloseEdit = () => {
     setIsEditOpen(false);
     setEditRow(null);
+    setEditDate("");                                                        // ← NEW
     setEditCheckIn("");
     setEditCheckOut("");
     setSaving(false);
@@ -212,8 +208,8 @@ export default function AttendanceHistory() {
   const handleSaveEdit = async () => {
     if (!editRow) return;
 
-    if (!editCheckIn || !editCheckOut) {
-      openToast("Please select both check-in and check-out times.", "warning");
+    if (!editDate || !editCheckIn || !editCheckOut) {                      // ← added editDate check
+      openToast("Please fill in date, check-in and check-out times.", "warning");
       return;
     }
     if (editCheckOut < editCheckIn) {
@@ -223,7 +219,7 @@ export default function AttendanceHistory() {
 
     try {
       setSaving(true);
-      await handleAttendanceUpdate(editRow.attendance_id, editRow.date, editCheckIn, editCheckOut);
+      await handleAttendanceUpdate(editRow.attendance_id, editDate, editCheckIn, editCheckOut); // ← uses editDate
       openToast("Attendance updated successfully.", "success");
       handleCloseEdit();
     } catch (err) {
@@ -233,7 +229,6 @@ export default function AttendanceHistory() {
     }
   };
 
-  // Bulk add
   const handleOpenBulkDialog = () => setIsBulkAddOpen(true);
 
   const handleCloseBulkDialog = () => {
@@ -340,9 +335,7 @@ export default function AttendanceHistory() {
         </Stack>
       </Box>
 
-      {/* Selectors + Date Range */}
       <Box display="flex" flexWrap="wrap" gap={2} alignItems="center" mb={2}>
-        {/* Outlet */}
         <FormControl sx={{ minWidth: 220, height: 48 }}>
           <InputLabel id="outlet-label">Outlet</InputLabel>
           <Select
@@ -359,7 +352,6 @@ export default function AttendanceHistory() {
           </Select>
         </FormControl>
 
-        {/* Employee */}
         <FormControl sx={{ minWidth: 320, height: 48 }} disabled={!employees.length}>
           <InputLabel id="employee-label">Employee</InputLabel>
           <Select
@@ -376,7 +368,6 @@ export default function AttendanceHistory() {
           </Select>
         </FormControl>
 
-        {/* ✅ Start / End date */}
         <TextField
           label="Start Date"
           type="date"
@@ -402,7 +393,6 @@ export default function AttendanceHistory() {
         )}
       </Box>
 
-      {/* Grid */}
       <Box mt={2} sx={{ height: 520, width: "100%" }}>
         {pageLoading ? (
           <CircularProgress />
@@ -430,16 +420,22 @@ export default function AttendanceHistory() {
         )}
       </Box>
 
-      {/* Edit Dialog */}
+      {/* ── Edit Dialog ── */}
       <Dialog open={isEditOpen} onClose={handleCloseEdit} fullWidth maxWidth="sm">
         <DialogTitle>Edit Attendance</DialogTitle>
         <DialogContent>
           {editRow && (
             <Box sx={{ mt: 1 }}>
-              <Typography sx={{ mb: 2 }}>
-                <strong>Date:</strong> {formatDate(editRow.date)}
-              </Typography>
-
+              {/* ← NEW: editable date field */}
+              <TextField
+                label="Date"
+                type="date"
+                fullWidth
+                margin="normal"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
               <TextField
                 label="Check-in Time"
                 type="time"
