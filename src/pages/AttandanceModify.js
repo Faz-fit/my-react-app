@@ -45,6 +45,14 @@ const isoToHHMM = (iso) => {
   return s;
 };
 
+const isoToDate = (iso) => {
+  if (!iso) return "";
+  const s = String(iso);
+  if (s.includes("T")) return s.slice(0, s.indexOf("T"));
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  return "";
+};
+
 const buildLocalIsoWithOffset = (dateStr, hhmm, offset = API_TZ_OFFSET) => {
   if (!dateStr || !hhmm) return null;
   return `${dateStr}T${hhmm}:00${offset}`;
@@ -84,10 +92,11 @@ export default function AttendanceHistory() {
   const [bulkCheckIn, setBulkCheckIn] = useState("");
   const [bulkCheckOut, setBulkCheckOut] = useState("");
 
-  // Edit dialog — added editDate
+  // Edit dialog — separate dates for check-in and check-out
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
-  const [editDate, setEditDate] = useState("");        // ← NEW
+  const [editCheckInDate, setEditCheckInDate] = useState("");
+  const [editCheckOutDate, setEditCheckOutDate] = useState("");
   const [editCheckIn, setEditCheckIn] = useState("");
   const [editCheckOut, setEditCheckOut] = useState("");
   const [saving, setSaving] = useState(false);
@@ -174,23 +183,22 @@ export default function AttendanceHistory() {
     }
   }, [selectedEmployeeId, employees, userDetails, startDate, endDate]);
 
-  // ← Updated: accepts editDate instead of using row.date
-  const handleAttendanceUpdate = async (attendanceId, dateStr, checkInHHMM, checkOutHHMM) => {
+  const handleAttendanceUpdate = async (attendanceId, checkInDateStr, checkOutDateStr, checkInHHMM, checkOutHHMM) => {
     const payload = {
       attendance_id: attendanceId,
-      date: dateStr,                                                        // ← NEW: send updated date
-      check_in_time: buildLocalIsoWithOffset(dateStr, checkInHHMM),
-      check_out_time: buildLocalIsoWithOffset(dateStr, checkOutHHMM),
+      date: checkInDateStr,
+      check_in_time: buildLocalIsoWithOffset(checkInDateStr, checkInHHMM),
+      check_out_time: buildLocalIsoWithOffset(checkOutDateStr, checkOutHHMM),
     };
 
     await api.post("/api/attendance/update/", payload);
     await fetchEmployeesForOutlet();
   };
 
-  // ← Pre-populate editDate when opening
   const handleOpenEdit = (row) => {
     setEditRow(row);
-    setEditDate(row?.date || "");                                           // ← NEW
+    setEditCheckInDate(row?.check_in_time ? isoToDate(row.check_in_time) : row?.date || "");
+    setEditCheckOutDate(row?.check_out_time ? isoToDate(row.check_out_time) : row?.date || "");
     setEditCheckIn(row?.check_in_time ? isoToHHMM(row.check_in_time) : "");
     setEditCheckOut(row?.check_out_time ? isoToHHMM(row.check_out_time) : "");
     setIsEditOpen(true);
@@ -199,7 +207,8 @@ export default function AttendanceHistory() {
   const handleCloseEdit = () => {
     setIsEditOpen(false);
     setEditRow(null);
-    setEditDate("");                                                        // ← NEW
+    setEditCheckInDate("");
+    setEditCheckOutDate("");
     setEditCheckIn("");
     setEditCheckOut("");
     setSaving(false);
@@ -208,18 +217,27 @@ export default function AttendanceHistory() {
   const handleSaveEdit = async () => {
     if (!editRow) return;
 
-    if (!editDate || !editCheckIn || !editCheckOut) {                      // ← added editDate check
-      openToast("Please fill in date, check-in and check-out times.", "warning");
+    if (!editCheckInDate || !editCheckOutDate || !editCheckIn || !editCheckOut) {
+      openToast("Please fill in all date and time fields.", "warning");
       return;
     }
-    if (editCheckOut < editCheckIn) {
-      openToast("Check-out time cannot be earlier than check-in time.", "warning");
+
+    const checkInDT = `${editCheckInDate}T${editCheckIn}`;
+    const checkOutDT = `${editCheckOutDate}T${editCheckOut}`;
+    if (checkOutDT < checkInDT) {
+      openToast("Check-out date/time cannot be earlier than check-in date/time.", "warning");
       return;
     }
 
     try {
       setSaving(true);
-      await handleAttendanceUpdate(editRow.attendance_id, editDate, editCheckIn, editCheckOut); // ← uses editDate
+      await handleAttendanceUpdate(
+        editRow.attendance_id,
+        editCheckInDate,
+        editCheckOutDate,
+        editCheckIn,
+        editCheckOut
+      );
       openToast("Attendance updated successfully.", "success");
       handleCloseEdit();
     } catch (err) {
@@ -307,7 +325,7 @@ export default function AttendanceHistory() {
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <Tooltip title="Edit times">
+        <Tooltip title="Edit attendance">
           <IconButton onClick={() => handleOpenEdit(params.row)} size="small">
             <EditIcon fontSize="small" />
           </IconButton>
@@ -426,14 +444,13 @@ export default function AttendanceHistory() {
         <DialogContent>
           {editRow && (
             <Box sx={{ mt: 1 }}>
-              {/* ← NEW: editable date field */}
               <TextField
-                label="Date"
+                label="Check-in Date"
                 type="date"
                 fullWidth
                 margin="normal"
-                value={editDate}
-                onChange={(e) => setEditDate(e.target.value)}
+                value={editCheckInDate}
+                onChange={(e) => setEditCheckInDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
@@ -443,6 +460,15 @@ export default function AttendanceHistory() {
                 margin="normal"
                 value={editCheckIn}
                 onChange={(e) => setEditCheckIn(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="Check-out Date"
+                type="date"
+                fullWidth
+                margin="normal"
+                value={editCheckOutDate}
+                onChange={(e) => setEditCheckOutDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
