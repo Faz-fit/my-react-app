@@ -13,6 +13,8 @@ import {
   useTheme,
 } from '@mui/material';
 
+const API_BASE = process.env.REACT_APP_API_URL || 'http://123.231.60.24:1605';
+
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +27,7 @@ const LoginPage = () => {
 
   const loginUser = async (username, password, deviceType) => {
     try {
-      const response = await axios.post('http://123.231.60.24:1605/api/token/', {
+      const response = await axios.post(`${API_BASE}/api/token/`, {
         username,
         password,
         device_type: deviceType,
@@ -38,7 +40,7 @@ const LoginPage = () => {
 
   const fetchUserDetails = async (token) => {
     try {
-      const response = await axios.get('http://123.231.60.24:1605/api/user/', {
+      const response = await axios.get(`${API_BASE}/api/user/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

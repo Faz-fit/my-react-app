@@ -38,6 +38,8 @@ import StoreIcon from "@mui/icons-material/Store";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 
+const API_BASE = process.env.REACT_APP_API_URL || "http://123.231.60.24:1605";
+
 function AdminDashboard() {
   const [overviewData, setOverviewData] = useState(null);
   const [leavePresenceData, setLeavePresenceData] = useState([]);
@@ -58,10 +60,10 @@ function AdminDashboard() {
         const headers = { Authorization: `Bearer ${accessToken}` };
 
         const [overviewRes, leaveRes, outletRes, employeeRes] = await Promise.all([
-          fetch("http://123.231.60.24:1605/report/dashboard/overview/", { headers }),
-          fetch("http://123.231.60.24:1605/report/dashboard/leave-presence-trend/", { headers }),
-          fetch("http://123.231.60.24:1605/report/dashboard/outlet-summary/", { headers }),
-          fetch("http://123.231.60.24:1605/report/dashboard/employee-attendance-summary/", { headers }),
+          fetch(`${API_BASE}/report/dashboard/overview/`, { headers }),
+          fetch(`${API_BASE}/report/dashboard/leave-presence-trend/`, { headers }),
+          fetch(`${API_BASE}/report/dashboard/outlet-summary/`, { headers }),
+          fetch(`${API_BASE}/report/dashboard/employee-attendance-summary/`, { headers }),
         ]);
 
         if (!overviewRes.ok) throw new Error("Failed to fetch overview data");

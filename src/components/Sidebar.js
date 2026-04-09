@@ -27,6 +27,7 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
+import BackupIcon from "@mui/icons-material/Backup";
 
 function Sidebar({ sidebarOpen, onClose }) {
   const role = getUserRole() || "";
@@ -172,6 +173,15 @@ function Sidebar({ sidebarOpen, onClose }) {
       roles: ["Manager"],
       icon: <QueryStatsIcon />,
       group: "MODIFICATIONS",
+    },
+
+    // MANAGER - SYSTEM
+    {
+      text: "DATABASE BACKUP",
+      path: "/manager/database-backup",
+      roles: ["Manager"],
+      icon: <BackupIcon />,
+      group: "SYSTEM",
     },
   ];
 

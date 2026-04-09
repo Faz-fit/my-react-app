@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
-const API_BASE = "http://123.231.60.24:1605";
+const API_BASE = process.env.REACT_APP_API_URL || "http://123.231.60.24:1605";
 
 const formatDateOnly = (dateStr) => {
   if (!dateStr) return "-";

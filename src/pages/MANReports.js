@@ -14,6 +14,8 @@ import {
 import axios from "axios";
 import EmployeeAttendanceTable from "./EmployeeAttendanceTable";
 
+const API_BASE = process.env.REACT_APP_API_URL || "http://123.231.60.24:1605";
+
 export default function MANReports() {
   // Default date range: last month to today
   const today = new Date();
@@ -65,7 +67,7 @@ export default function MANReports() {
         return;
       }
 
-      const response = await axios.get(`http://123.231.60.24:1605/api/user/`, {
+      const response = await axios.get(`${API_BASE}/api/user/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -82,7 +84,7 @@ export default function MANReports() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://123.231.60.24:1605/report/employees/user/${userId}`,
+        `${API_BASE}/report/employees/user/${userId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -120,7 +122,7 @@ export default function MANReports() {
       const allReports = [];
 
       for (const empId of employeesToFetch) {
-        let url = `http://123.231.60.24:1605/report/employee/${empId}`;
+        let url = `${API_BASE}/report/employee/${empId}`;
         const params = [];
         if (startDate) params.push(`start_date=${startDate}`);
         if (endDate) params.push(`end_date=${endDate}`);

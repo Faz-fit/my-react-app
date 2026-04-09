@@ -35,6 +35,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 
+const API_BASE = process.env.REACT_APP_API_URL || "http://123.231.60.24:1605";
+
 function ManagerDashboard() {
   const [overviewData, setOverviewData] = useState(null);
   const [leavePresenceData, setLeavePresenceData] = useState([]);
@@ -51,7 +53,7 @@ function ManagerDashboard() {
         const accessToken = localStorage.getItem("access_token");
         if (!accessToken) throw new Error("No access token found");
         
-        const response = await fetch("http://123.231.60.24:1605/api/user/", {
+        const response = await fetch(`${API_BASE}/api/user/`, {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         
@@ -86,7 +88,7 @@ function ManagerDashboard() {
         // Determine API endpoint based on selection
         const outletParam = selectedOutlet === "all" ? "all" : selectedOutlet;
         
-        const baseUrl = "http://123.231.60.24:1605/report/dashboard";
+        const baseUrl = `${API_BASE}/report/dashboard`;
         
         // Fetch data with outlet filter
         const [overviewRes, leaveRes, employeeRes] = await Promise.all([

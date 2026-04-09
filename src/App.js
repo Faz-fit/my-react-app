@@ -26,6 +26,7 @@ import Outlets from './pages/admin/outlets.js';
 import DeviceMangemnt from './pages/admin/assign/DeviceMangemnt.js';
 import AdminATTM from './pages/admin/assign/AdminATTM.js'; // Import Admin ATTM
 import ManagerATTM from './pages/manager/ManagerATTM.js'; // Import Manager ATTM
+import DatabaseBackup from './pages/manager/DatabaseBackup.js';
 import AssignEmployeeOutlet from './pages/admin/assign/AssignEmployeeOutlet.js';
 import AssignManagerOutlet from './pages/admin/assign/AssignManagerOutlet.js';
 import AssignLeave from './pages/admin/assign/LeaveManagment.js';
@@ -288,6 +289,12 @@ function App() {
             <Layout><MANReports/></Layout>
           </ProtectedRoute>
         } />
+        <Route path="/manager/database-backup" element={
+          <ProtectedRoute role={role} requiredRole="Manager">
+            <Layout><DatabaseBackup/></Layout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/employees/modify-reference-image" element={
           <ProtectedRoute role={role} requiredRole="Admin">
             <Layout><ReffaranceImage/></Layout>
