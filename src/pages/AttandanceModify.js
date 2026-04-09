@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -58,24 +58,20 @@ const buildLocalIsoWithOffset = (dateStr, hhmm, offset = API_TZ_OFFSET) => {
   return `${dateStr}T${hhmm}:00${offset}`;
 };
 
-const ymdToNumber = (ymd) => {
-  if (!ymd) return 0;
-  const [y, m, d] = String(ymd).split("-").map(Number);
-  if (!y || !m || !d) return 0;
-  return y * 10000 + m * 100 + d;
-};
-
 export default function AttendanceHistory() {
   const [outlets, setOutlets] = useState([]);
   const [selectedOutletId, setSelectedOutletId] = useState("");
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
 
-  const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const [rows, setRows] = useState([]);
+  const [rowCount, setRowCount] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
+
   const [userDetails, setUserDetails] = useState(null);
 
   const today = new Date();
@@ -92,7 +88,7 @@ export default function AttendanceHistory() {
   const [bulkCheckIn, setBulkCheckIn] = useState("");
   const [bulkCheckOut, setBulkCheckOut] = useState("");
 
-  // Edit dialog — separate dates for check-in and check-out
+  // Edit dialog
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
   const [editCheckInDate, setEditCheckInDate] = useState("");
@@ -105,29 +101,7 @@ export default function AttendanceHistory() {
   const openToast = (msg, severity = "success") => setToast({ open: true, msg, severity });
   const closeToast = () => setToast((t) => ({ ...t, open: false }));
 
-  const fetchEmployeesForOutlet = async () => {
-    if (!selectedOutletId) return;
-    setLoading(true);
-    try {
-      const response = await api.get(`/outletsalldata/${selectedOutletId}/`);
-      const allEmployees = response.data.employees || [];
-      setEmployees(allEmployees);
-
-      if (allEmployees.length > 0) {
-        const stillExists = allEmployees.some((e) => e.employee_id === selectedEmployeeId);
-        setSelectedEmployeeId(stillExists ? selectedEmployeeId : allEmployees[0].employee_id);
-      } else {
-        setSelectedEmployeeId("");
-      }
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      setEmployees([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Load outlets + user info on mount
   useEffect(() => {
     const fetchInitialData = async () => {
       setPageLoading(true);
@@ -135,7 +109,6 @@ export default function AttendanceHistory() {
         const response = await api.get("/api/user/");
         const data = response.data;
         setUserDetails(data);
-
         const userOutlets = data.outlets || [];
         setOutlets(userOutlets);
         if (userOutlets.length > 0) setSelectedOutletId(userOutlets[0].id);
@@ -148,26 +121,43 @@ export default function AttendanceHistory() {
     fetchInitialData();
   }, []);
 
+  // Load employee list for dropdown (no attendances — lightweight)
   useEffect(() => {
-    fetchEmployeesForOutlet();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!selectedOutletId) return;
+    const fetchEmployees = async () => {
+      try {
+        const response = await api.get(`/api/getoutletemployees?outlet_id=${selectedOutletId}`);
+        const data = response.data;
+        // Handle both paginated and plain array responses
+        const list = Array.isArray(data) ? data : (data.results || []);
+        setEmployees(list);
+        if (list.length > 0) setSelectedEmployeeId(list[0].employee_id);
+        else setSelectedEmployeeId("");
+      } catch (err) {
+        setEmployees([]);
+      }
+    };
+    fetchEmployees();
   }, [selectedOutletId]);
 
-  useEffect(() => {
-    const emp = employees.find((e) => e.employee_id === selectedEmployeeId);
-    const sNum = ymdToNumber(startDate);
-    const eNum = ymdToNumber(endDate);
-
-    if (emp && Array.isArray(emp.attendances)) {
-      const filteredAttendances = emp.attendances.filter((att) => {
-        const dNum = ymdToNumber(att.date);
-        if (!dNum) return false;
-        if (sNum && dNum < sNum) return false;
-        if (eNum && dNum > eNum) return false;
-        return true;
+  // Load paginated attendance records from server
+  const fetchAttendance = useCallback(async () => {
+    if (!selectedOutletId) return;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        outlet_id: selectedOutletId,
+        page: paginationModel.page + 1,           // DRF is 1-indexed
+        page_size: paginationModel.pageSize,
       });
+      if (selectedEmployeeId) params.append("employee_id", selectedEmployeeId);
+      if (startDate) params.append("start_date", startDate);
+      if (endDate) params.append("end_date", endDate);
 
-      const formattedRows = filteredAttendances.map((att) => ({
+      const response = await api.get(`/api/attendance/all/?${params}`);
+      const data = response.data;
+
+      const formatted = (data.results || []).map((att) => ({
         id: att.attendance_id,
         attendance_id: att.attendance_id,
         date: att.date,
@@ -177,11 +167,26 @@ export default function AttendanceHistory() {
         updated_by: userDetails?.username || "",
       }));
 
-      setRows(formattedRows);
-    } else {
+      setRows(formatted);
+      setRowCount(data.count || 0);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
       setRows([]);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedEmployeeId, employees, userDetails, startDate, endDate]);
+  }, [selectedOutletId, selectedEmployeeId, startDate, endDate, paginationModel, userDetails]);
+
+  useEffect(() => {
+    fetchAttendance();
+  }, [fetchAttendance]);
+
+  // Reset to page 0 when filters change
+  const handleFilterChange = (setter) => (value) => {
+    setPaginationModel((m) => ({ ...m, page: 0 }));
+    setter(value);
+  };
 
   const handleAttendanceUpdate = async (attendanceId, checkInDateStr, checkOutDateStr, checkInHHMM, checkOutHHMM) => {
     const payload = {
@@ -190,9 +195,8 @@ export default function AttendanceHistory() {
       check_in_time: buildLocalIsoWithOffset(checkInDateStr, checkInHHMM),
       check_out_time: buildLocalIsoWithOffset(checkOutDateStr, checkOutHHMM),
     };
-
     await api.post("/api/attendance/update/", payload);
-    await fetchEmployeesForOutlet();
+    await fetchAttendance();
   };
 
   const handleOpenEdit = (row) => {
@@ -216,19 +220,16 @@ export default function AttendanceHistory() {
 
   const handleSaveEdit = async () => {
     if (!editRow) return;
-
     if (!editCheckInDate || !editCheckOutDate || !editCheckIn || !editCheckOut) {
       openToast("Please fill in all date and time fields.", "warning");
       return;
     }
-
     const checkInDT = `${editCheckInDate}T${editCheckIn}`;
     const checkOutDT = `${editCheckOutDate}T${editCheckOut}`;
     if (checkOutDT < checkInDT) {
       openToast("Check-out date/time cannot be earlier than check-in date/time.", "warning");
       return;
     }
-
     try {
       setSaving(true);
       await handleAttendanceUpdate(
@@ -262,7 +263,6 @@ export default function AttendanceHistory() {
       openToast("Please select employees and fill in all date/time fields.", "warning");
       return;
     }
-
     const payload = {
       employee_ids: bulkSelectedEmployees,
       date: bulkDate,
@@ -270,22 +270,16 @@ export default function AttendanceHistory() {
       check_out_time: bulkCheckOut,
       outlet_id: selectedOutletId,
     };
-
     try {
       const response = await api.post("/api/attendance/bulk-add/", payload);
       openToast(response.data.message || "Bulk add done.", "success");
       handleCloseBulkDialog();
-      await fetchEmployeesForOutlet();
+      await fetchAttendance();
     } catch (err) {
       const errorMessage = err.response?.data?.error || "An error occurred during the bulk add.";
       openToast(errorMessage, "error");
     }
   };
-
-  const selectedEmployee = useMemo(
-    () => employees.find((e) => e.employee_id === selectedEmployeeId),
-    [employees, selectedEmployeeId]
-  );
 
   const columns = [
     {
@@ -340,10 +334,9 @@ export default function AttendanceHistory() {
         <Typography variant="h4" sx={{ fontWeight: "bold", textTransform: "uppercase" }}>
           Attendance History
         </Typography>
-
         <Stack direction="row" spacing={1}>
           <Tooltip title="Refresh">
-            <IconButton onClick={fetchEmployeesForOutlet} disabled={!selectedOutletId || loading}>
+            <IconButton onClick={fetchAttendance} disabled={!selectedOutletId || loading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
@@ -359,7 +352,7 @@ export default function AttendanceHistory() {
           <Select
             labelId="outlet-label"
             value={selectedOutletId}
-            onChange={(e) => setSelectedOutletId(e.target.value)}
+            onChange={(e) => handleFilterChange(setSelectedOutletId)(e.target.value)}
             label="Outlet"
           >
             {outlets.map((outlet) => (
@@ -371,16 +364,17 @@ export default function AttendanceHistory() {
         </FormControl>
 
         <FormControl sx={{ minWidth: 320, height: 48 }} disabled={!employees.length}>
-          <InputLabel id="employee-label">Employee</InputLabel>
+          <InputLabel id="employee-label">Employee (all if blank)</InputLabel>
           <Select
             labelId="employee-label"
             value={selectedEmployeeId}
-            onChange={(e) => setSelectedEmployeeId(e.target.value)}
-            label="Employee"
+            onChange={(e) => handleFilterChange(setSelectedEmployeeId)(e.target.value)}
+            label="Employee (all if blank)"
           >
+            <MenuItem value="">All Employees</MenuItem>
             {employees.map((emp) => (
               <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                {emp.first_name}
+                {emp.fullname || `${emp.first_name || ""} ${emp.last_name || ""}`.trim()}
               </MenuItem>
             ))}
           </Select>
@@ -390,7 +384,7 @@ export default function AttendanceHistory() {
           label="Start Date"
           type="date"
           value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
+          onChange={(e) => handleFilterChange(setStartDate)(e.target.value)}
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 180 }}
         />
@@ -398,32 +392,27 @@ export default function AttendanceHistory() {
           label="End Date"
           type="date"
           value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
+          onChange={(e) => handleFilterChange(setEndDate)(e.target.value)}
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: 180 }}
         />
-
-        {selectedEmployee && (
-          <Chip
-            label={`Selected: ${selectedEmployee.first_name} ${selectedEmployee.last_name}`}
-            variant="outlined"
-          />
-        )}
       </Box>
 
       <Box mt={2} sx={{ height: 520, width: "100%" }}>
         {pageLoading ? (
           <CircularProgress />
-        ) : loading ? (
-          <CircularProgress />
         ) : error ? (
           <Typography color="error">{error}</Typography>
-        ) : rows.length > 0 ? (
+        ) : (
           <DataGrid
             rows={rows}
             columns={columns}
+            rowCount={rowCount}
+            loading={loading}
+            paginationMode="server"
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
             pageSizeOptions={[10, 25, 50, 100]}
-            initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
             disableRowSelectionOnClick
             sx={{
               borderRadius: 2,
@@ -433,12 +422,10 @@ export default function AttendanceHistory() {
               "& .MuiDataGrid-cell:focus": { outline: "none" },
             }}
           />
-        ) : (
-          <Typography p={2}>No attendance records found in this date range.</Typography>
         )}
       </Box>
 
-      {/* ── Edit Dialog ── */}
+      {/* Edit Dialog */}
       <Dialog open={isEditOpen} onClose={handleCloseEdit} fullWidth maxWidth="sm">
         <DialogTitle>Edit Attendance</DialogTitle>
         <DialogContent>
@@ -484,9 +471,7 @@ export default function AttendanceHistory() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEdit} disabled={saving}>
-            Cancel
-          </Button>
+          <Button onClick={handleCloseEdit} disabled={saving}>Cancel</Button>
           <Button onClick={handleSaveEdit} variant="contained" disabled={saving}>
             {saving ? <CircularProgress size={18} /> : "Save"}
           </Button>
@@ -507,19 +492,18 @@ export default function AttendanceHistory() {
                 selected
                   .map((id) => {
                     const emp = employees.find((e) => e.employee_id === id);
-                    return emp ? `${emp.first_name} ${emp.last_name}` : id;
+                    return emp ? (emp.fullname || emp.first_name) : id;
                   })
                   .join(", ")
               }
             >
               {employees.map((emp) => (
                 <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                  {emp.first_name} {emp.last_name}
+                  {emp.fullname || `${emp.first_name || ""} ${emp.last_name || ""}`.trim()}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-
           <TextField
             label="Date"
             type="date"
@@ -550,9 +534,7 @@ export default function AttendanceHistory() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseBulkDialog}>Cancel</Button>
-          <Button onClick={handleBulkSubmit} variant="contained">
-            Submit
-          </Button>
+          <Button onClick={handleBulkSubmit} variant="contained">Submit</Button>
         </DialogActions>
       </Dialog>
 

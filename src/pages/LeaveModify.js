@@ -29,27 +29,26 @@ export default function BulkLeaveAddPage() {
 
   // API Data
   const [outlets, setOutlets] = useState([]);
-  const [allEmployees, setAllEmployees] = useState([]);
   const [leaveTypes, setLeaveTypes] = useState([]);
 
   // Form State
   const [selectedOutlet, setSelectedOutlet] = useState("");
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [selectedDates, setSelectedDates] = useState([]);
   const [currentDateInput, setCurrentDateInput] = useState(null);
   const [selectedLeaveType, setSelectedLeaveType] = useState("");
   const [remarks, setRemarks] = useState("");
 
-  /* ---------------- FETCH INITIAL DATA ---------------- */
+  /* ---------------- FETCH OUTLETS + LEAVE TYPES ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const res = await api.get("report/leaves/outlet-data/");
-        setOutlets(res.data.outlets);
-        setAllEmployees(res.data.employees);
-        setLeaveTypes(res.data.leave_types);
+        setOutlets(res.data.outlets || []);
+        setLeaveTypes(res.data.leave_types || []);
       } catch (err) {
         setMessage({ type: "error", text: "Failed to load initial data." });
       }
@@ -58,18 +57,29 @@ export default function BulkLeaveAddPage() {
     fetchData();
   }, []);
 
-  /* ---------------- FILTER EMPLOYEES BY OUTLET ---------------- */
+  /* ---------------- FETCH EMPLOYEES FOR SELECTED OUTLET ---------------- */
   useEffect(() => {
-    if (selectedOutlet) {
-      const filtered = allEmployees.filter((emp) =>
-        emp.outlet_ids.includes(selectedOutlet)
-      );
-      setFilteredEmployees(filtered);
-      setSelectedEmployees([]);
-    } else {
+    if (!selectedOutlet) {
       setFilteredEmployees([]);
+      return;
     }
-  }, [selectedOutlet, allEmployees]);
+    const fetchEmployees = async () => {
+      setEmployeesLoading(true);
+      try {
+        // page_size=500 scoped to one outlet — safe upper bound
+        const res = await api.get(`/api/getoutletemployees?outlet_id=${selectedOutlet}&page_size=500`);
+        const data = res.data;
+        const list = Array.isArray(data) ? data : (data.results || []);
+        setFilteredEmployees(list);
+        setSelectedEmployees([]);
+      } catch (err) {
+        setFilteredEmployees([]);
+      } finally {
+        setEmployeesLoading(false);
+      }
+    };
+    fetchEmployees();
+  }, [selectedOutlet]);
 
   /* ---------------- DATE HANDLING ---------------- */
   const addDate = () => {
@@ -195,20 +205,18 @@ export default function BulkLeaveAddPage() {
                           opt.employee_id === val.employee_id
                         }
                         getOptionLabel={(option) =>
-                          `${option.username} | ${option.first_name}`
+                          option.fullname || `${option.first_name || ""} ${option.last_name || ""}`.trim()
                         }
                         onChange={(e, val) => setSelectedEmployees(val)}
+                        loading={employeesLoading}
                         renderOption={(props, option) => (
                           <li {...props}>
                             <Box>
                               <Typography fontWeight={600}>
-                                {option.username}
+                                {option.fullname || `${option.first_name || ""} ${option.last_name || ""}`.trim()}
                               </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {option.first_name}
+                              <Typography variant="caption" color="text.secondary">
+                                {option.empcode || ""}
                               </Typography>
                             </Box>
                           </li>
@@ -217,7 +225,7 @@ export default function BulkLeaveAddPage() {
                           value.map((option, index) => (
                             <Chip
                               {...getTagProps({ index })}
-                              label={option.username}
+                              label={option.fullname || option.first_name || option.empcode}
                               size="small"
                               color="primary"
                               variant="outlined"
@@ -232,6 +240,8 @@ export default function BulkLeaveAddPage() {
                             helperText={
                               !selectedOutlet
                                 ? "Select an outlet to load employees"
+                                : employeesLoading
+                                ? "Loading employees…"
                                 : "You can select multiple employees"
                             }
                           />
