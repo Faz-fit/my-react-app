@@ -85,7 +85,8 @@ export default function EmployeeDataGrid() {
           return acc;
         }, {});
 
-        const updated = employeesRes.data.map((employee) => {
+        const empList = Array.isArray(employeesRes.data) ? employeesRes.data : (employeesRes.data.results || []);
+        const updated = empList.map((employee) => {
           const outletNames = employee.outlets?.map((id) => outletsMap[id]) || ['Unknown'];
           const photo = employee.reference_photo
             ? `${BASE_URL}${employee.reference_photo}`

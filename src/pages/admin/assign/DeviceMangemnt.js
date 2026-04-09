@@ -35,7 +35,7 @@ export default function EmployeeGrid() {
   const fetchEmployees = async () => {
     try {
       const response = await api.get('/api/getemployees');
-      setEmployees(response.data);
+      const d = response.data; setEmployees(Array.isArray(d) ? d : (d.results || []));
     } catch (err) {
       console.error('Error fetching employees:', err);
     }

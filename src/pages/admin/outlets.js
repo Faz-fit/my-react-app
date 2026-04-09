@@ -149,7 +149,7 @@ const fetchAgencies = React.useCallback(async () => {
 const fetchEmployees = React.useCallback(async () => {
   try {
     const res = await api.get('/api/getemployees/');
-    setEmployees(res.data);
+    const d = res.data; setEmployees(Array.isArray(d) ? d : (d.results || []));
   } catch (err) {
     console.error('Failed to fetch employees:', err);
   }

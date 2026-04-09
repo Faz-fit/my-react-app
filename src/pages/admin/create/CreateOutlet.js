@@ -34,7 +34,7 @@ const CreateOutlet = ({ onSuccess }) => {
   } = useForm();
 
   useEffect(() => {
-    api.get('/api/getemployees').then(res => setManagers(res.data));
+    api.get('/api/getemployees').then(res => { const d = res.data; setManagers(Array.isArray(d) ? d : (d.results || [])); });
     api.get('/api/getagencies/').then(res => setAgencies(res.data));
   }, []);
 

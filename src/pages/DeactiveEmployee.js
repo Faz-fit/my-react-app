@@ -33,7 +33,7 @@ export default function EmployeeManagement() {
     setLoading(true);
     try {
       const res = await api.get("/api/getallemployees/");
-      setEmployees(Array.isArray(res.data) ? res.data : []);
+      const d = res.data; setEmployees(Array.isArray(d) ? d : (d.results || []));
       setError(null);
     } catch (err) {
       setError(err.response?.data?.error || err.message);

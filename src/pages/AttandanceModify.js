@@ -373,10 +373,10 @@ export default function AttendanceHistory() {
           >
             <MenuItem value="">All Employees</MenuItem>
             {employees.map((emp) => (
-              <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                {emp.fullname || `${emp.first_name || ""} ${emp.last_name || ""}`.trim()}
-              </MenuItem>
-            ))}
+  <MenuItem key={emp.employee_id} value={emp.employee_id}>
+    {`${emp.fullname ? emp.fullname + " || " : ""}${emp.first_name || ""}`}
+  </MenuItem>
+))}
           </Select>
         </FormControl>
 
@@ -492,14 +492,16 @@ export default function AttendanceHistory() {
                 selected
                   .map((id) => {
                     const emp = employees.find((e) => e.employee_id === id);
-                    return emp ? (emp.fullname || emp.first_name) : id;
+                    return emp
+  ? `${emp.fullname ? emp.fullname + " || " : ""}${emp.first_name || ""}`
+  : id;
                   })
                   .join(", ")
               }
             >
               {employees.map((emp) => (
                 <MenuItem key={emp.employee_id} value={emp.employee_id}>
-                  {emp.fullname || `${emp.first_name || ""} ${emp.last_name || ""}`.trim()}
+                  {`${emp.fullname ? emp.fullname + " || " : ""}${emp.first_name || ""}`}
                 </MenuItem>
               ))}
             </Select>

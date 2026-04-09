@@ -41,7 +41,7 @@ export default function LeaveApproval() {
         setUserOutlets(resUser.data.outlets || []);
         if (resUser.data.outlets?.length > 0) setSelectedOutlet(resUser.data.outlets[0].id);
 
-        setEmployees(resEmp.data);
+        const d = resEmp.data; setEmployees(Array.isArray(d) ? d : (d.results || []));
       } catch (err) {
         console.error('Error fetching data:', err);
       } finally {
@@ -66,7 +66,7 @@ export default function LeaveApproval() {
             status: statusFilter !== 'all' ? statusFilter : '',
           },
         });
-        setRequests(res.data);
+        const d = res.data; setRequests(Array.isArray(d) ? d : (d.results || []));
       } catch (err) {
         console.error('Error fetching leave requests:', err);
       } finally {

@@ -22,6 +22,11 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PeopleIcon from "@mui/icons-material/People";
 import api from "utils/api";
 
+
+// ✅ format fullname + first_name
+const formatEmployeeName = (emp) =>
+  `${emp.fullname ? emp.fullname + " || " : ""}${emp.first_name || ""}`;
+
 export default function BulkLeaveAddPage() {
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -204,17 +209,15 @@ export default function BulkLeaveAddPage() {
                         isOptionEqualToValue={(opt, val) =>
                           opt.employee_id === val.employee_id
                         }
-                        getOptionLabel={(option) =>
-                          option.fullname || `${option.first_name || ""} ${option.last_name || ""}`.trim()
-                        }
+                        getOptionLabel={(option) => formatEmployeeName(option)}
                         onChange={(e, val) => setSelectedEmployees(val)}
                         loading={employeesLoading}
                         renderOption={(props, option) => (
                           <li {...props}>
                             <Box>
                               <Typography fontWeight={600}>
-                                {option.fullname || `${option.first_name || ""} ${option.last_name || ""}`.trim()}
-                              </Typography>
+  {formatEmployeeName(option)}
+</Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {option.empcode || ""}
                               </Typography>
@@ -225,7 +228,7 @@ export default function BulkLeaveAddPage() {
                           value.map((option, index) => (
                             <Chip
                               {...getTagProps({ index })}
-                              label={option.fullname || option.first_name || option.empcode}
+                              label={formatEmployeeName(option)}
                               size="small"
                               color="primary"
                               variant="outlined"

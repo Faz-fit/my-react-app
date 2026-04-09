@@ -34,7 +34,8 @@ export default function EmployeeGrid() {
         return acc;
       }, {});
 
-      const updatedEmployees = employeesRes.data.map((employee) => {
+      const empList = Array.isArray(employeesRes.data) ? employeesRes.data : (employeesRes.data.results || []);
+      const updatedEmployees = empList.map((employee) => {
         const outletNames = employee.outlets?.map((id) => outletsMap[id]) || ['Unknown'];
         return {
           ...employee,
